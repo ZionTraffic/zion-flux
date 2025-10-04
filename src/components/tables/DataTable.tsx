@@ -1,11 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CampaignData {
-  id: string;
   day: string;
-  source: string;
+  source?: string;
   leads_recebidos: number;
   leads_qualificados: number;
   investimento: number;
@@ -26,7 +25,7 @@ export const DataTable = ({ workspaceId }: DataTableProps) => {
         setLoading(true);
         const { data: campaignData, error } = await supabase
           .from('kpi_overview_daily')
-          .select('id, day, source, leads_recebidos, leads_qualificados, investimento, cpl')
+          .select('day, leads_recebidos, leads_qualificados, investimento, cpl')
           .eq('workspace_id', workspaceId)
           .order('day', { ascending: false })
           .limit(10);
@@ -82,9 +81,9 @@ export const DataTable = ({ workspaceId }: DataTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((row) => (
+              {data.map((row, index) => (
                 <TableRow 
-                  key={row.id} 
+                  key={`${row.day}-${index}`}
                   className="border-border/50 hover:bg-glass-light transition-colors"
                 >
                   <TableCell className="font-medium">{formatDate(row.day)}</TableCell>

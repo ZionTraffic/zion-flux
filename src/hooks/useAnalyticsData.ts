@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TotalsData {
   leads_recebidos: number;
@@ -40,9 +40,9 @@ export function useAnalyticsData(workspaceId: string) {
 
       // Buscar totais via RPC
       const { data: totalsData, error: totalsError } = await supabase.rpc('kpi_totais_periodo', {
-        workspace_id: workspaceId,
-        start_date: startDateStr,
-        end_date: endDateStr,
+        p_workspace_id: workspaceId,
+        p_from: startDateStr,
+        p_to: endDateStr,
       });
 
       if (totalsError) {
@@ -63,7 +63,17 @@ export function useAnalyticsData(workspaceId: string) {
         throw dailyError;
       }
 
-      setTotals(totalsData?.[0] || null);
+      // A RPC retorna campos com nomes diferentes, então mapeamos
+      const mappedTotals = totalsData?.[0] ? {
+        leads_recebidos: totalsData[0].recebidos,
+        leads_qualificados: totalsData[0].qualificados,
+        leads_followup: totalsData[0].followup,
+        leads_descartados: totalsData[0].descartados,
+        investimento: totalsData[0].investimento,
+        cpl: totalsData[0].cpl,
+      } : null;
+      
+      setTotals(mappedTotals);
       setDaily(dailyData || []);
       setLastUpdate(new Date());
     } catch (error: any) {
