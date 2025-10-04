@@ -1,0 +1,38 @@
+[
+  {
+    "id": "insight_1",
+    "type": "alert",
+    "iconName": "AlertTriangle",
+    "title": "Taxa de Abandono Elevada",
+    "description": "38% das conversas são abandonadas após a solicitação de CNPJ. Clientes demonstram desconforto com coleta de dados nessa etapa.",
+    "suggestion": "Postergar solicitação de CNPJ para após qualificação inicial",
+    "priority": "high"
+  },
+  {
+    "id": "insight_2",
+    "type": "warning",
+    "iconName": "Clock",
+    "title": "Tempo de Resposta Longo",
+    "description": "IA demora em média 12s para responder perguntas sobre taxas de juros. Isso causa hesitação no cliente.",
+    "suggestion": "Otimizar prompt para respostas mais diretas sobre valores",
+    "priority": "medium"
+  },
+  {
+    "id": "insight_3",
+    "type": "positive",
+    "iconName": "TrendingUp",
+    "title": "Alta Conversão em Crédito Imediato",
+    "description": "Conversas focadas em crédito rápido têm 87% de satisfação e 72% de conversão.",
+    "suggestion": "Replicar abordagem direta para outros produtos",
+    "priority": "low"
+  },
+  {
+    "id": "insight_4",
+    "type": "neutral",
+    "iconName": "MessageSquare",
+    "title": "Linguagem Técnica Excessiva",
+    "description": "23% dos clientes abandonam após termos como 'CET', 'IOF' e 'TAC'. Baixo nível de compreensão.",
+    "suggestion": "Simplificar vocabulário financeiro no prompt base",
+    "priority": "high"
+  }
+]
