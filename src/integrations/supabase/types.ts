@@ -327,6 +327,12 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_workspaces: {
+        Args: { _user_id: string }
+        Returns: {
+          workspace_id: string
+        }[]
+      }
       kpi_totais_periodo: {
         Args: { p_from: string; p_to: string; p_workspace_id: string }
         Returns: {
