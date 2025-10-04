@@ -2,16 +2,27 @@ import { Header } from "@/components/ui/Header";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { AnalyticsChart } from "@/components/charts/AnalyticsChart";
 import { DataTable } from "@/components/tables/DataTable";
-import { useAsfAnalytics } from "@/hooks/useAsfAnalytics";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 
 const Index = () => {
-  const { totals, daily, loading, lastUpdate, refetch } = useAsfAnalytics();
+  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData();
+
+  if (loading || !totals) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-center">
+          <div className="text-4xl mb-4">⚡</div>
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   const kpiCards = [
     {
       id: 'leads',
       label: 'Leads Recebidos',
-      value: totals.leads.toLocaleString('pt-BR'),
+      value: totals.leads_recebidos.toLocaleString('pt-BR'),
       icon: '⚡',
       gradient: 'rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)',
       trend: { value: 12.5, isPositive: true },
@@ -20,7 +31,7 @@ const Index = () => {
     {
       id: 'qualified',
       label: 'Qualificados',
-      value: totals.qualified.toLocaleString('pt-BR'),
+      value: totals.leads_qualificados.toLocaleString('pt-BR'),
       icon: '✓',
       gradient: 'rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)',
       trend: { value: 8.3, isPositive: true },
@@ -29,7 +40,7 @@ const Index = () => {
     {
       id: 'followup',
       label: 'Follow-up',
-      value: totals.followup.toLocaleString('pt-BR'),
+      value: totals.leads_followup.toLocaleString('pt-BR'),
       icon: '↻',
       gradient: 'rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05)',
       trend: { value: 5.1, isPositive: false },
@@ -38,7 +49,7 @@ const Index = () => {
     {
       id: 'discarded',
       label: 'Descartados',
-      value: totals.discarded.toLocaleString('pt-BR'),
+      value: totals.leads_descartados.toLocaleString('pt-BR'),
       icon: '✕',
       gradient: 'rgba(71, 85, 105, 0.1), rgba(71, 85, 105, 0.05)',
       trend: { value: 2.8, isPositive: false },
@@ -47,7 +58,7 @@ const Index = () => {
     {
       id: 'investment',
       label: 'Investimento',
-      value: `R$ ${totals.investment.toLocaleString('pt-BR')}`,
+      value: `R$ ${totals.investimento.toLocaleString('pt-BR')}`,
       icon: 'R$',
       gradient: 'rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)',
       trend: { value: 15.2, isPositive: true },

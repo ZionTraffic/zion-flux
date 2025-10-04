@@ -1,24 +1,30 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { DailyData } from '@/hooks/useAsfAnalytics';
+import { DailyData } from '@/hooks/useAnalyticsData';
 
 interface AnalyticsChartProps {
   data: DailyData[];
 }
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
       <div className="glass-heavy rounded-xl p-4 border border-border/50 shadow-lg">
-        <p className="text-sm font-medium mb-2">{payload[0].payload.date}</p>
+        <p className="text-sm font-medium mb-2">{formatDate(data.day)}</p>
         <div className="space-y-1">
           <p className="text-xs text-primary">
-            Leads: <span className="font-bold">{payload[0].value}</span>
+            Leads: <span className="font-bold">{data.leads_recebidos}</span>
           </p>
           <p className="text-xs text-secondary">
-            Investimento: <span className="font-bold">R$ {payload[1]?.value?.toFixed(2)}</span>
+            Investimento: <span className="font-bold">R$ {data.investimento?.toFixed(2)}</span>
           </p>
           <p className="text-xs text-accent">
-            CPL: <span className="font-bold">R$ {payload[2]?.value?.toFixed(2)}</span>
+            CPL: <span className="font-bold">R$ {data.cpl?.toFixed(2)}</span>
           </p>
         </div>
       </div>
@@ -53,7 +59,8 @@ export const AnalyticsChart = ({ data }: AnalyticsChartProps) => {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
           <XAxis 
-            dataKey="date" 
+            dataKey="day" 
+            tickFormatter={formatDate}
             stroke="hsl(var(--muted-foreground))"
             style={{ fontSize: '12px' }}
           />
@@ -64,14 +71,14 @@ export const AnalyticsChart = ({ data }: AnalyticsChartProps) => {
           <Tooltip content={<CustomTooltip />} />
           <Area 
             type="monotone" 
-            dataKey="leads" 
+            dataKey="leads_recebidos" 
             stroke="hsl(217, 91%, 60%)" 
             strokeWidth={2}
             fill="url(#colorLeads)" 
           />
           <Area 
             type="monotone" 
-            dataKey="investment" 
+            dataKey="investimento" 
             stroke="hsl(262, 83%, 58%)" 
             strokeWidth={2}
             fill="url(#colorInvestment)" 
