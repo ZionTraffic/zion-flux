@@ -75,7 +75,6 @@ export const AnalyticsChart = ({ data }: AnalyticsChartProps) => {
             stroke="hsl(262, 83%, 58%)" 
             strokeWidth={2}
             fill="url(#colorInvestment)" 
-            yAxisId={1}
           />
           <Area 
             type="monotone" 
@@ -83,7 +82,6 @@ export const AnalyticsChart = ({ data }: AnalyticsChartProps) => {
             stroke="hsl(142, 71%, 45%)" 
             strokeWidth={2}
             fill="url(#colorCpl)" 
-            yAxisId={2}
           />
         </AreaChart>
       </ResponsiveContainer>
