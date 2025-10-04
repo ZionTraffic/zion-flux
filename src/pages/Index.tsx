@@ -3,9 +3,11 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { AnalyticsChart } from "@/components/charts/AnalyticsChart";
 import { DataTable } from "@/components/tables/DataTable";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useState } from "react";
 
 const Index = () => {
-  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData();
+  const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
+  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(workspaceId);
 
   if (loading || !totals) {
     return (
@@ -77,7 +79,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <Header onRefresh={refetch} isRefreshing={loading} lastUpdate={lastUpdate} />
+      <Header 
+        onRefresh={refetch} 
+        isRefreshing={loading} 
+        lastUpdate={lastUpdate}
+        currentWorkspace={workspaceId}
+        onWorkspaceChange={setWorkspaceId}
+      />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
         {/* KPI Cards Grid */}
@@ -99,7 +107,7 @@ const Index = () => {
         <AnalyticsChart data={daily} />
 
         {/* Data Table */}
-        <DataTable />
+        <DataTable workspaceId={workspaceId} />
       </main>
 
       {/* Footer */}

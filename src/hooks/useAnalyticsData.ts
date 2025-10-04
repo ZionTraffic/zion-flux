@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, WORKSPACE_ID } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 export interface TotalsData {
   leads_recebidos: number;
@@ -20,7 +20,7 @@ export interface DailyData {
   cpl: number;
 }
 
-export function useAnalyticsData() {
+export function useAnalyticsData(workspaceId: string) {
   const [totals, setTotals] = useState<TotalsData | null>(null);
   const [daily, setDaily] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ export function useAnalyticsData() {
 
       // Buscar totais via RPC
       const { data: totalsData, error: totalsError } = await supabase.rpc('kpi_totais_periodo', {
-        workspace_id: WORKSPACE_ID,
+        workspace_id: workspaceId,
         start_date: startDateStr,
         end_date: endDateStr,
       });
@@ -54,7 +54,7 @@ export function useAnalyticsData() {
       const { data: dailyData, error: dailyError } = await supabase
         .from('kpi_overview_daily')
         .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
-        .eq('workspace_id', WORKSPACE_ID)
+        .eq('workspace_id', workspaceId)
         .gte('day', startDate.toISOString())
         .order('day', { ascending: true });
 
@@ -82,7 +82,7 @@ export function useAnalyticsData() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [workspaceId]);
 
   return { totals, daily, loading, lastUpdate, refetch: fetchData };
 }

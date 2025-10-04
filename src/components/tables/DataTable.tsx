@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEffect, useState } from "react";
-import { supabase, WORKSPACE_ID } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 interface CampaignData {
   id: string;
@@ -12,7 +12,11 @@ interface CampaignData {
   cpl: number;
 }
 
-export const DataTable = () => {
+interface DataTableProps {
+  workspaceId: string;
+}
+
+export const DataTable = ({ workspaceId }: DataTableProps) => {
   const [data, setData] = useState<CampaignData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +27,7 @@ export const DataTable = () => {
         const { data: campaignData, error } = await supabase
           .from('kpi_overview_daily')
           .select('id, day, source, leads_recebidos, leads_qualificados, investimento, cpl')
-          .eq('workspace_id', WORKSPACE_ID)
+          .eq('workspace_id', workspaceId)
           .order('day', { ascending: false })
           .limit(10);
 
@@ -37,7 +41,7 @@ export const DataTable = () => {
     }
 
     fetchCampaignData();
-  }, []);
+  }, [workspaceId]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

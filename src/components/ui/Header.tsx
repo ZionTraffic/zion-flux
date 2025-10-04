@@ -1,13 +1,16 @@
 import { RefreshCw, Download, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WorkspaceSelector } from "./WorkspaceSelector";
 
 interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdate: Date | null;
+  currentWorkspace: string;
+  onWorkspaceChange: (workspaceId: string) => void;
 }
 
-export const Header = ({ onRefresh, isRefreshing, lastUpdate }: HeaderProps) => {
+export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-medium">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -18,12 +21,17 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate }: HeaderProps) => 
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">Zion App</h1>
-              <p className="text-xs text-muted-foreground">ASF Finance Analytics</p>
+              <p className="text-xs text-muted-foreground">Premium Analytics</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <WorkspaceSelector 
+            current={currentWorkspace} 
+            onChange={onWorkspaceChange} 
+          />
+
           {lastUpdate && (
             <span className="text-xs text-muted-foreground hidden sm:block">
               Atualizado: {lastUpdate.toLocaleTimeString('pt-BR')}
