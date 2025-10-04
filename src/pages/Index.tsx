@@ -3,12 +3,67 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { AnalyticsChart } from "@/components/charts/AnalyticsChart";
 import { DataTable } from "@/components/tables/DataTable";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
+  const diagnostics = useSupabaseDiagnostics();
   const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(workspaceId);
 
+  // Diagnóstico em andamento
+  if (diagnostics.status === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass rounded-2xl p-8 border border-border/50 max-w-md w-full text-center">
+          <div className="animate-pulse text-center">
+            <div className="text-4xl mb-4">🔍</div>
+            <p className="text-muted-foreground">{diagnostics.details}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Diagnóstico falhou
+  if (diagnostics.status === "error") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass rounded-2xl p-8 border border-destructive/50 bg-destructive/5 max-w-md w-full">
+          <div className="text-center space-y-4">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-destructive">Erro de Conexão</h2>
+            <p className="text-sm text-muted-foreground">{diagnostics.details}</p>
+            {diagnostics.errorType === "rpc" && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Verifique se a função RPC 'kpi_totais_periodo' existe no seu banco Supabase.
+              </p>
+            )}
+            {diagnostics.errorType === "tables" && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Verifique se as tabelas necessárias existem e você tem permissões de acesso.
+              </p>
+            )}
+            {diagnostics.errorType === "connection" && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Verifique sua conexão de internet e as configurações do Supabase.
+              </p>
+            )}
+            <Button
+              onClick={() => window.location.reload()}
+              variant="default"
+              className="mt-4"
+            >
+              🔁 Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Carregando dados do dashboard
   if (loading || !totals) {
     return (
       <div className="min-h-screen flex items-center justify-center">
