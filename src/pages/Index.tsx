@@ -1,12 +1,104 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Header } from "@/components/ui/Header";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { AnalyticsChart } from "@/components/charts/AnalyticsChart";
+import { DataTable } from "@/components/tables/DataTable";
+import { useAsfAnalytics } from "@/hooks/useAsfAnalytics";
 
 const Index = () => {
+  const { totals, daily, loading, lastUpdate, refetch } = useAsfAnalytics();
+
+  const kpiCards = [
+    {
+      id: 'leads',
+      label: 'Leads Recebidos',
+      value: totals.leads.toLocaleString('pt-BR'),
+      icon: '⚡',
+      gradient: 'rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)',
+      trend: { value: 12.5, isPositive: true },
+      delay: 0,
+    },
+    {
+      id: 'qualified',
+      label: 'Qualificados',
+      value: totals.qualified.toLocaleString('pt-BR'),
+      icon: '✓',
+      gradient: 'rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)',
+      trend: { value: 8.3, isPositive: true },
+      delay: 0.05,
+    },
+    {
+      id: 'followup',
+      label: 'Follow-up',
+      value: totals.followup.toLocaleString('pt-BR'),
+      icon: '↻',
+      gradient: 'rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05)',
+      trend: { value: 5.1, isPositive: false },
+      delay: 0.1,
+    },
+    {
+      id: 'discarded',
+      label: 'Descartados',
+      value: totals.discarded.toLocaleString('pt-BR'),
+      icon: '✕',
+      gradient: 'rgba(71, 85, 105, 0.1), rgba(71, 85, 105, 0.05)',
+      trend: { value: 2.8, isPositive: false },
+      delay: 0.15,
+    },
+    {
+      id: 'investment',
+      label: 'Investimento',
+      value: `R$ ${totals.investment.toLocaleString('pt-BR')}`,
+      icon: 'R$',
+      gradient: 'rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)',
+      trend: { value: 15.2, isPositive: true },
+      delay: 0.2,
+    },
+    {
+      id: 'cpl',
+      label: 'CPL Médio',
+      value: `R$ ${totals.cpl.toFixed(2)}`,
+      icon: '◎',
+      gradient: 'rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.05)',
+      trend: { value: 3.5, isPositive: false },
+      delay: 0.25,
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen">
+      <Header onRefresh={refetch} isRefreshing={loading} lastUpdate={lastUpdate} />
+
+      <main className="container mx-auto px-6 py-8 space-y-8">
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {kpiCards.map((card) => (
+            <KpiCard
+              key={card.id}
+              label={card.label}
+              value={card.value}
+              icon={card.icon}
+              gradient={card.gradient}
+              trend={card.trend}
+              delay={card.delay}
+            />
+          ))}
+        </div>
+
+        {/* Analytics Chart */}
+        <AnalyticsChart data={daily} />
+
+        {/* Data Table */}
+        <DataTable />
+      </main>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-6 py-6 mt-12">
+        <div className="glass rounded-2xl p-6 text-center border border-border/50">
+          <p className="text-sm text-muted-foreground">
+            Zion App &copy; 2025 - Premium Analytics Dashboard
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
