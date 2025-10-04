@@ -4,36 +4,46 @@ import { BottleneckChart } from "@/components/operations/BottleneckChart";
 import { AiNarrative } from "@/components/operations/AiNarrative";
 import { Header } from "@/components/ui/Header";
 import insightsData from "@/data/mock/insights.json";
+import { Target, Cpu, MessageCircle, Calendar, TrendingUp, Zap, DollarSign, Clock } from "lucide-react";
+import { LucideIcon } from "lucide-react";
+
+const iconMap: Record<string, LucideIcon> = {
+  TrendingUp,
+  Zap,
+  DollarSign,
+  Clock,
+  Target,
+};
 
 const OperationsManager = () => {
   const operationalKpis = [
     {
-      icon: "🎯",
+      icon: Target,
       label: "Taxa de Conversão Final",
       value: "4.2%",
       subtitle: "Leads → Clientes",
-      gradient: "rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)",
+      colorScheme: "emerald" as const,
     },
     {
-      icon: "⚙️",
+      icon: Cpu,
       label: "Eficiência da IA",
       value: "2m 34s",
       subtitle: "Tempo médio de resposta",
-      gradient: "rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)",
+      colorScheme: "blue" as const,
     },
     {
-      icon: "💬",
+      icon: MessageCircle,
       label: "Taxa de Retorno",
       value: "18.5%",
       subtitle: "Leads reativados",
-      gradient: "rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05)",
+      colorScheme: "amber" as const,
     },
     {
-      icon: "📅",
+      icon: Calendar,
       label: "Conversas Ativas Hoje",
       value: "47",
       subtitle: "Abertas nas últimas 24h",
-      gradient: "rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)",
+      colorScheme: "violet" as const,
     },
   ];
 
@@ -71,17 +81,20 @@ const OperationsManager = () => {
         <div>
           <h2 className="text-2xl font-bold mb-4">Insights Automáticos</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {insightsData.map((insight, index) => (
-              <InsightCard
-                key={insight.id}
-                icon={insight.icon}
-                title={insight.title}
-                description={insight.description}
-                action={insight.action}
-                type={insight.type as any}
-                delay={index * 0.1}
-              />
-            ))}
+            {insightsData.map((insight, index) => {
+              const IconComponent = iconMap[insight.iconName];
+              return (
+                <InsightCard
+                  key={insight.id}
+                  icon={IconComponent}
+                  title={insight.title}
+                  description={insight.description}
+                  action={insight.action}
+                  type={insight.type as any}
+                  delay={index * 0.1}
+                />
+              );
+            })}
           </div>
         </div>
 

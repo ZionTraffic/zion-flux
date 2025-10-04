@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 export function AiNarrative() {
   const [displayedText, setDisplayedText] = useState("");
@@ -36,15 +37,20 @@ Recomendações: (1) Otimizar o fluxo de qualificação para reduzir tempo de pr
       transition={{ duration: 0.5 }}
       className="glass rounded-2xl p-6 border border-border/50"
     >
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-3xl">🧠</span>
-        <h2 className="text-2xl font-bold">IA Narrativa</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
+          <Sparkles className="h-6 w-6 text-violet-400 animate-pulse" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">IA Narrativa</h2>
+          <p className="text-xs text-muted-foreground/60">Análise em tempo real</p>
+        </div>
       </div>
       
       <div className="relative">
-        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+        <p className="text-sm text-muted-foreground/80 leading-relaxed whitespace-pre-line">
           {displayedText}
-          <span className="animate-pulse">|</span>
+          <span className="inline-block w-0.5 h-4 bg-violet-400 animate-pulse ml-0.5">|</span>
         </p>
         
         {!isExpanded && displayedText.length >= shortText.length && (
