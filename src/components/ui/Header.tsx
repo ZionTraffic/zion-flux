@@ -1,6 +1,7 @@
 import { RefreshCw, Download, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -11,11 +12,14 @@ interface HeaderProps {
 }
 
 export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange }: HeaderProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-medium">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
               <span className="text-xl font-bold">Z</span>
             </div>
@@ -24,6 +28,26 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
               <p className="text-xs text-muted-foreground">Premium Analytics</p>
             </div>
           </div>
+
+          {/* Navigation Tabs */}
+          <nav className="hidden md:flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className={location.pathname === "/" ? "bg-primary/10 text-primary" : ""}
+            >
+              📊 Dashboard
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/operations")}
+              className={location.pathname === "/operations" ? "bg-primary/10 text-primary" : ""}
+            >
+              🧠 Gerente de Operações
+            </Button>
+          </nav>
         </div>
 
         <div className="flex items-center gap-3">

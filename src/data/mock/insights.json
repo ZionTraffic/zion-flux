@@ -1,0 +1,47 @@
+[
+  {
+    "id": "insight-1",
+    "icon": "📈",
+    "title": "Performance em Alta",
+    "description": "Leads qualificados aumentaram 15% comparado à semana passada. A taxa de conversão está acima da média do setor.",
+    "action": "Manter estratégia atual",
+    "type": "positive",
+    "priority": "medium"
+  },
+  {
+    "id": "insight-2",
+    "icon": "⚡",
+    "title": "Tempo de Resposta Elevado",
+    "description": "O tempo médio de resposta da IA aumentou para 2min 34s. Isso pode estar impactando a qualificação de leads.",
+    "action": "Otimizar fluxo de qualificação",
+    "type": "warning",
+    "priority": "high"
+  },
+  {
+    "id": "insight-3",
+    "icon": "💰",
+    "title": "CPL Otimizado",
+    "description": "O Custo Por Lead caiu 8% nas últimas 48h. A eficiência de investimento está melhorando.",
+    "action": "Aumentar investimento gradualmente",
+    "type": "positive",
+    "priority": "medium"
+  },
+  {
+    "id": "insight-4",
+    "icon": "⏳",
+    "title": "Follow-up em Atraso",
+    "description": "23% dos leads em follow-up não foram contatados nas últimas 24h. Isso pode causar perda de oportunidades.",
+    "action": "Revisar agenda de follow-up",
+    "type": "alert",
+    "priority": "high"
+  },
+  {
+    "id": "insight-5",
+    "icon": "🎯",
+    "title": "Conversão Estável",
+    "description": "A taxa de conversão final manteve-se em 4.2%, consistente com o histórico dos últimos 30 dias.",
+    "action": "Testar novas abordagens",
+    "type": "neutral",
+    "priority": "low"
+  }
+]
