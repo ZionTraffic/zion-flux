@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Settings, BarChart3, Brain, Workflow } from "lucide-react";
+import { RefreshCw, Download, Settings, BarChart3, Brain, Workflow, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -57,6 +57,15 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             >
               <Brain className="h-4 w-4 mr-2" />
               Treinador IA
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/reports")}
+              className={location.pathname === "/reports" ? "bg-primary/10 text-primary" : ""}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Relatórios
             </Button>
           </nav>
         </div>
