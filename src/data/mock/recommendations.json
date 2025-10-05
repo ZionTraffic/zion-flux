@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "workspaceId": "3f14bb25-0eda-4c58-8486-16b96dca6f9e",
+    "workspaceName": "ASF Finance",
+    "priority": "high",
+    "category": "conversion",
+    "title": "Otimizar processo de qualificação",
+    "description": "Detectamos que 34% dos leads descartados possuem perfil adequado. Recomendamos revisar os critérios de qualificação inicial.",
+    "impact": "+15% conversão estimada",
+    "actionable": true
+  },
+  {
+    "id": 2,
+    "workspaceId": "4e99af61-d5a2-4319-bd6c-77d31c77b411",
+    "workspaceName": "Bem Estar",
+    "priority": "medium",
+    "category": "efficiency",
+    "title": "Reduzir tempo de resposta da IA",
+    "description": "O tempo médio de resposta aumentou 18% na última semana. Sugerimos otimizar prompts de contexto.",
+    "impact": "-25% tempo de resposta",
+    "actionable": true
+  },
+  {
+    "id": 3,
+    "workspaceId": "8d10ce88-6e33-4822-92aa-cdd2c72d91de",
+    "workspaceName": "Dr. Premium",
+    "priority": "high",
+    "category": "cost",
+    "title": "Ajustar segmentação de campanhas",
+    "description": "CPL 32% acima da média do setor. Recomendamos refinar público-alvo e testar novos criativos.",
+    "impact": "-R$ 1.200/mês estimado",
+    "actionable": true
+  },
+  {
+    "id": 4,
+    "workspaceId": "3f14bb25-0eda-4c58-8486-16b96dca6f9e",
+    "workspaceName": "ASF Finance",
+    "priority": "medium",
+    "category": "retention",
+    "title": "Ativar campanha de reengajamento",
+    "description": "47 leads qualificados sem follow-up há mais de 7 dias. Recomendamos campanha automática de reativação.",
+    "impact": "+22 conversões potenciais",
+    "actionable": true
+  },
+  {
+    "id": 5,
+    "workspaceId": "4e99af61-d5a2-4319-bd6c-77d31c77b411",
+    "workspaceName": "Bem Estar",
+    "priority": "low",
+    "category": "quality",
+    "title": "Aprimorar script de objeções",
+    "description": "Análise de sentimento indica hesitação em 28% das conversas na fase de agendamento.",
+    "impact": "+8% taxa de agendamento",
+    "actionable": false
+  }
+]

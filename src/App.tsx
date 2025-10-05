@@ -10,6 +10,7 @@ import AiTrainer from "./pages/AiTrainer";
 import Reports from "./pages/Reports";
 import Workspaces from "./pages/Workspaces";
 import GlobalDashboard from "./pages/GlobalDashboard";
+import PerformanceDashboard from "./pages/PerformanceDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/trainer" element={<AiTrainer />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/workspaces" element={<Workspaces />} />
+            <Route path="/performance" element={<PerformanceDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
