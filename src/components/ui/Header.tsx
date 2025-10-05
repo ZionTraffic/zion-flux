@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Settings, BarChart3, Brain, Workflow, FileText, Building2 } from "lucide-react";
+import { RefreshCw, Download, Settings, BarChart3, Brain, Workflow, FileText, Building2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -39,6 +39,15 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Dashboard
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/global")}
+              className={location.pathname === "/global" ? "bg-primary/10 text-primary" : ""}
+            >
+              <Globe className="h-4 w-4 mr-2" />
+              Global
             </Button>
             <Button
               variant="ghost"

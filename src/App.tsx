@@ -9,6 +9,7 @@ import OperationsManager from "./pages/OperationsManager";
 import AiTrainer from "./pages/AiTrainer";
 import Reports from "./pages/Reports";
 import Workspaces from "./pages/Workspaces";
+import GlobalDashboard from "./pages/GlobalDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/global" element={<GlobalDashboard />} />
             <Route path="/operations" element={<OperationsManager />} />
             <Route path="/trainer" element={<AiTrainer />} />
             <Route path="/reports" element={<Reports />} />
