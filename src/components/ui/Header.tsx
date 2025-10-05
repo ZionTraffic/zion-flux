@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Settings, BarChart3, Brain, Workflow, FileText, Building2, Globe, TrendingUp } from "lucide-react";
+import { RefreshCw, Download, Settings, BarChart3, Layers, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -43,56 +43,20 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/global")}
-              className={location.pathname === "/global" ? "bg-primary/10 text-primary" : ""}
+              onClick={() => navigate("/qualificacao")}
+              className={location.pathname === "/qualificacao" ? "bg-primary/10 text-primary" : ""}
             >
-              <Globe className="h-4 w-4 mr-2" />
-              Global
+              <Layers className="h-4 w-4 mr-2" />
+              Qualificação
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/operations")}
-              className={location.pathname === "/operations" ? "bg-primary/10 text-primary" : ""}
+              onClick={() => navigate("/conversas")}
+              className={location.pathname === "/conversas" ? "bg-primary/10 text-primary" : ""}
             >
-              <Workflow className="h-4 w-4 mr-2" />
-              Operações
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/performance")}
-              className={location.pathname === "/performance" ? "bg-primary/10 text-primary" : ""}
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Performance
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/trainer")}
-              className={location.pathname === "/trainer" ? "bg-primary/10 text-primary" : ""}
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              Treinador IA
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/reports")}
-              className={location.pathname === "/reports" ? "bg-primary/10 text-primary" : ""}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Relatórios
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/workspaces")}
-              className={location.pathname === "/workspaces" ? "bg-primary/10 text-primary" : ""}
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              Workspaces
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Conversas
             </Button>
           </nav>
         </div>
@@ -139,6 +103,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
               variant="ghost"
               size="sm"
               className="glass hover:glass-medium"
+              onClick={() => navigate("/configuracoes")}
             >
               <Settings className="h-4 w-4" />
             </Button>
