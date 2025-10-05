@@ -66,6 +66,9 @@ export default {
         '2xl': '24px',
         '3xl': '32px',
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

@@ -2,6 +2,7 @@ import { RefreshCw, Download, BarChart3, Layers, MessageSquare } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
+import { MenuBar } from "./glow-menu";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Tooltip,
@@ -22,6 +23,43 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   const navigate = useNavigate();
   const location = useLocation();
   
+  const menuItems = [
+    {
+      icon: BarChart3,
+      label: "Dashboard",
+      href: "/",
+      gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
+      iconColor: "text-primary",
+    },
+    {
+      icon: Layers,
+      label: "Qualificação",
+      href: "/qualificacao",
+      gradient: "radial-gradient(circle, rgba(175,82,222,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
+      iconColor: "text-secondary",
+    },
+    {
+      icon: MessageSquare,
+      label: "Conversas",
+      href: "/conversas",
+      gradient: "radial-gradient(circle, rgba(52,199,89,0.15) 0%, rgba(34,197,94,0.06) 50%, rgba(22,163,74,0) 100%)",
+      iconColor: "text-accent",
+    },
+  ];
+
+  const getActiveItem = () => {
+    const path = location.pathname;
+    if (path === "/") return "Dashboard";
+    if (path === "/qualificacao") return "Qualificação";
+    if (path === "/conversas") return "Conversas";
+    return "";
+  };
+
+  const handleMenuClick = (label: string) => {
+    const item = menuItems.find(i => i.label === label);
+    if (item) navigate(item.href);
+  };
+  
   return (
     <TooltipProvider>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-medium">
@@ -38,36 +76,14 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
               </div>
             </div>
 
-            {/* Navigation Menu */}
-            <nav className="hidden lg:flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/")}
-                className={location.pathname === "/" ? "bg-primary/10 text-primary" : ""}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/qualificacao")}
-                className={location.pathname === "/qualificacao" ? "bg-primary/10 text-primary" : ""}
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                Qualificação
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/conversas")}
-                className={location.pathname === "/conversas" ? "bg-primary/10 text-primary" : ""}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Conversas
-              </Button>
-            </nav>
+            {/* Navigation Menu with Glow Effect */}
+            <div className="hidden lg:block">
+              <MenuBar 
+                items={menuItems}
+                activeItem={getActiveItem()}
+                onItemClick={handleMenuClick}
+              />
+            </div>
           </div>
 
           {/* Center Section: Workspace Selector */}
