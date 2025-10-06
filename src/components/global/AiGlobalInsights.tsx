@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Brain, TrendingUp, AlertTriangle, Zap, Target } from "lucide-react";
 import { LucideIcon } from "lucide-react";
-import insightsData from "@/data/mock/global-insights.json";
+import { useAiInsights } from "@/hooks/useAiInsights";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const iconMap: Record<string, LucideIcon> = {
   TrendingUp,
@@ -19,9 +20,10 @@ const typeColors = {
 };
 
 export function AiGlobalInsights() {
+  const { insights, isLoading } = useAiInsights();
   const [displayedText, setDisplayedText] = useState("");
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
-  const fullText = insightsData[currentInsightIndex]?.description || "";
+  const fullText = insights[currentInsightIndex]?.description || "";
 
   useEffect(() => {
     let currentIndex = 0;
@@ -37,8 +39,27 @@ export function AiGlobalInsights() {
     return () => clearInterval(interval);
   }, [fullText]);
 
-  const currentInsight = insightsData[currentInsightIndex];
+  const currentInsight = insights[currentInsightIndex];
   const IconComponent = iconMap[currentInsight?.iconName as keyof typeof iconMap] || Brain;
+
+  if (isLoading) {
+    return (
+      <div className="glass rounded-2xl p-6 border border-border/50">
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-12 w-12 rounded-xl" />
+          <div className="flex-1 space-y-3">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-3/4" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!insights || insights.length === 0) {
+    return null;
+  }
 
   return (
     <motion.div
@@ -68,7 +89,7 @@ export function AiGlobalInsights() {
 
       {/* Navigation dots */}
       <div className="flex gap-2 mt-4 justify-center">
-        {insightsData.map((_, index) => (
+        {insights.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentInsightIndex(index)}

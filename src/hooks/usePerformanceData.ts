@@ -98,14 +98,66 @@ export function usePerformanceData(workspaceId?: string) {
         const conversionChange = previousConversion > 0 ? ((currentConversion - previousConversion) / previousConversion) * 100 : 0;
         const cplChange = previousCpl > 0 ? ((currentCpl - previousCpl) / previousCpl) * 100 : 0;
 
-        // Mock AI speed and retention metrics
-        const aiSpeed = 145 + Math.random() * 30;
-        const previousAiSpeed = 150 + Math.random() * 30;
-        const aiSpeedChange = ((aiSpeed - previousAiSpeed) / previousAiSpeed) * 100;
+        // Calculate AI Speed (average analysis time in seconds)
+        const { data: currentAiData } = await supabase
+          .from('analise_ia')
+          .select('started_at, ended_at')
+          .eq('workspace_id', workspace.id)
+          .gte('ended_at', format(sevenDaysAgo, 'yyyy-MM-dd'))
+          .lte('ended_at', to)
+          .not('ended_at', 'is', null);
 
-        const retention = 65 + Math.random() * 20;
-        const previousRetention = 70 + Math.random() * 20;
-        const retentionChange = ((retention - previousRetention) / previousRetention) * 100;
+        const { data: previousAiData } = await supabase
+          .from('analise_ia')
+          .select('started_at, ended_at')
+          .eq('workspace_id', workspace.id)
+          .gte('ended_at', format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'))
+          .lte('ended_at', format(subDays(new Date(), 1), 'yyyy-MM-dd'))
+          .not('ended_at', 'is', null);
+
+        const calculateAvgDuration = (data: any[]) => {
+          if (!data || data.length === 0) return 180; // default 3 minutes
+          const durations = data.map(d => {
+            const start = new Date(d.started_at).getTime();
+            const end = new Date(d.ended_at).getTime();
+            return (end - start) / 1000; // convert to seconds
+          });
+          return durations.reduce((sum, d) => sum + d, 0) / durations.length;
+        };
+
+        const aiSpeed = calculateAvgDuration(currentAiData || []);
+        const previousAiSpeed = calculateAvgDuration(previousAiData || []);
+        const aiSpeedChange = previousAiSpeed > 0 ? ((aiSpeed - previousAiSpeed) / previousAiSpeed) * 100 : 0;
+
+        // Calculate Retention (leads with multiple conversations)
+        const { data: currentConversations } = await supabase
+          .from('historico_conversas')
+          .select('phone')
+          .eq('workspace_id', workspace.id)
+          .gte('started_at', format(sevenDaysAgo, 'yyyy-MM-dd'))
+          .lte('started_at', to);
+
+        const { data: previousConversations } = await supabase
+          .from('historico_conversas')
+          .select('phone')
+          .eq('workspace_id', workspace.id)
+          .gte('started_at', format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'))
+          .lte('started_at', format(subDays(new Date(), 1), 'yyyy-MM-dd'));
+
+        const calculateRetention = (conversations: any[]) => {
+          if (!conversations || conversations.length === 0) return 0;
+          const phoneCount = conversations.reduce((acc, conv) => {
+            acc[conv.phone] = (acc[conv.phone] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const returning = Object.values(phoneCount).filter((count: number) => count > 1).length;
+          const total = Object.keys(phoneCount).length;
+          return total > 0 ? (returning / total) * 100 : 0;
+        };
+
+        const retention = calculateRetention(currentConversations || []);
+        const previousRetention = calculateRetention(previousConversations || []);
+        const retentionChange = previousRetention > 0 ? ((retention - previousRetention) / previousRetention) * 100 : 0;
 
         // Determine status
         let status: 'excellent' | 'good' | 'warning' | 'critical' = 'good';

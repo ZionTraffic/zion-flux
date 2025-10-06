@@ -23,15 +23,34 @@ export const DataTable = ({ workspaceId }: DataTableProps) => {
     async function fetchCampaignData() {
       try {
         setLoading(true);
-        const { data: campaignData, error } = await supabase
+        
+        // Fetch campaign data with source from custo_anuncios
+        const { data: kpiData, error: kpiError } = await supabase
           .from('kpi_overview_daily')
           .select('day, leads_recebidos, leads_qualificados, investimento, cpl')
           .eq('workspace_id', workspaceId)
           .order('day', { ascending: false })
           .limit(10);
 
-        if (error) throw error;
-        setData(campaignData || []);
+        if (kpiError) throw kpiError;
+
+        // Fetch sources from custo_anuncios
+        const { data: sourcesData } = await supabase
+          .from('custo_anuncios')
+          .select('day, source')
+          .eq('workspace_id', workspaceId)
+          .in('day', (kpiData || []).map(d => d.day));
+
+        // Merge source data
+        const enrichedData = (kpiData || []).map(row => {
+          const sourceRow = sourcesData?.find(s => s.day === row.day);
+          return {
+            ...row,
+            source: sourceRow?.source || 'Meta',
+          };
+        });
+
+        setData(enrichedData);
       } catch (error: any) {
         console.error('Erro ao carregar dados da tabela:', error.message);
       } finally {

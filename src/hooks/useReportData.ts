@@ -155,20 +155,42 @@ export function useReportData(workspaceId: string, fromDate: Date, toDate: Date)
 function generateInsights(kpi: any, aiData: any): string[] {
   const insights: string[] = [];
 
+  // Análise de CPL
   if (kpi.cpl > 50) {
-    insights.push('CPL acima da média do mercado - revisar estratégia de segmentação');
+    insights.push('CPL acima da média do mercado - revisar estratégia de segmentação e lances');
+  } else if (kpi.cpl < 30) {
+    insights.push('CPL competitivo detectado - oportunidade para escalar campanhas mantendo eficiência');
   }
 
-  if (kpi.qualificados / Math.max(kpi.recebidos, 1) < 0.3) {
-    insights.push('Taxa de qualificação baixa - melhorar critérios de filtro inicial');
+  // Análise de qualificação
+  const qualificationRate = kpi.qualificados / Math.max(kpi.recebidos, 1);
+  if (qualificationRate < 0.3 && kpi.recebidos > 10) {
+    insights.push('Taxa de qualificação baixa - melhorar critérios de filtro inicial e prompts da IA');
+  } else if (qualificationRate > 0.7) {
+    insights.push('Excelente taxa de qualificação - critérios bem ajustados');
   }
 
+  // Análise de sentimento
   if (aiData.avgSentiment < 0.5) {
-    insights.push('Sentimento geral negativo - ajustar tom e abordagem da IA');
+    insights.push('Sentimento geral negativo detectado - ajustar tom e abordagem da IA nas conversas');
+  } else if (aiData.avgSentiment > 0.8) {
+    insights.push('Sentimento positivo consistente - leads demonstram boa receptividade');
   }
 
+  // Análise de conversas críticas
   if (aiData.critical > 5) {
     insights.push(`${aiData.critical} conversas críticas detectadas - análise urgente necessária`);
+  }
+
+  // Análise de investimento vs resultados
+  const roi = kpi.qualificados / Math.max(kpi.investimento / 100, 1);
+  if (roi > 2) {
+    insights.push('ROI positivo - cada R$ 100 investidos gera mais de 2 leads qualificados');
+  }
+
+  // Análise de tempo de resposta
+  if (aiData.avgResponseTime < 120) {
+    insights.push('Tempo de resposta da IA otimizado - média abaixo de 2 minutos');
   }
 
   return insights;
@@ -177,20 +199,46 @@ function generateInsights(kpi: any, aiData: any): string[] {
 function generateRecommendations(kpi: any, aiData: any): string[] {
   const recommendations: string[] = [];
 
-  if (kpi.followup > kpi.qualificados * 0.5) {
-    recommendations.push('Implementar automação de follow-up para reduzir tempo de resposta');
+  // Análise de follow-up
+  if (kpi.followup > kpi.qualificados * 0.5 && kpi.followup > 5) {
+    recommendations.push('Implementar automação de follow-up para reduzir tempo de resposta e aumentar taxa de conversão');
   }
 
+  // Análise de tempo de resposta da IA
   if (aiData.avgResponseTime > 300) {
-    recommendations.push('Otimizar prompt da IA para respostas mais rápidas');
+    recommendations.push('Otimizar prompt da IA para respostas mais rápidas (tempo médio acima de 5 minutos detectado)');
   }
 
+  // Análise de conversas treináveis
   if (aiData.trainable > 10) {
-    recommendations.push('Revisar conversas treináveis para aprimorar base de conhecimento');
+    recommendations.push(`Revisar ${aiData.trainable} conversas treináveis para aprimorar base de conhecimento da IA`);
   }
 
-  if (kpi.descartados / Math.max(kpi.recebidos, 1) > 0.2) {
-    recommendations.push('Refinar segmentação de anúncios para reduzir leads descartados');
+  // Análise de taxa de descarte
+  const discardRate = kpi.descartados / Math.max(kpi.recebidos, 1);
+  if (discardRate > 0.2 && kpi.descartados > 5) {
+    recommendations.push(`Taxa de descarte em ${(discardRate * 100).toFixed(1)}% - refinar segmentação de anúncios para reduzir leads não qualificados`);
+  }
+
+  // Análise de CPL
+  if (kpi.cpl > 40) {
+    recommendations.push(`CPL de R$ ${kpi.cpl.toFixed(2)} acima do ideal - considerar ajustar lances e segmentação de audiência`);
+  }
+
+  // Análise de taxa de conversão
+  const conversionRate = (kpi.qualificados / Math.max(kpi.recebidos, 1)) * 100;
+  if (conversionRate < 50 && kpi.recebidos > 10) {
+    recommendations.push(`Taxa de conversão de ${conversionRate.toFixed(1)}% abaixo do esperado - revisar critérios de qualificação`);
+  }
+
+  // Análise de conversas críticas
+  if (aiData.critical > 5) {
+    recommendations.push(`${aiData.critical} conversas críticas detectadas - análise manual urgente necessária para evitar perda de leads`);
+  }
+
+  // Se tudo estiver bem
+  if (recommendations.length === 0) {
+    recommendations.push('Desempenho dentro dos padrões esperados - manter estratégia atual e monitorar tendências');
   }
 
   return recommendations;
