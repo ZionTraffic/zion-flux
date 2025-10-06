@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import recommendationsData from "@/data/mock/recommendations.json";
+import { generateWorkspaceRecommendations } from "@/utils/insightsGenerator";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AiAdvisorProps {
   workspaceId?: string;
@@ -21,14 +23,86 @@ const priorityBadgeColors = {
 };
 
 export function AiAdvisor({ workspaceId }: AiAdvisorProps) {
+  const { currentWorkspaceId } = useWorkspace();
   const [displayedIndex, setDisplayedIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredRecommendations = workspaceId
-    ? recommendationsData.filter(r => r.workspaceId === workspaceId)
-    : recommendationsData;
+  const targetWorkspaceId = workspaceId || currentWorkspaceId;
 
-  const currentRec = filteredRecommendations[displayedIndex];
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      if (!targetWorkspaceId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      
+      try {
+        // Buscar KPIs do workspace
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: kpiData } = await supabase
+          .rpc('kpi_totais_periodo', {
+            p_workspace_id: targetWorkspaceId,
+            p_from: thirtyDaysAgo.toISOString().split('T')[0],
+            p_to: new Date().toISOString().split('T')[0]
+          });
+
+        const { data: workspaceData } = await supabase
+          .from('workspaces')
+          .select('name')
+          .eq('id', targetWorkspaceId)
+          .single();
+
+        if (kpiData && kpiData.length > 0) {
+          const kpis = kpiData[0];
+          const recs = generateWorkspaceRecommendations(
+            {
+              recebidos: kpis.recebidos || 0,
+              qualificados: kpis.qualificados || 0,
+              followup: kpis.followup || 0,
+              descartados: kpis.descartados || 0,
+              investimento: Number(kpis.investimento) || 0,
+              cpl: Number(kpis.cpl) || 0,
+            },
+            {
+              avgSentiment: 0.7,
+              avgDuration: 180,
+              trainable: 0,
+              critical: 0,
+            }
+          );
+          
+          // Transformar strings em objetos de recomendação
+          const formattedRecs = recs.map((rec, idx) => ({
+            id: `rec_${idx}`,
+            workspaceId: targetWorkspaceId,
+            workspaceName: workspaceData?.name || 'Workspace',
+            priority: idx === 0 ? 'high' : idx < 2 ? 'medium' : 'low',
+            category: 'optimization',
+            title: rec.split(' - ')[0],
+            description: rec,
+            impact: 'Melhoria estimada',
+            actionable: true,
+          }));
+          
+          setRecommendations(formattedRecs);
+        }
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRecommendations();
+  }, [targetWorkspaceId]);
+
+  const currentRec = recommendations[displayedIndex];
 
   useEffect(() => {
     if (!currentRec) return;
@@ -48,7 +122,18 @@ export function AiAdvisor({ workspaceId }: AiAdvisorProps) {
     return () => clearInterval(interval);
   }, [currentRec]);
 
-  if (filteredRecommendations.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="glass rounded-2xl p-6 border border-border/50">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-muted/20 rounded w-3/4"></div>
+          <div className="h-20 bg-muted/20 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (recommendations.length === 0) {
     return (
       <div className="glass rounded-2xl p-6 border border-border/50 text-center">
         <p className="text-muted-foreground">Nenhuma recomendação disponível</p>
@@ -106,7 +191,7 @@ export function AiAdvisor({ workspaceId }: AiAdvisorProps) {
 
           {/* Navigation dots */}
           <div className="flex gap-2 justify-center">
-            {filteredRecommendations.map((_, index) => (
+            {recommendations.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setDisplayedIndex(index)}

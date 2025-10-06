@@ -1,5 +1,27 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import gargalosData from "@/data/mock/gargalos.json";
+
+const gargalosData = [
+  {
+    label: "Tempo de Resposta",
+    impacto: 34,
+    description: "IA demorando para processar mensagens"
+  },
+  {
+    label: "Falha de Qualificação",
+    impacto: 22,
+    description: "Leads sendo descartados incorretamente"
+  },
+  {
+    label: "Follow-up Atrasado",
+    impacto: 28,
+    description: "Delays no contato de retorno"
+  },
+  {
+    label: "Conversa Abandonada",
+    impacto: 16,
+    description: "Usuários saindo antes da conclusão"
+  }
+];
 
 export function BottleneckChart() {
   return (

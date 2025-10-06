@@ -18,23 +18,21 @@ interface TrainerModalProps {
 export function TrainerModal({ conversation, open, onOpenChange }: TrainerModalProps) {
   if (!conversation) return null;
 
-  const recommendations = [
-    {
-      type: "primary",
-      text: "Simplificar pergunta inicial sobre tipo de crédito",
-      icon: Lightbulb,
-    },
-    {
-      type: "warning",
-      text: "Evitar termos técnicos antes da qualificação",
-      icon: TrendingDown,
-    },
-    {
-      type: "positive",
-      text: "Adicionar gatilho de reengajamento após 45s de inatividade",
-      icon: TrendingUp,
-    },
-  ];
+  const suggestions = conversation.ai_suggestions || [];
+  
+  const recommendations = suggestions.length > 0 
+    ? suggestions.map((text, idx) => ({
+        type: idx === 0 ? "primary" : idx % 2 === 0 ? "positive" : "warning",
+        text,
+        icon: idx === 0 ? Lightbulb : idx % 2 === 0 ? TrendingUp : TrendingDown,
+      }))
+    : [
+        {
+          type: "primary",
+          text: "Nenhuma recomendação disponível para esta conversa",
+          icon: Lightbulb,
+        },
+      ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
