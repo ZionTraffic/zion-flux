@@ -1,85 +1,35 @@
 import { useState } from "react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useConversationsData } from "@/hooks/useConversationsData";
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Search, TrendingUp, Clock, Users, Lightbulb } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MessageSquare, Search, TrendingUp, Clock, Lightbulb, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface Conversation {
-  id: string;
-  leadName: string;
-  product: string;
-  status: "qualified" | "follow-up" | "discarded";
-  sentiment: "positive" | "neutral" | "negative";
-  summary: string;
-  createdAt: Date;
-  insights: {
-    positives: string[];
-    improvements: string[];
-    suggestions: string[];
-  };
-}
-
 const Conversas = () => {
-  const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { conversations, stats, isLoading, error } = useConversationsData(currentWorkspaceId);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
-  const conversations: Conversation[] = [
-    {
-      id: "1",
-      leadName: "João Silva",
-      product: "Produto A",
-      status: "qualified",
-      sentiment: "positive",
-      summary: "Lead demonstrou interesse em agendar reunião para conhecer melhor o produto.",
-      createdAt: new Date("2025-01-15"),
-      insights: {
-        positives: ["Resposta rápida", "Interesse genuíno", "Disponibilidade imediata"],
-        improvements: ["Adicionar mais detalhes sobre preços", "Enviar material complementar"],
-        suggestions: ["Agendar follow-up em 48h", "Preparar proposta personalizada"],
-      },
-    },
-    {
-      id: "2",
-      leadName: "Maria Santos",
-      product: "Produto B",
-      status: "follow-up",
-      sentiment: "neutral",
-      summary: "Lead solicitou mais informações sobre condições de pagamento.",
-      createdAt: new Date("2025-01-14"),
-      insights: {
-        positives: ["Engajamento ativo", "Perguntas específicas"],
-        improvements: ["Responder com mais clareza sobre parcelamento"],
-        suggestions: ["Enviar simulação de financiamento", "Ligar em 24h"],
-      },
-    },
-    {
-      id: "3",
-      leadName: "Pedro Costa",
-      product: "Produto C",
-      status: "discarded",
-      sentiment: "negative",
-      summary: "Lead não se encaixa no perfil de cliente ideal.",
-      createdAt: new Date("2025-01-13"),
-      insights: {
-        positives: [],
-        improvements: ["Melhorar triagem inicial", "Ajustar targeting de anúncios"],
-        suggestions: ["Revisar critérios de qualificação"],
-      },
-    },
-  ];
 
   const filteredConversations = conversations.filter((conv) =>
     conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.product.toLowerCase().includes(searchTerm.toLowerCase())
+    conv.phone.includes(searchTerm)
   );
 
-  const handleViewDetails = (conversation: Conversation) => {
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const handleViewDetails = (conversation: any) => {
     setSelectedConversation(conversation);
     setModalOpen(true);
   };
@@ -100,10 +50,10 @@ const Conversas = () => {
     <div className="min-h-screen">
       <Header 
         onRefresh={() => window.location.reload()} 
-        isRefreshing={false} 
+        isRefreshing={isLoading} 
         lastUpdate={new Date()}
-        currentWorkspace={workspaceId}
-        onWorkspaceChange={setWorkspaceId}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={setCurrentWorkspaceId}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
@@ -114,41 +64,61 @@ const Conversas = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-6 glass border border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-blue-500/10">
-                <MessageSquare className="h-6 w-6 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Conversas</p>
-                <p className="text-2xl font-bold">{conversations.length}</p>
-              </div>
-            </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-6 glass border border-border/50">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-xl" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <Card className="p-6 border-destructive">
+            <p className="text-destructive">{error}</p>
           </Card>
-          <Card className="p-6 glass border border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-green-500/10">
-                <TrendingUp className="h-6 w-6 text-green-400" />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-6 glass border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-blue-500/10">
+                  <MessageSquare className="h-6 w-6 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total de Conversas</p>
+                  <p className="text-2xl font-bold">{stats.totalConversations}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
-                <p className="text-2xl font-bold">33%</p>
+            </Card>
+            <Card className="p-6 glass border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-green-500/10">
+                  <TrendingUp className="h-6 w-6 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
+                  <p className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</p>
+                </div>
               </div>
-            </div>
-          </Card>
-          <Card className="p-6 glass border border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-purple-500/10">
-                <Clock className="h-6 w-6 text-purple-400" />
+            </Card>
+            <Card className="p-6 glass border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-purple-500/10">
+                  <Clock className="h-6 w-6 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tempo Médio</p>
+                  <p className="text-2xl font-bold">{formatDuration(stats.averageDuration)}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tempo Médio</p>
-                <p className="text-2xl font-bold">2m 34s</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -160,42 +130,52 @@ const Conversas = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          {filteredConversations.map((conversation) => (
-            <Card key={conversation.id} className="p-6 glass border border-border/50 hover:shadow-lg transition-all">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
-                    <p className="text-sm text-muted-foreground">{conversation.product}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge className={statusColors[conversation.status]}>
-                      {conversation.status === "qualified" ? "Qualificado" : 
-                       conversation.status === "follow-up" ? "Follow-up" : "Descartado"}
-                    </Badge>
-                    <Badge className={sentimentColors[conversation.sentiment]}>
-                      {conversation.sentiment === "positive" ? "Positivo" : 
-                       conversation.sentiment === "neutral" ? "Neutro" : "Negativo"}
-                    </Badge>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{conversation.summary}</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {conversation.createdAt.toLocaleDateString("pt-BR")}
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => handleViewDetails(conversation)}
-                  >
-                    Ver Detalhes
-                  </Button>
-                </div>
-              </div>
+        {!isLoading && !error && (
+          filteredConversations.length === 0 ? (
+            <Card className="p-12 glass border border-border/50 text-center">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Nenhuma conversa encontrada</p>
             </Card>
-          ))}
-        </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {filteredConversations.map((conversation) => (
+                <Card key={conversation.id} className="p-6 glass border border-border/50 hover:shadow-lg transition-all">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
+                        <p className="text-sm text-muted-foreground">{conversation.product || "Sem produto"}</p>
+                        <p className="text-xs text-muted-foreground">{conversation.phone}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge className={statusColors[conversation.status]}>
+                          {conversation.status === "qualified" ? "Qualificado" : 
+                           conversation.status === "follow-up" ? "Follow-up" : "Descartado"}
+                        </Badge>
+                        <Badge className={sentimentColors[conversation.sentiment]}>
+                          {conversation.sentiment === "positive" ? "Positivo" : 
+                           conversation.sentiment === "neutral" ? "Neutro" : "Negativo"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{conversation.summary}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {conversation.startedAt.toLocaleDateString("pt-BR")} • {formatDuration(conversation.duration)}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewDetails(conversation)}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )
+        )}
       </main>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -243,33 +223,42 @@ const Conversas = () => {
                     Insights da IA
                   </h4>
                   
-                  {selectedConversation.insights.positives.length > 0 && (
+                  {selectedConversation.positives.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-green-400 mb-2">✓ Pontos Positivos</p>
+                      <p className="text-sm font-medium text-green-400 mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Pontos Positivos
+                      </p>
                       <ul className="space-y-1 ml-4">
-                        {selectedConversation.insights.positives.map((positive, i) => (
+                        {selectedConversation.positives.map((positive: string, i: number) => (
                           <li key={i} className="text-sm text-muted-foreground list-disc">{positive}</li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {selectedConversation.insights.improvements.length > 0 && (
+                  {selectedConversation.negatives.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-amber-400 mb-2">⚠ Melhorias Sugeridas</p>
+                      <p className="text-sm font-medium text-amber-400 mb-2 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Melhorias Sugeridas
+                      </p>
                       <ul className="space-y-1 ml-4">
-                        {selectedConversation.insights.improvements.map((improvement, i) => (
-                          <li key={i} className="text-sm text-muted-foreground list-disc">{improvement}</li>
+                        {selectedConversation.negatives.map((negative: string, i: number) => (
+                          <li key={i} className="text-sm text-muted-foreground list-disc">{negative}</li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {selectedConversation.insights.suggestions.length > 0 && (
+                  {selectedConversation.suggestions.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-blue-400 mb-2">💡 Próximas Ações</p>
+                      <p className="text-sm font-medium text-blue-400 mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4" />
+                        Próximas Ações
+                      </p>
                       <ul className="space-y-1 ml-4">
-                        {selectedConversation.insights.suggestions.map((suggestion, i) => (
+                        {selectedConversation.suggestions.map((suggestion: string, i: number) => (
                           <li key={i} className="text-sm text-muted-foreground list-disc">{suggestion}</li>
                         ))}
                       </ul>
