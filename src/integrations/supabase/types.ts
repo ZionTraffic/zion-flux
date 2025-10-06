@@ -14,42 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      ad_accounts: {
-        Row: {
-          active: boolean | null
-          external_id: string
-          id: number
-          name: string | null
-          platform: string
-          workspace_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          external_id: string
-          id?: number
-          name?: string | null
-          platform: string
-          workspace_id: string
-        }
-        Update: {
-          active?: boolean | null
-          external_id?: string
-          id?: number
-          name?: string | null
-          platform?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ad_accounts_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      conversation_summaries: {
+      analise_ia: {
         Row: {
           ad_suggestions: string[] | null
           ai_suggestions: string[] | null
@@ -115,7 +80,119 @@ export type Database = {
           },
         ]
       }
-      lead_status_history: {
+      contas_anuncios: {
+        Row: {
+          active: boolean | null
+          external_id: string
+          id: number
+          name: string | null
+          platform: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          external_id: string
+          id?: number
+          name?: string | null
+          platform: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean | null
+          external_id?: string
+          id?: number
+          name?: string | null
+          platform?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custo_anuncios: {
+        Row: {
+          ad_account_id: string
+          amount: number
+          created_at: string | null
+          day: string
+          source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ad_account_id?: string
+          amount?: number
+          created_at?: string | null
+          day: string
+          source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ad_account_id?: string
+          amount?: number
+          created_at?: string | null
+          day?: string
+          source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spend_by_day_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_conversas: {
+        Row: {
+          channel: string
+          created_at: string
+          ended_at: string | null
+          id: number
+          lead_name: string | null
+          messages: Json
+          phone: string
+          source: string
+          started_at: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: number
+          lead_name?: string | null
+          messages: Json
+          phone: string
+          source?: string
+          started_at?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: number
+          lead_name?: string | null
+          messages?: Json
+          phone?: string
+          source?: string
+          started_at?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      historico_leads: {
         Row: {
           changed_at: string | null
           changed_by: string | null
@@ -228,42 +305,7 @@ export type Database = {
           },
         ]
       }
-      spend_by_day: {
-        Row: {
-          ad_account_id: string
-          amount: number
-          created_at: string | null
-          day: string
-          source: string | null
-          workspace_id: string
-        }
-        Insert: {
-          ad_account_id?: string
-          amount?: number
-          created_at?: string | null
-          day: string
-          source?: string | null
-          workspace_id: string
-        }
-        Update: {
-          ad_account_id?: string
-          amount?: number
-          created_at?: string | null
-          day?: string
-          source?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "spend_by_day_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      workspace_members: {
+      membros_workspace: {
         Row: {
           role: string | null
           user_id: string
@@ -288,6 +330,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       workspaces: {
         Row: {
@@ -333,6 +396,13 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       kpi_totais_periodo: {
         Args: { p_from: string; p_to: string; p_workspace_id: string }
         Returns: {
@@ -346,7 +416,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "member" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -473,6 +543,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "member", "viewer"],
+    },
   },
 } as const
