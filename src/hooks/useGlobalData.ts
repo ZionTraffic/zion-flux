@@ -123,7 +123,7 @@ export function useGlobalData() {
 
       // Get active conversations count
       const { data: conversations } = await supabase
-        .from('conversation_summaries')
+        .from('analise_ia')
         .select('id')
         .gte('ended_at', format(new Date(), 'yyyy-MM-dd'));
 

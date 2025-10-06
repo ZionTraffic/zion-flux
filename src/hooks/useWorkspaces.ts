@@ -59,7 +59,7 @@ export function useWorkspaces() {
             });
 
           const { data: conversations } = await supabase
-            .from('conversation_summaries')
+            .from('analise_ia')
             .select('id')
             .eq('workspace_id', workspace.id)
             .gte('ended_at', thirtyDaysAgo.toISOString());
@@ -107,7 +107,7 @@ export function useWorkspaces() {
       
       if (user) {
         const { error: memberError } = await supabase
-          .from('workspace_members')
+          .from('membros_workspace')
           .insert([
             {
               workspace_id: workspace.id,

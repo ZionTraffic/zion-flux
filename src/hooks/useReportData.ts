@@ -73,7 +73,7 @@ export function useReportData(workspaceId: string, fromDate: Date, toDate: Date)
 
         // Fetch conversation summaries for AI metrics
         const { data: conversations, error: convError } = await supabase
-          .from('conversation_summaries')
+          .from('analise_ia')
           .select('qualified, summary, ended_at')
           .eq('workspace_id', workspaceId)
           .gte('ended_at', from)

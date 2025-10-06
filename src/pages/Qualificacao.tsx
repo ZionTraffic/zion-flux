@@ -1,64 +1,16 @@
-import { useState } from "react";
 import { Header } from "@/components/ui/Header";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Clock, TrendingUp, Users } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { KpiCard } from "@/components/ui/KpiCard";
-
-interface Lead {
-  id: string;
-  name: string;
-  phone: string;
-  product: string;
-  source: string;
-  createdAt: Date;
-}
-
-interface Column {
-  id: string;
-  title: string;
-  leads: Lead[];
-}
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useLeadsKanban, LeadStage } from "@/hooks/useLeadsKanban";
 
 const Qualificacao = () => {
-  const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
-  
-  const [columns, setColumns] = useState<Record<string, Column>>({
-    recebidos: {
-      id: "recebidos",
-      title: "Recebidos",
-      leads: [
-        { id: "1", name: "João Silva", phone: "11999999999", product: "Produto A", source: "Meta Ads", createdAt: new Date() },
-        { id: "2", name: "Maria Santos", phone: "11888888888", product: "Produto B", source: "Google Ads", createdAt: new Date() },
-      ],
-    },
-    qualificacao: {
-      id: "qualificacao",
-      title: "Em Qualificação",
-      leads: [
-        { id: "3", name: "Pedro Costa", phone: "11777777777", product: "Produto A", source: "Meta Ads", createdAt: new Date() },
-      ],
-    },
-    qualificados: {
-      id: "qualificados",
-      title: "Qualificados",
-      leads: [
-        { id: "4", name: "Ana Lima", phone: "11666666666", product: "Produto C", source: "Indicação", createdAt: new Date() },
-      ],
-    },
-    followup: {
-      id: "followup",
-      title: "Follow-up",
-      leads: [],
-    },
-    descartados: {
-      id: "descartados",
-      title: "Descartados",
-      leads: [],
-    },
-  });
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { columns, isLoading, error, moveLead, refetch, kpis } = useLeadsKanban(currentWorkspaceId);
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
@@ -66,29 +18,17 @@ const Qualificacao = () => {
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const sourceColumn = columns[source.droppableId];
-    const destColumn = columns[destination.droppableId];
-    const sourceLeads = [...sourceColumn.leads];
-    const destLeads = source.droppableId === destination.droppableId ? sourceLeads : [...destColumn.leads];
+    const leadId = parseInt(result.draggableId);
+    const fromStage = source.droppableId as LeadStage;
+    const toStage = destination.droppableId as LeadStage;
 
-    const [movedLead] = sourceLeads.splice(source.index, 1);
-    destLeads.splice(destination.index, 0, movedLead);
-
-    setColumns({
-      ...columns,
-      [source.droppableId]: { ...sourceColumn, leads: sourceLeads },
-      [destination.droppableId]: { ...destColumn, leads: destLeads },
-    });
+    moveLead(leadId, fromStage, toStage, source.index, destination.index);
   };
-
-  const totalLeads = Object.values(columns).reduce((acc, col) => acc + col.leads.length, 0);
-  const qualifiedLeads = columns.qualificados.leads.length;
-  const qualificationRate = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
 
   const kpiCards = [
     {
       label: "Total de Leads",
-      value: totalLeads.toString(),
+      value: kpis.totalLeads.toString(),
       icon: "👥",
       gradient: "rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)",
       trend: { value: 12.5, isPositive: true },
@@ -96,18 +36,18 @@ const Qualificacao = () => {
     },
     {
       label: "Taxa de Qualificação",
-      value: `${qualificationRate.toFixed(1)}%`,
+      value: `${kpis.qualificationRate.toFixed(1)}%`,
       icon: "📊",
       gradient: "rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)",
       trend: { value: 8.3, isPositive: true },
       delay: 0.05,
     },
     {
-      label: "Tempo Médio (IA)",
-      value: "2m 34s",
+      label: "Qualificados",
+      value: kpis.qualifiedLeads.toString(),
       icon: "⏱️",
       gradient: "rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)",
-      trend: { value: 5.1, isPositive: false },
+      trend: { value: 5.1, isPositive: true },
       delay: 0.1,
     },
   ];
@@ -115,11 +55,11 @@ const Qualificacao = () => {
   return (
     <div className="min-h-screen">
       <Header 
-        onRefresh={() => window.location.reload()} 
-        isRefreshing={false} 
+        onRefresh={refetch} 
+        isRefreshing={isLoading} 
         lastUpdate={new Date()}
-        currentWorkspace={workspaceId}
-        onWorkspaceChange={setWorkspaceId}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={setCurrentWorkspaceId}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
@@ -136,7 +76,17 @@ const Qualificacao = () => {
           ))}
         </div>
 
-        <DragDropContext onDragEnd={onDragEnd}>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="glass rounded-xl p-6 border border-destructive/50 text-center">
+            <p className="text-destructive">Erro ao carregar leads: {error}</p>
+            <Button onClick={refetch} className="mt-4">Tentar novamente</Button>
+          </div>
+        ) : (
+          <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {Object.values(columns).map((column) => (
               <div key={column.id} className="space-y-3">
@@ -155,7 +105,7 @@ const Qualificacao = () => {
                       }`}
                     >
                       {column.leads.map((lead, index) => (
-                        <Draggable key={lead.id} draggableId={lead.id} index={index}>
+                        <Draggable key={lead.id.toString()} draggableId={lead.id.toString()} index={index}>
                           {(provided, snapshot) => (
                             <Card
                               ref={provided.innerRef}
@@ -167,13 +117,13 @@ const Qualificacao = () => {
                             >
                               <div className="space-y-2">
                                 <div className="flex items-start justify-between">
-                                  <h4 className="font-semibold text-sm">{lead.name}</h4>
+                                  <h4 className="font-semibold text-sm">{lead.nome || 'Sem nome'}</h4>
                                   <Badge variant="outline" className="text-xs">
-                                    {lead.source}
+                                    {lead.canal_origem || 'N/A'}
                                   </Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{lead.phone}</p>
-                                <p className="text-xs font-medium">{lead.product}</p>
+                                <p className="text-xs text-muted-foreground">{lead.telefone}</p>
+                                <p className="text-xs font-medium">{lead.produto || 'Sem produto'}</p>
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -194,7 +144,8 @@ const Qualificacao = () => {
               </div>
             ))}
           </div>
-        </DragDropContext>
+          </DragDropContext>
+        )}
       </main>
 
       <footer className="container mx-auto px-6 py-6 mt-12">
