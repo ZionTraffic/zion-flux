@@ -16,82 +16,79 @@ export interface FunnelPremiumProps {
 
 const formatValue = (value: number) => value.toLocaleString('pt-BR');
 
-interface BowlProps {
-  x: number;
-  y: number;
-  topWidth: number;
-  bottomWidth: number;
-  height: number;
-}
-
-function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
-  const sideOffset = (topWidth - bottomWidth) / 2;
-  
-  // Path côncavo simplificado (formato testado e funcional)
-  const bodyPath = `
-    M ${x} ${y}
-    H ${x + topWidth}
-    C ${x + topWidth - sideOffset * 0.3} ${y + height * 0.5}, 
-      ${x + topWidth - sideOffset * 0.7} ${y + height * 0.8}, 
-      ${x + sideOffset + bottomWidth} ${y + height}
-    H ${x + sideOffset}
-    C ${x + sideOffset * 1.3} ${y + height * 0.8}, 
-      ${x + sideOffset * 0.3} ${y + height * 0.5}, 
-      ${x} ${y}
-    Z
-  `;
-
-  return (
-    <g filter="url(#glow)">
-      <path 
-        d={bodyPath} 
-        fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.35)" 
-        strokeWidth="1.4"
-      />
-    </g>
-  );
-}
-
 export function FunnelPremium({
   stages,
   className = '',
-  coinsCount = 16,
+  coinsCount = 15,
   showCoins = true,
 }: FunnelPremiumProps) {
-  // Dimensões do viewBox
-  const W = 600;
-  const H = 450;
+  const W = 500;
+  const H = 500;
 
-  // Proporções ajustadas para viewBox 600x450
-  const topW = 400;  // Largura do topo (67% de 600)
-  const midW = 300;  // Largura do meio (50% de 600)
-  const botW = 240;  // Largura da base (40% de 600)
+  // Paths dos bowls em formato de tigela 3D côncava
+  const bowl1Path = `
+    M 120 80
+    Q 120 65, 150 60
+    L 350 60
+    Q 380 65, 380 80
+    Q 380 110, 350 115
+    L 150 115
+    Q 120 110, 120 80
+    Z
+  `;
 
-  const stageH = 100; // Altura de cada estágio
-  const gap = 30;     // Espaço entre estágios
+  const bowl2Path = `
+    M 145 200
+    Q 145 187, 170 183
+    L 330 183
+    Q 355 187, 355 200
+    Q 355 225, 330 229
+    L 170 229
+    Q 145 225, 145 200
+    Z
+  `;
 
-  // Posições Y
-  const y1 = 60;
-  const y2 = y1 + stageH + gap;
-  const y3 = y2 + stageH + gap;
+  const bowl3Path = `
+    M 170 320
+    Q 170 309, 190 306
+    L 310 306
+    Q 330 309, 330 320
+    Q 330 340, 310 343
+    L 190 343
+    Q 170 340, 170 320
+    Z
+  `;
 
-  // Posições X (centralizar cada estágio)
-  const x1 = (W - topW) / 2;
-  const x2 = (W - midW) / 2;
-  const x3 = (W - botW) / 2;
+  // Configuração das moedas com 3 tamanhos
+  const coinSizes = [16, 20, 24];
+  const coinPositions = [
+    // Centro (grandes)
+    { x: 250, y: 380, size: 2 },
+    { x: 240, y: 395, size: 2 },
+    { x: 260, y: 395, size: 2 },
+    { x: 250, y: 410, size: 1 },
+    
+    // Esquerda
+    { x: 220, y: 390, size: 1 },
+    { x: 210, y: 405, size: 0 },
+    { x: 200, y: 420, size: 0 },
+    { x: 230, y: 415, size: 1 },
+    
+    // Direita
+    { x: 280, y: 390, size: 1 },
+    { x: 290, y: 405, size: 0 },
+    { x: 300, y: 420, size: 0 },
+    { x: 270, y: 415, size: 1 },
+    
+    // Extras
+    { x: 245, y: 425, size: 0 },
+    { x: 255, y: 425, size: 0 },
+    { x: 250, y: 435, size: 0 },
+  ];
 
-  // Memoize coin positions to prevent flickering on re-renders
-  const coins = useMemo(() => 
-    Array.from({ length: coinsCount }).map((_, i) => ({
-      key: `coin-${i}`,
-      cx: x3 + botW / 2 + (Math.random() * 90 - 45),
-      size: 14 + Math.random() * 6,
-      delay: i * 0.15 + Math.random() * 0.6,
-      rotate: Math.random() * 360,
-    })), 
-    [coinsCount, x3, botW]
-  );
+  const conversionRate = stages[0].value > 0 
+    ? ((stages[2].value / stages[0].value) * 100).toFixed(2)
+    : '0.00';
 
   return (
     <div className={`relative ${className}`}>
@@ -104,175 +101,294 @@ export function FunnelPremium({
         className="overflow-visible"
       >
         <defs>
-          {/* Gradiente principal vibrante */}
-          <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00d4ff" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#0284c7" stopOpacity="1"/>
+          {/* Gradiente 3D complexo com 5 stops */}
+          <linearGradient id="bowl3DGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#d0f0ff" stopOpacity="1" />
+            <stop offset="15%" stopColor="#7dd3fc" stopOpacity="1" />
+            <stop offset="50%" stopColor="#00bfff" stopOpacity="1" />
+            <stop offset="85%" stopColor="#0284c7" stopOpacity="1" />
+            <stop offset="100%" stopColor="#0369a1" stopOpacity="1" />
+          </linearGradient>
+          
+          {/* Gradiente para highlight da borda */}
+          <linearGradient id="bowlHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.3" />
           </linearGradient>
 
-          {/* Efeito glow para os bowls */}
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+          {/* Gradiente das moedas */}
+          <linearGradient id="coinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ffd700" />
+            <stop offset="50%" stopColor="#ffb300" />
+            <stop offset="100%" stopColor="#ff8c00" />
+          </linearGradient>
+
+          {/* Glow intenso */}
+          <filter id="glowIntense" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+            <feFlood floodColor="#00d4ff" floodOpacity="0.7"/>
+            <feComposite in2="coloredBlur" operator="in"/>
             <feMerge>
-              <feMergeNode in="coloredBlur"/>
+              <feMergeNode/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
-
-          {/* Sombra interna mais intensa */}
-          <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feOffset dx="0" dy="4"/>
-            <feGaussianBlur stdDeviation="3" result="offset-blur"/>
-            <feComposite in="SourceGraphic" in2="offset-blur" operator="arithmetic" k2="-1" k3="1"/>
-            <feColorMatrix type="matrix"
-              values="0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0.55 0"/>
-          </filter>
-
-          {/* Gradiente das moedas */}
-          <radialGradient id="coinGradient" cx="50%" cy="35%" r="60%">
-            <stop offset="0%" stopColor="#FFF6B0" />
-            <stop offset="65%" stopColor="#FFD700" />
-            <stop offset="100%" stopColor="#E0B000" />
-          </radialGradient>
-
-          {/* Sombra das moedas */}
-          <filter id="coinShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="rgba(0,0,0,0.35)" />
-          </filter>
-
-          {/* ClipPath para moedas saindo da base */}
-          <clipPath id="funnelOutput">
-            <rect x={x3} y={y3 + stageH - 10} width={botW} height="200" />
-          </clipPath>
         </defs>
 
-        {/* Estágio 1 (Topo) */}
-        <Bowl x={x1} y={y1} topWidth={topW} bottomWidth={midW} height={stageH} />
-        <text
-          x={W / 2}
-          y={y1 + stageH / 2 - 12}
-          textAnchor="middle"
-          fill="white"
-          fontSize="19"
-          fontWeight="600"
-          opacity="0.92"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+        {/* Setas amarelas animadas no topo */}
+        <motion.g
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ 
+            opacity: [0.6, 1, 0.6],
+            y: [-20, -10, -20]
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         >
-          {stages[0].label}
-        </text>
-        <text
-          x={W / 2}
-          y={y1 + stageH / 2 + 20}
-          textAnchor="middle"
-          fill="white"
-          fontSize="24"
-          fontWeight="700"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
-        >
-          {formatValue(stages[0].value)}
-        </text>
+          {/* Seta horizontal topo */}
+          <path
+            d="M 180 20 Q 190 18, 200 20 L 195 15 M 200 20 L 195 25"
+            stroke="#ffc107"
+            strokeWidth="6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Seta diagonal esquerda */}
+          <path
+            d="M 160 30 Q 155 40, 150 50 L 155 45 M 150 50 L 145 48"
+            stroke="#ffb300"
+            strokeWidth="6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Seta central vertical */}
+          <path
+            d="M 250 15 Q 250 30, 250 45 L 245 40 M 250 45 L 255 40"
+            stroke="#ffd700"
+            strokeWidth="7"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Seta diagonal direita */}
+          <path
+            d="M 340 30 Q 345 40, 350 50 L 345 45 M 350 50 L 355 48"
+            stroke="#ffb300"
+            strokeWidth="6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </motion.g>
 
-        {/* Estágio 2 (Meio) */}
-        <Bowl x={x2} y={y2} topWidth={midW} bottomWidth={botW} height={stageH} />
-        <text
-          x={W / 2}
-          y={y2 + stageH / 2 - 12}
-          textAnchor="middle"
-          fill="white"
-          fontSize="17"
-          fontWeight="600"
-          opacity="0.92"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
-        >
-          {stages[1].label}
-        </text>
-        <text
-          x={W / 2}
-          y={y2 + stageH / 2 + 20}
-          textAnchor="middle"
-          fill="white"
-          fontSize="22"
-          fontWeight="700"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
-        >
-          {formatValue(stages[1].value)}
-        </text>
+        {/* Bowl 1 (Topo - 100%) */}
+        <g transform="scale(1.0)" transform-origin="250 87.5">
+          <path 
+            d={bowl1Path}
+            fill="url(#bowl3DGradient)" 
+            stroke="rgba(255,255,255,0.35)" 
+            strokeWidth="1.4"
+            filter="url(#glowIntense)"
+          />
+          {/* Highlight Bowl 1 */}
+          <ellipse 
+            cx="250" 
+            cy="60" 
+            rx="115" 
+            ry="8" 
+            fill="url(#bowlHighlight)"
+            opacity="0.6"
+          />
+          {/* Label */}
+          <text
+            x="250"
+            y="73"
+            textAnchor="middle"
+            fill="white"
+            opacity="0.75"
+            fontSize="14"
+            fontWeight="500"
+          >
+            {stages[0].label}
+          </text>
+          {/* Número */}
+          <text
+            x="250"
+            y="103"
+            textAnchor="middle"
+            fill="white"
+            opacity="1"
+            fontSize="42"
+            fontWeight="900"
+            letterSpacing="1"
+          >
+            {formatValue(stages[0].value)}
+          </text>
+        </g>
 
-        {/* Estágio 3 (Base) */}
-        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} />
-        <text
-          x={W / 2}
-          y={y3 + stageH / 2 - 12}
-          textAnchor="middle"
-          fill="white"
-          fontSize="17"
-          fontWeight="600"
-          opacity="0.92"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
-        >
-          {stages[2].label}
-        </text>
-        <text
-          x={W / 2}
-          y={y3 + stageH / 2 + 20}
-          textAnchor="middle"
-          fill="white"
-          fontSize="22"
-          fontWeight="700"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
-        >
-          {formatValue(stages[2].value)}
-        </text>
+        {/* Bowl 2 (Meio - 85%) */}
+        <g transform="scale(0.85)" transform-origin="250 207.5">
+          <path 
+            d={bowl2Path}
+            fill="url(#bowl3DGradient)" 
+            stroke="rgba(255,255,255,0.35)" 
+            strokeWidth="1.4"
+            filter="url(#glowIntense)"
+          />
+          {/* Highlight Bowl 2 */}
+          <ellipse 
+            cx="250" 
+            cy="183" 
+            rx="95" 
+            ry="7" 
+            fill="url(#bowlHighlight)"
+            opacity="0.6"
+          />
+          {/* Label */}
+          <text
+            x="250"
+            y="193"
+            textAnchor="middle"
+            fill="white"
+            opacity="0.75"
+            fontSize="14"
+            fontWeight="500"
+          >
+            {stages[1].label}
+          </text>
+          {/* Número */}
+          <text
+            x="250"
+            y="223"
+            textAnchor="middle"
+            fill="white"
+            opacity="1"
+            fontSize="42"
+            fontWeight="900"
+            letterSpacing="1"
+          >
+            {formatValue(stages[1].value)}
+          </text>
+        </g>
 
-        {/* Moedas animadas saindo da base */}
-        {showCoins && (
-          <g clipPath="url(#funnelOutput)">
-            {coins.map((coin) => (
-              <motion.g
-                key={coin.key}
-                initial={{ opacity: 0, y: y3 + stageH - 10 }}
-                animate={{
-                  y: [y3 + stageH - 10, y3 + stageH + 70, y3 + stageH + 140, y3 + stageH + 200],
-                  opacity: [0, 1, 1, 0],
-                  rotate: [0, coin.rotate, coin.rotate * 2],
-                  x: [0, 0, 0, 0],
-                }}
-                transition={{
-                  duration: 3.6 + Math.random() * 0.8,
-                  repeat: Infinity,
-                  delay: coin.delay,
-                  ease: 'easeInOut',
-                }}
-                filter="url(#coinShadow)"
-              >
-                <circle 
-                  cx={coin.cx} 
-                  cy={0} 
-                  r={coin.size / 2} 
-                  fill="url(#coinGradient)" 
-                  stroke="#E0B000"
-                  strokeWidth="1"
-                />
-                <text
-                  x={coin.cx}
-                  y={4}
-                  textAnchor="middle"
-                  fontSize={coin.size * 0.5}
-                  fontWeight="800"
-                  fill="#2b2100"
-                >
-                  R$
-                </text>
-              </motion.g>
-            ))}
-          </g>
-        )}
+        {/* Bowl 3 (Base - 70%) */}
+        <g transform="scale(0.70)" transform-origin="250 327.5">
+          <path 
+            d={bowl3Path}
+            fill="url(#bowl3DGradient)" 
+            stroke="rgba(255,255,255,0.35)" 
+            strokeWidth="1.4"
+            filter="url(#glowIntense)"
+          />
+          {/* Highlight Bowl 3 */}
+          <ellipse 
+            cx="250" 
+            cy="306" 
+            rx="70" 
+            ry="6" 
+            fill="url(#bowlHighlight)"
+            opacity="0.6"
+          />
+          {/* Label */}
+          <text
+            x="250"
+            y="313"
+            textAnchor="middle"
+            fill="white"
+            opacity="0.75"
+            fontSize="14"
+            fontWeight="500"
+          >
+            {stages[2].label}
+          </text>
+          {/* Número */}
+          <text
+            x="250"
+            y="343"
+            textAnchor="middle"
+            fill="white"
+            opacity="1"
+            fontSize="42"
+            fontWeight="900"
+            letterSpacing="1"
+          >
+            {formatValue(stages[2].value)}
+          </text>
+        </g>
+
+        {/* Moedas animadas */}
+        {showCoins && coinPositions.map((coin, i) => (
+          <motion.g
+            key={i}
+            initial={{ y: 320, opacity: 0 }}
+            animate={{ 
+              y: coin.y,
+              opacity: [0, 1, 1],
+            }}
+            transition={{
+              duration: 0.8,
+              delay: i * 0.1,
+              repeat: Infinity,
+              repeatDelay: 3,
+              ease: "easeOut"
+            }}
+          >
+            <circle
+              cx={coin.x}
+              cy={coin.y}
+              r={coinSizes[coin.size]}
+              fill="url(#coinGradient)"
+              filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"
+            />
+            {/* Brilho na moeda */}
+            <circle
+              cx={coin.x - coinSizes[coin.size] * 0.3}
+              cy={coin.y - coinSizes[coin.size] * 0.3}
+              r={coinSizes[coin.size] * 0.25}
+              fill="white"
+              opacity="0.7"
+            />
+          </motion.g>
+        ))}
+
+        {/* Métrica de conversão */}
+        <text
+          x="60"
+          y="450"
+          fill="white"
+          opacity="0.7"
+          fontSize="12"
+          fontWeight="400"
+        >
+          Convert Rate
+        </text>
+        <text
+          x="60"
+          y="470"
+          fill="#10b981"
+          fontSize="20"
+          fontWeight="700"
+        >
+          {conversionRate}%
+        </text>
+        <text
+          x="150"
+          y="470"
+          fill="#ef4444"
+          fontSize="12"
+          fontWeight="500"
+        >
+          ↓ 2.1%
+        </text>
       </svg>
-
     </div>
   );
 }
