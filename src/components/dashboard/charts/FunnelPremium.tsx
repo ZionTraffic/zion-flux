@@ -46,7 +46,7 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.35)" 
+        stroke="rgba(255,255,255,0.75)" 
         strokeWidth="1.4"
       />
     </g>
@@ -103,9 +103,8 @@ export function FunnelPremium({
         xmlns="http://www.w3.org/2000/svg" 
         className="overflow-visible"
         style={{
-          background: "linear-gradient(180deg, rgba(10,20,40,0.8) 0%, rgba(5,10,20,0.9) 100%)",
           borderRadius: "24px",
-          boxShadow: "inset 0 0 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.4)",
+          boxShadow: "0 0 20px rgba(0,0,0,0.4)",
         }}
       >
         <defs>
@@ -125,7 +124,7 @@ export function FunnelPremium({
               values="0 0 0 0 0
                       0 0 0 0 0
                       0 0 0 0 0
-                      0 0 0 0.55 0"/>
+                      0 0 0 0.15 0"/>
           </filter>
 
           {/* Gradiente das moedas */}
