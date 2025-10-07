@@ -75,16 +75,15 @@ export function DateRangePicker({
             {formatDateRange()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue" align="start">
+        <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue backdrop-blur-xl" align="start">
           <Calendar
             mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
-            onSelect={handleSelect}
-            numberOfMonths={2}
-            className="rounded-lg"
+            selectedRange={dateRange}
+            onSelectRange={handleSelect}
+            showMonthYearPickers={true}
+            className="rounded-lg border-0"
           />
-          <div className="px-4 pb-3 text-xs text-muted-foreground/80 text-center border-t border-border">
+          <div className="px-4 pb-3 text-xs text-muted-foreground/80 text-center border-t border-border/50">
             O período deve ter entre {minDays} e {maxDays} dias
           </div>
         </PopoverContent>
