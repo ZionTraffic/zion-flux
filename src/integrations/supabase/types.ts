@@ -75,6 +75,13 @@ export type Database = {
             foreignKeyName: "conversation_summaries_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "conversation_summaries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -110,6 +117,13 @@ export type Database = {
             foreignKeyName: "ad_accounts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ad_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -141,6 +155,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "spend_by_day_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
           {
             foreignKeyName: "spend_by_day_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -235,6 +256,13 @@ export type Database = {
             foreignKeyName: "lead_status_history_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "lead_status_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -300,6 +328,13 @@ export type Database = {
             foreignKeyName: "leads_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -322,6 +357,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
