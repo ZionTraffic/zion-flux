@@ -8,49 +8,60 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Apple-inspired dark theme - glassmorphism optimized */
-    --background: 240 10% 4%;
+    /* Dash Premium Dark Theme */
+    --background: 222 47% 6%;
     --foreground: 0 0% 98%;
 
-    --card: 240 8% 8%;
+    --card: 222 47% 8%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 6%;
+    --popover: 222 47% 6%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 217 91% 60%;
+    /* Neon Blue - Primary */
+    --primary: 199 100% 50%;
     --primary-foreground: 0 0% 100%;
+    --primary-start: 199 100% 63%;
+    --primary-end: 217 91% 50%;
 
-    --secondary: 262 83% 58%;
+    /* Lilac - Secondary */
+    --secondary: 271 91% 65%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 5% 26%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 222 20% 20%;
+    --muted-foreground: 222 10% 65%;
 
+    /* Accent - Success Green */
     --accent: 142 71% 45%;
     --accent-foreground: 0 0% 100%;
+
+    /* Gold - Premium */
+    --gold: 45 100% 51%;
+    --gold-foreground: 222 47% 11%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 18%;
-    --input: 240 6% 18%;
-    --ring: 217 91% 60%;
+    --border: 222 20% 15%;
+    --input: 222 20% 15%;
+    --ring: 199 100% 50%;
 
     --radius: 1rem;
 
-    /* Glassmorphism tokens */
-    --glass-light: 0 0% 100% / 0.05;
-    --glass-medium: 0 0% 100% / 0.1;
-    --glass-heavy: 0 0% 100% / 0.15;
+    /* Enhanced Glassmorphism */
+    --glass-light: 0 0% 100% / 0.03;
+    --glass-medium: 0 0% 100% / 0.08;
+    --glass-heavy: 0 0% 100% / 0.12;
     
-    /* Card gradients */
-    --gradient-emerald: linear-gradient(135deg, hsl(142 71% 45% / 0.1), hsl(142 71% 35% / 0.05));
-    --gradient-blue: linear-gradient(135deg, hsl(217 91% 60% / 0.1), hsl(217 91% 50% / 0.05));
-    --gradient-amber: linear-gradient(135deg, hsl(43 96% 56% / 0.1), hsl(43 96% 46% / 0.05));
-    --gradient-gray: linear-gradient(135deg, hsl(240 5% 26% / 0.1), hsl(240 5% 16% / 0.05));
-    --gradient-purple: linear-gradient(135deg, hsl(262 83% 58% / 0.1), hsl(262 83% 48% / 0.05));
-    --gradient-rose: linear-gradient(135deg, hsl(330 81% 60% / 0.1), hsl(330 81% 50% / 0.05));
+    /* Premium Gradients */
+    --gradient-neon-blue: linear-gradient(135deg, hsl(var(--primary-start)), hsl(var(--primary-end)));
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 51%), hsl(43 96% 46%));
+    --gradient-emerald: linear-gradient(135deg, hsl(142 71% 45% / 0.15), hsl(142 71% 35% / 0.08));
+    --gradient-blue: linear-gradient(135deg, hsl(199 100% 50% / 0.15), hsl(217 91% 50% / 0.08));
+    --gradient-amber: linear-gradient(135deg, hsl(43 96% 56% / 0.15), hsl(43 96% 46% / 0.08));
+    --gradient-gray: linear-gradient(135deg, hsl(222 20% 26% / 0.15), hsl(222 20% 16% / 0.08));
+    --gradient-purple: linear-gradient(135deg, hsl(271 91% 65% / 0.15), hsl(271 91% 55% / 0.08));
+    --gradient-rose: linear-gradient(135deg, hsl(330 81% 60% / 0.15), hsl(330 81% 50% / 0.08));
   }
 }
 
@@ -60,35 +71,40 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-sf antialiased;
-    background: radial-gradient(ellipse at top, hsl(240 10% 6%), hsl(240 10% 4%));
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: linear-gradient(180deg, #0a0f1f 0%, #0e162d 100%);
+    background-attachment: fixed;
     min-height: 100vh;
   }
 
-  /* Apple SF Pro Display font fallback */
-  .font-sf {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  /* Inter font class */
+  .font-inter {
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
 @layer components {
-  /* Glassmorphism utilities */
+  /* Enhanced Glassmorphism utilities */
   .glass {
     background: hsl(var(--glass-light));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border));
   }
 
   .glass-medium {
     background: hsl(var(--glass-medium));
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border));
   }
 
   .glass-heavy {
     background: hsl(var(--glass-heavy));
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsl(var(--border));
   }
 
   /* Card hover effect */
@@ -110,4 +126,17 @@ All colors MUST be HSL.
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
   .stagger-6 { animation-delay: 0.3s; }
+
+  /* Premium shadow effects */
+  .shadow-premium {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .shadow-glow-blue {
+    box-shadow: 0 0 30px rgba(0, 198, 255, 0.2);
+  }
+
+  .shadow-glow-gold {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+  }
 }

@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
+import DashboardIndex from "./pages/DashboardIndex";
 import Qualificacao from "./pages/Qualificacao";
 import Conversas from "./pages/Conversas";
 import Configuracoes from "./pages/Configuracoes";
@@ -24,7 +24,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><WorkspaceProvider><Index /></WorkspaceProvider></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/conversas" element={<ProtectedRoute><WorkspaceProvider><Conversas /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><Configuracoes /></WorkspaceProvider></ProtectedRoute>} />

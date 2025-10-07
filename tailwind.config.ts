@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sf: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        inter: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -51,9 +52,21 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         glass: {
-          light: 'rgba(255, 255, 255, 0.05)',
-          medium: 'rgba(255, 255, 255, 0.1)',
-          heavy: 'rgba(255, 255, 255, 0.15)',
+          light: 'rgba(255, 255, 255, 0.03)',
+          medium: 'rgba(255, 255, 255, 0.08)',
+          heavy: 'rgba(255, 255, 255, 0.12)',
+        },
+        'neon-blue': {
+          DEFAULT: 'hsl(var(--primary))',
+          start: 'hsl(var(--primary-start))',
+          end: 'hsl(var(--primary-end))',
+        },
+        gold: {
+          DEFAULT: 'hsl(var(--gold))',
+          foreground: 'hsl(var(--gold-foreground))',
+        },
+        lilac: {
+          DEFAULT: 'hsl(var(--secondary))',
         },
       },
       borderRadius: {
@@ -104,6 +117,32 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
         },
+        "coin-fall": {
+          "0%": {
+            transform: "translateY(-20px) rotate(0deg)",
+            opacity: "0"
+          },
+          "10%": {
+            opacity: "1"
+          },
+          "90%": {
+            opacity: "1"
+          },
+          "100%": {
+            transform: "translateY(100px) rotate(360deg)",
+            opacity: "0"
+          }
+        },
+        "fade-in-up": {
+          "0%": {
+            opacity: "0",
+            transform: "translateY(30px)"
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateY(0)"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -112,6 +151,8 @@ export default {
         "float": "float 3s ease-in-out infinite",
         "slide-up": "slide-up 0.5s ease-out backwards",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "coin-fall": "coin-fall 3s ease-in infinite",
+        "fade-in-up": "fade-in-up 0.6s ease-out backwards",
       },
     },
   },

@@ -1,0 +1,74 @@
+import { ReactNode } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { motion } from "framer-motion";
+
+interface PremiumKpiCardProps {
+  label: string;
+  value: string | number;
+  icon: ReactNode;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  variant?: 'emerald' | 'blue' | 'amber' | 'gray' | 'purple' | 'rose';
+  delay?: number;
+}
+
+const variantGradients = {
+  emerald: 'var(--gradient-emerald)',
+  blue: 'var(--gradient-blue)',
+  amber: 'var(--gradient-amber)',
+  gray: 'var(--gradient-gray)',
+  purple: 'var(--gradient-purple)',
+  rose: 'var(--gradient-rose)',
+};
+
+export const PremiumKpiCard = ({ 
+  label, 
+  value, 
+  icon, 
+  trend, 
+  variant = 'blue',
+  delay = 0 
+}: PremiumKpiCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay }}
+      className="glass rounded-2xl p-6 border border-border/50 shadow-premium card-hover"
+      style={{ 
+        background: variantGradients[variant],
+      }}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="text-3xl opacity-80">
+          {icon}
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+            trend.isPositive 
+              ? 'bg-accent/10 text-accent' 
+              : 'bg-destructive/10 text-destructive'
+          }`}>
+            {trend.isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            <span>{Math.abs(trend.value)}%</span>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {label}
+        </h3>
+        <p className="text-3xl font-bold tracking-tight text-foreground">
+          {value}
+        </p>
+      </div>
+    </motion.div>
+  );
+};

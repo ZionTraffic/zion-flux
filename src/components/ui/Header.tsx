@@ -6,6 +6,7 @@ import { MenuBar } from "./glow-menu";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import logoZion from "@/assets/logo-zion.jpg";
 import {
   Tooltip,
   TooltipContent,
@@ -87,12 +88,14 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
           {/* Left Section: Logo + Navigation */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="text-xl font-bold">Z</span>
-              </div>
+              <img 
+                src={logoZion} 
+                alt="Zion Analytics" 
+                className="w-12 h-12 rounded-full object-cover shadow-glow-blue" 
+              />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold tracking-tight">Zion App</h1>
-                <p className="text-xs text-muted-foreground">Premium Analytics</p>
+                <h1 className="text-lg font-bold tracking-tight">Zion Analytics</h1>
+                <p className="text-xs text-muted-foreground">Premium Dashboard</p>
               </div>
             </div>
 
