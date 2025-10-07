@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Users, Plug, Settings, CreditCard } from "lucide-react";
 
 const Configuracoes = () => {
-  const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
 
   return (
     <div className="min-h-screen">
@@ -18,8 +19,8 @@ const Configuracoes = () => {
         onRefresh={() => window.location.reload()} 
         isRefreshing={false} 
         lastUpdate={new Date()}
-        currentWorkspace={workspaceId}
-        onWorkspaceChange={setWorkspaceId}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={setCurrentWorkspaceId}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">

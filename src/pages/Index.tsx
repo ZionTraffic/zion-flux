@@ -7,12 +7,13 @@ import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const Index = () => {
-  const [workspaceId, setWorkspaceId] = useState("3f14bb25-0eda-4c58-8486-16b96dca6f9e");
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const diagnostics = useSupabaseDiagnostics();
-  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(workspaceId);
-  const { testResult, testing } = useSupabaseConnectionTest(workspaceId);
+  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
+  const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
 
   // Diagnóstico em andamento
   if (diagnostics.status === "checking") {
@@ -146,8 +147,8 @@ const Index = () => {
         onRefresh={refetch} 
         isRefreshing={loading} 
         lastUpdate={lastUpdate}
-        currentWorkspace={workspaceId}
-        onWorkspaceChange={setWorkspaceId}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={setCurrentWorkspaceId}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
@@ -161,7 +162,7 @@ const Index = () => {
               </h3>
               <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
                 Exibindo dados simulados. Verifique se há dados no banco de dados para o workspace{' '}
-                <code className="bg-yellow-500/20 px-1 rounded text-xs">{workspaceId}</code>
+                <code className="bg-yellow-500/20 px-1 rounded text-xs">{currentWorkspaceId}</code>
               </p>
               {testResult && (
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -202,7 +203,7 @@ const Index = () => {
         <AnalyticsChart data={daily} />
 
         {/* Data Table */}
-        <DataTable workspaceId={workspaceId} />
+        <DataTable workspaceId={currentWorkspaceId || ''} />
       </main>
 
       {/* Footer */}
