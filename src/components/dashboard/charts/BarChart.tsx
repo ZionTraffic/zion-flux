@@ -73,8 +73,8 @@ export const BarChart = ({ data, title = 'Valor Levado' }: BarChartProps) => {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: '#00c6ff' },
-              { offset: 1, color: '#0072ff' },
+              { offset: 0, color: '#2D9BF0' },
+              { offset: 1, color: '#1E7FD9' },
             ],
           },
         },
@@ -87,8 +87,8 @@ export const BarChart = ({ data, title = 'Valor Levado' }: BarChartProps) => {
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: '#00d4ff' },
-                { offset: 1, color: '#0080ff' },
+                { offset: 0, color: '#3DAEF5' },
+                { offset: 1, color: '#2890E0' },
               ],
             },
           },
