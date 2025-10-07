@@ -117,7 +117,7 @@ export const DataTable = ({ workspaceId }: DataTableProps) => {
                     R$ {row.investimento.toFixed(2)}
                   </TableCell>
                   <TableCell className={`text-right font-bold ${getCplColor(row.cpl)}`}>
-                    R$ {row.cpl.toFixed(2)}
+                    R$ {row.cpl?.toFixed(2) ?? '0.00'}
                   </TableCell>
                 </TableRow>
               ))}
