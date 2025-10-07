@@ -1,4 +1,4 @@
-import { RefreshCw, Download, BarChart3, Layers, MessageSquare, LogOut, TrendingUp, Facebook, Search, MapPin, Calculator, Home, Menu } from "lucide-react";
+import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
@@ -47,45 +47,10 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   const menuItems = [
     {
       icon: Home,
-      label: "Visão Geral",
+      label: "Dashboard",
       href: "/",
       gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
       iconColor: "text-primary",
-    },
-    {
-      icon: TrendingUp,
-      label: "Mês vs Dia",
-      href: "/mes-vs-dia",
-      gradient: "radial-gradient(circle, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.06) 50%, rgba(217,119,6,0) 100%)",
-      iconColor: "text-amber-400",
-    },
-    {
-      icon: Facebook,
-      label: "Facebook ADS",
-      href: "/facebook-ads",
-      gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
-      iconColor: "text-blue-500",
-    },
-    {
-      icon: Search,
-      label: "Google ADS",
-      href: "/google-ads",
-      gradient: "radial-gradient(circle, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.06) 50%, rgba(185,28,28,0) 100%)",
-      iconColor: "text-red-500",
-    },
-    {
-      icon: MapPin,
-      label: "Rastreamento",
-      href: "/rastreamento",
-      gradient: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.06) 50%, rgba(21,128,61,0) 100%)",
-      iconColor: "text-green-500",
-    },
-    {
-      icon: Calculator,
-      label: "Calculadoras",
-      href: "/calculadoras",
-      gradient: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
-      iconColor: "text-purple-500",
     },
     {
       icon: Layers,
@@ -96,13 +61,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     },
     {
       icon: MessageSquare,
-      label: "Conversas",
-      href: "/conversas",
+      label: "Análise",
+      href: "/analise",
       gradient: "radial-gradient(circle, rgba(52,199,89,0.15) 0%, rgba(34,197,94,0.06) 50%, rgba(22,163,74,0) 100%)",
       iconColor: "text-accent",
     },
     {
-      icon: BarChart3,
+      icon: Settings,
       label: "Configurações",
       href: "/configuracoes",
       gradient: "radial-gradient(circle, rgba(148,163,184,0.15) 0%, rgba(100,116,139,0.06) 50%, rgba(71,85,105,0) 100%)",

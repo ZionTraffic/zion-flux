@@ -8,7 +8,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import DashboardIndex from "./pages/DashboardIndex";
 import Qualificacao from "./pages/Qualificacao";
-import Conversas from "./pages/Conversas";
+import Analise from "./pages/Analise";
 import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -26,7 +26,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/conversas" element={<ProtectedRoute><WorkspaceProvider><Conversas /></WorkspaceProvider></ProtectedRoute>} />
+            <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><Analise /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><Configuracoes /></WorkspaceProvider></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
