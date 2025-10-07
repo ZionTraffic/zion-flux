@@ -3,7 +3,7 @@ import { PremiumKpiCard } from "@/components/dashboard/cards/PremiumKpiCard";
 import { BarChart } from "@/components/dashboard/charts/BarChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
-import { FunnelPremium } from "@/components/funnel/FunnelPremium";
+import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
@@ -177,10 +177,11 @@ const Trafego = () => {
     value: d.clicks,
   }));
 
-  // Calcula taxa de conversão
-  const convRate = totals && totals.impressions > 0 
-    ? (totals.conversas_iniciadas / totals.impressions) * 100 
-    : 0;
+  const funnelData = [
+    { name: 'Impressões', value: totals?.impressions || 0 },
+    { name: 'Cliques', value: totals?.clicks || 0 },
+    { name: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
+  ];
 
   return (
     <DashboardLayout
@@ -271,19 +272,17 @@ const Trafego = () => {
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <LineChart data={lineChartData} title="Evolução de Cliques" />
         </div>
-        <FunnelPremium
-          stages={[
-            { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
-            { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
-            { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
-          ]}
-          coinsCount={16}
-          showCoins={true}
-          glowLabel="Taxa de Conversão"
-          glowValue={`${convRate.toFixed(2)}%`}
-          glowDelta={{ value: "▲ 4,3%", trend: "up" }}
-          className="min-h-[520px]"
-        />
+        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+          <FunnelPremium
+            stages={[
+              { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
+              { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
+              { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
+            ]}
+            coinsCount={16}
+            showCoins={true}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -46,9 +46,8 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
-        stroke="#00E5FF" 
-        strokeWidth="2"
-        strokeOpacity="0.6"
+        stroke="rgba(255,255,255,0.35)" 
+        strokeWidth="1.4"
       />
     </g>
   );
@@ -104,27 +103,29 @@ export function FunnelPremium({
         xmlns="http://www.w3.org/2000/svg" 
         className="overflow-visible"
         style={{
-          filter: "drop-shadow(0 0 20px rgba(0, 229, 255, 0.3))",
+          background: "linear-gradient(180deg, rgba(10,20,40,0.8) 0%, rgba(5,10,20,0.9) 100%)",
+          borderRadius: "24px",
+          boxShadow: "inset 0 0 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.4)",
         }}
       >
         <defs>
-          {/* Gradiente neon vibrante para dark mode */}
+          {/* Gradiente principal com mais contraste */}
           <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00E5FF" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#00B8D9" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#0095B3" stopOpacity="1"/>
+            <stop offset="0%" stopColor="#7cc8ff" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#3fa2e3" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#2464b6" stopOpacity="1"/>
           </linearGradient>
 
-          {/* Sombra interna suave */}
+          {/* Sombra interna mais intensa */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feOffset dx="0" dy="2"/>
-            <feGaussianBlur stdDeviation="2" result="offset-blur"/>
+            <feOffset dx="0" dy="4"/>
+            <feGaussianBlur stdDeviation="3" result="offset-blur"/>
             <feComposite in="SourceGraphic" in2="offset-blur" operator="arithmetic" k2="-1" k3="1"/>
             <feColorMatrix type="matrix"
               values="0 0 0 0 0
                       0 0 0 0 0
                       0 0 0 0 0
-                      0 0 0 0.08 0"/>
+                      0 0 0 0.55 0"/>
           </filter>
 
           {/* Gradiente das moedas */}
