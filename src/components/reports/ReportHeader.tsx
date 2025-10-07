@@ -3,8 +3,8 @@ import { WorkspaceSelector } from "@/components/ui/WorkspaceSelector";
 import { format } from "date-fns";
 
 interface ReportHeaderProps {
-  workspaceId: string;
-  onWorkspaceChange: (id: string) => void;
+  workspaceId: string | null;
+  onWorkspaceChange: (id: string) => Promise<void>;
   fromDate: Date;
   toDate: Date;
   onFromDateChange: (date: Date) => void;

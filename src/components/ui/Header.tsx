@@ -17,8 +17,8 @@ interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdate: Date | null;
-  currentWorkspace: string;
-  onWorkspaceChange: (workspaceId: string) => void;
+  currentWorkspace: string | null;
+  onWorkspaceChange: (workspaceId: string) => Promise<void>;
 }
 
 export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange }: HeaderProps) => {
