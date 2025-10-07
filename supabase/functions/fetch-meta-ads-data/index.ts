@@ -37,13 +37,20 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const days = parseInt(url.searchParams.get("days") || "30");
+    // Parse request body
+    const requestBody = await req.json();
+    const { days, startDate: reqStartDate, endDate: reqEndDate } = requestBody;
 
     const META_ACCESS_TOKEN = Deno.env.get("META_ACCESS_TOKEN");
     const META_AD_ACCOUNT_ID = Deno.env.get("META_AD_ACCOUNT_ID");
 
-    console.log("Meta Ads request:", { days, hasToken: !!META_ACCESS_TOKEN, hasAccountId: !!META_AD_ACCOUNT_ID });
+    console.log("Meta Ads request:", { 
+      days, 
+      startDate: reqStartDate, 
+      endDate: reqEndDate, 
+      hasToken: !!META_ACCESS_TOKEN, 
+      hasAccountId: !!META_AD_ACCOUNT_ID 
+    });
 
     if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
       console.error("Missing Meta credentials");
@@ -60,12 +67,24 @@ serve(async (req) => {
     }
 
     // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    let since: string;
+    let until: string;
 
-    const since = startDate.toISOString().slice(0, 10);
-    const until = endDate.toISOString().slice(0, 10);
+    if (reqStartDate && reqEndDate) {
+      // Use provided dates
+      since = reqStartDate;
+      until = reqEndDate;
+    } else {
+      // Fallback to days
+      const daysToUse = days || 30;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysToUse);
+      since = startDate.toISOString().slice(0, 10);
+      until = endDate.toISOString().slice(0, 10);
+    }
+
+    console.log("Date range:", { since, until });
 
     // Meta Marketing API endpoint (v21.0)
     const endpoint = `https://graph.facebook.com/v21.0/${META_AD_ACCOUNT_ID}/insights`;

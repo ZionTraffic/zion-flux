@@ -29,7 +29,12 @@ export interface MetaCampaign {
   spend: number;
 }
 
-export function useMetaAdsData(workspaceId: string, days: number = 30) {
+export function useMetaAdsData(
+  workspaceId: string, 
+  startDate?: Date, 
+  endDate?: Date,
+  days: number = 30
+) {
   const [totals, setTotals] = useState<MetaAdsTotals | null>(null);
   const [daily, setDaily] = useState<MetaAdsDaily[]>([]);
   const [campaigns, setCampaigns] = useState<MetaCampaign[]>([]);
@@ -47,12 +52,22 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching Meta Ads data for workspace:", workspaceId, "days:", days);
+      console.log("Fetching Meta Ads data for workspace:", workspaceId);
+
+      // Prepare request body based on whether dates or days are provided
+      const requestBody = startDate && endDate
+        ? {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+          }
+        : { days };
+
+      console.log("Request body:", requestBody);
 
       const { data, error: functionError } = await supabase.functions.invoke(
         'fetch-meta-ads-data',
         {
-          body: { days },
+          body: requestBody,
         }
       );
 
@@ -119,7 +134,7 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
     fetchData();
     const interval = setInterval(fetchData, 180000);
     return () => clearInterval(interval);
-  }, [workspaceId, days]);
+  }, [workspaceId, days, startDate, endDate]);
 
   return { 
     totals, 

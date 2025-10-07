@@ -12,12 +12,27 @@ import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { type DateRange } from "react-day-picker";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
-  const { totals, daily, campaigns, loading, error, lastUpdate, refetch } = useMetaAdsData(currentWorkspaceId || '');
+  
+  // Date range state - default to last 30 days
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+    return { from, to };
+  });
+
+  const { totals, daily, campaigns, loading, error, lastUpdate, refetch } = useMetaAdsData(
+    currentWorkspaceId || '',
+    dateRange?.from,
+    dateRange?.to
+  );
   const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
 
   useEffect(() => {
@@ -197,6 +212,16 @@ const Trafego = () => {
       currentWorkspace={currentWorkspaceId}
       onWorkspaceChange={handleWorkspaceChange}
     >
+      {/* Date Range Filter */}
+      <div className="mb-6">
+        <DateRangePicker
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          minDays={1}
+          maxDays={90}
+        />
+      </div>
+
       {/* Error Messages */}
       {error === 'TOKEN_EXPIRED' && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
