@@ -114,10 +114,10 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
     }
   }
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 3 minutes
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 180000);
     return () => clearInterval(interval);
   }, [workspaceId, days]);
 

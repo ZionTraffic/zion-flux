@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 
 export interface FunnelStage {
@@ -122,14 +123,17 @@ export function FunnelPremium({
   const x2 = (W - midW) / 2;
   const x3 = (W - botW) / 2;
 
-  // Gerar moedas com posições aleatórias
-  const coins = Array.from({ length: coinsCount }).map((_, i) => ({
-    key: `coin-${i}`,
-    cx: x3 + botW / 2 + (Math.random() * 90 - 45),
-    size: 14 + Math.random() * 6,
-    delay: i * 0.15 + Math.random() * 0.6,
-    rotate: Math.random() * 360,
-  }));
+  // Memoize coin positions to prevent flickering on re-renders
+  const coins = useMemo(() => 
+    Array.from({ length: coinsCount }).map((_, i) => ({
+      key: `coin-${i}`,
+      cx: x3 + botW / 2 + (Math.random() * 90 - 45),
+      size: 14 + Math.random() * 6,
+      delay: i * 0.15 + Math.random() * 0.6,
+      rotate: Math.random() * 360,
+    })), 
+    [coinsCount, x3, botW]
+  );
 
   return (
     <div className={`relative rounded-3xl p-4 md:p-6 bg-white/5 backdrop-blur-md shadow-[0_10px_35px_rgba(0,0,0,0.35)] ${className}`}>
