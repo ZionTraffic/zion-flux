@@ -25,47 +25,29 @@ interface BowlProps {
 }
 
 function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
-  const dx = (topWidth - bottomWidth) / 2;
+  const sideOffset = (topWidth - bottomWidth) / 2;
   
-  // Path côncavo suave com curvas simétricas
+  // Path côncavo simplificado (formato testado e funcional)
   const bodyPath = `
     M ${x} ${y}
     H ${x + topWidth}
-    C ${x + topWidth - dx * 0.2} ${y + height * 0.45}, 
-      ${x + bottomWidth + dx * 1.2} ${y + height * 0.75}, 
-      ${x + bottomWidth} ${y + height}
-    H ${x + dx}
-    C ${x - dx * 0.2} ${y + height * 0.75}, 
-      ${x + dx * 0.2} ${y + height * 0.45}, 
+    C ${x + topWidth - sideOffset * 0.3} ${y + height * 0.5}, 
+      ${x + topWidth - sideOffset * 0.7} ${y + height * 0.8}, 
+      ${x + sideOffset + bottomWidth} ${y + height}
+    H ${x + sideOffset}
+    C ${x + sideOffset * 1.3} ${y + height * 0.8}, 
+      ${x + sideOffset * 0.3} ${y + height * 0.5}, 
       ${x} ${y}
     Z
   `;
 
-  // Highlight no topo (reflexo)
-  const highlightPath = `M ${x + 8} ${y + 3} H ${x + topWidth - 8}`;
-
   return (
     <g filter="url(#innerShadow)">
-      {/* Corpo principal com gradiente */}
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.4)" 
-        strokeWidth="1.5"
-      />
-      {/* Camada de reflexo translúcido */}
-      <path 
-        d={bodyPath} 
-        fill="url(#topHighlight)" 
-        opacity="0.35"
-      />
-      {/* Linha de brilho no topo */}
-      <path 
-        d={highlightPath} 
-        stroke="rgba(255,255,255,0.65)" 
-        strokeWidth="1.6" 
-        opacity="0.8"
-        strokeLinecap="round"
+        stroke="rgba(255,255,255,0.35)" 
+        strokeWidth="1.4"
       />
     </g>
   );
@@ -77,20 +59,20 @@ export function FunnelPremium({
   coinsCount = 16,
   showCoins = true,
 }: FunnelPremiumProps) {
-  // Viewbox responsivo com mais espaço para 3D
-  const W = 740;
-  const H = 560;
+  // Dimensões do viewBox
+  const W = 600;
+  const H = 450;
 
-  // Proporções dos estágios (1.00 : 0.78 : 0.62)
-  const topW = 700;
-  const midW = Math.round(topW * 0.78);
-  const botW = Math.round(topW * 0.62);
+  // Proporções ajustadas para viewBox 600x450
+  const topW = 400;  // Largura do topo (67% de 600)
+  const midW = 300;  // Largura do meio (50% de 600)
+  const botW = 240;  // Largura da base (40% de 600)
 
-  const stageH = 110; // Aumentado para dar mais profundidade
-  const gap = 28; // Aumentado para dar mais espaçamento 3D
+  const stageH = 100; // Altura de cada estágio
+  const gap = 30;     // Espaço entre estágios
 
   // Posições Y
-  const y1 = 80;
+  const y1 = 60;
   const y2 = y1 + stageH + gap;
   const y3 = y2 + stageH + gap;
 
@@ -112,20 +94,26 @@ export function FunnelPremium({
   );
 
   return (
-    <div className={`relative rounded-3xl p-4 md:p-6 bg-gradient-to-br from-slate-900/90 to-slate-800/80 backdrop-blur-md border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.35)] ${className}`}>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
+    <div className={`relative ${className}`}>
+      <svg 
+        width="100%" 
+        height="100%"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        xmlns="http://www.w3.org/2000/svg" 
+        className="overflow-visible"
+        style={{
+          background: "linear-gradient(180deg, rgba(10,20,40,0.8) 0%, rgba(5,10,20,0.9) 100%)",
+          borderRadius: "24px",
+          boxShadow: "inset 0 0 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.4)",
+        }}
+      >
         <defs>
           {/* Gradiente principal com mais contraste */}
           <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#7cc8ff" stopOpacity="1"/>
             <stop offset="50%" stopColor="#3fa2e3" stopOpacity="1"/>
             <stop offset="100%" stopColor="#2464b6" stopOpacity="1"/>
-          </linearGradient>
-
-          {/* Gradiente do reflexo superior */}
-          <linearGradient id="topHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.8)"/>
-            <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
           </linearGradient>
 
           {/* Sombra interna mais intensa */}
