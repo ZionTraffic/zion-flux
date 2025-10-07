@@ -45,20 +45,6 @@ export const PremiumKpiCard = ({
         <div className="text-3xl opacity-80">
           {icon}
         </div>
-        {trend && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-            trend.isPositive 
-              ? 'bg-accent/10 text-accent' 
-              : 'bg-destructive/10 text-destructive'
-          }`}>
-            {trend.isPositive ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            <span>{Math.abs(trend.value)}%</span>
-          </div>
-        )}
       </div>
 
       <div className="space-y-1">
