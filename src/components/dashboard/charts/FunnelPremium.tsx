@@ -27,27 +27,49 @@ interface BowlProps {
 function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
   const sideOffset = (topWidth - bottomWidth) / 2;
   
-  // Path côncavo simplificado (formato testado e funcional)
+  // Path com curvatura 3D mais pronunciada
   const bodyPath = `
     M ${x} ${y}
     H ${x + topWidth}
-    C ${x + topWidth - sideOffset * 0.3} ${y + height * 0.5}, 
-      ${x + topWidth - sideOffset * 0.7} ${y + height * 0.8}, 
+    C ${x + topWidth - sideOffset * 0.2} ${y + height * 0.3}, 
+      ${x + topWidth - sideOffset * 0.5} ${y + height * 0.7}, 
       ${x + sideOffset + bottomWidth} ${y + height}
     H ${x + sideOffset}
-    C ${x + sideOffset * 1.3} ${y + height * 0.8}, 
-      ${x + sideOffset * 0.3} ${y + height * 0.5}, 
+    C ${x + sideOffset * 0.5} ${y + height * 0.7}, 
+      ${x + sideOffset * 0.2} ${y + height * 0.3}, 
       ${x} ${y}
     Z
   `;
 
   return (
-    <g filter="url(#glow)">
+    <g>
+      {/* Corpo do bowl com gradiente 3D */}
       <path 
         d={bodyPath} 
-        fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.35)" 
-        strokeWidth="1.4"
+        fill="url(#bowlGradient3D)" 
+        stroke="rgba(0,0,0,0.4)" 
+        strokeWidth="2"
+        filter="url(#glow)"
+      />
+      
+      {/* Elipse superior (abertura do bowl) */}
+      <ellipse 
+        cx={x + topWidth / 2} 
+        cy={y} 
+        rx={topWidth / 2} 
+        ry="12" 
+        fill="url(#topHighlight)"
+        opacity="0.85"
+      />
+      
+      {/* Highlight branco na borda superior */}
+      <ellipse 
+        cx={x + topWidth / 2} 
+        cy={y - 2} 
+        rx={topWidth / 2 - 8} 
+        ry="4" 
+        fill="white"
+        opacity="0.6"
       />
     </g>
   );
@@ -64,12 +86,12 @@ export function FunnelPremium({
   const H = 450;
 
   // Proporções ajustadas para viewBox 600x450
-  const topW = 400;  // Largura do topo (67% de 600)
-  const midW = 300;  // Largura do meio (50% de 600)
-  const botW = 240;  // Largura da base (40% de 600)
+  const topW = 480;  // Largura do topo (80% de 600) - mais largo
+  const midW = 360;  // Largura do meio (60% de 600) - mais largo
+  const botW = 280;  // Largura da base (47% de 600) - mais largo
 
-  const stageH = 100; // Altura de cada estágio
-  const gap = 30;     // Espaço entre estágios
+  const stageH = 90; // Altura de cada estágio - menos alto
+  const gap = 25;     // Espaço entre estágios - menor gap
 
   // Posições Y
   const y1 = 60;
@@ -104,16 +126,25 @@ export function FunnelPremium({
         className="overflow-visible"
       >
         <defs>
-          {/* Gradiente principal vibrante */}
-          <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00d4ff" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#0284c7" stopOpacity="1"/>
+          {/* Gradiente 3D com 5 stops (efeito profundidade real) */}
+          <linearGradient id="bowlGradient3D" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#87CEEB" stopOpacity="1"/> {/* Azul claro topo */}
+            <stop offset="25%" stopColor="#60C5F5" stopOpacity="1"/> {/* Azul médio-claro */}
+            <stop offset="50%" stopColor="#3A9FD8" stopOpacity="1"/> {/* Azul médio */}
+            <stop offset="75%" stopColor="#1E7BB8" stopOpacity="1"/> {/* Azul médio-escuro */}
+            <stop offset="100%" stopColor="#0A5A8A" stopOpacity="1"/> {/* Azul escuro base */}
           </linearGradient>
 
-          {/* Efeito glow para os bowls */}
+          {/* Gradiente para o topo do bowl */}
+          <radialGradient id="topHighlight" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4"/>
+            <stop offset="60%" stopColor="#60C5F5" stopOpacity="0.6"/>
+            <stop offset="100%" stopColor="#3A9FD8" stopOpacity="0.8"/>
+          </radialGradient>
+
+          {/* Efeito glow intensificado para os bowls */}
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+            <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
             <feMerge>
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
@@ -152,6 +183,15 @@ export function FunnelPremium({
 
         {/* Estágio 1 (Topo) */}
         <Bowl x={x1} y={y1} topWidth={topW} bottomWidth={midW} height={stageH} />
+        {/* Sombra inferior do bowl 1 */}
+        <ellipse 
+          cx={W / 2} 
+          cy={y1 + stageH} 
+          rx={midW / 2} 
+          ry="6" 
+          fill="rgba(0,0,0,0.4)"
+          filter="blur(4px)"
+        />
         <text
           x={W / 2}
           y={y1 + stageH / 2 - 12}
@@ -178,6 +218,15 @@ export function FunnelPremium({
 
         {/* Estágio 2 (Meio) */}
         <Bowl x={x2} y={y2} topWidth={midW} bottomWidth={botW} height={stageH} />
+        {/* Sombra inferior do bowl 2 */}
+        <ellipse 
+          cx={W / 2} 
+          cy={y2 + stageH} 
+          rx={botW / 2} 
+          ry="5" 
+          fill="rgba(0,0,0,0.4)"
+          filter="blur(4px)"
+        />
         <text
           x={W / 2}
           y={y2 + stageH / 2 - 12}
@@ -204,6 +253,15 @@ export function FunnelPremium({
 
         {/* Estágio 3 (Base) */}
         <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} />
+        {/* Sombra inferior do bowl 3 */}
+        <ellipse 
+          cx={W / 2} 
+          cy={y3 + stageH} 
+          rx={(botW * 0.85) / 2} 
+          ry="4" 
+          fill="rgba(0,0,0,0.4)"
+          filter="blur(4px)"
+        />
         <text
           x={W / 2}
           y={y3 + stageH / 2 - 12}
