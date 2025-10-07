@@ -19,6 +19,11 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
     setCoins(coinArray);
   }, []);
 
+  // Calculate conversion rate (last stage / first stage)
+  const conversionRate = data.length >= 3 && data[0].value > 0
+    ? ((data[2].value / data[0].value) * 100).toFixed(2)
+    : '0.00';
+
   const option: EChartsOption = {
     title: {
       text: title,
@@ -32,7 +37,7 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(10, 15, 31, 0.95)',
-      borderColor: 'rgba(0, 198, 255, 0.3)',
+      borderColor: 'rgba(139, 92, 246, 0.3)',
       borderWidth: 1,
       textStyle: {
         color: '#e5e7eb',
@@ -41,41 +46,39 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
         const percentage = params.dataIndex > 0 
           ? ((params.value / data[0].value) * 100).toFixed(1)
           : '100.0';
-        return `${params.name}<br/>Quantidade: ${params.value}<br/>Taxa: ${percentage}%`;
+        return `${params.name}<br/>Quantidade: ${params.value.toLocaleString('pt-BR')}<br/>Taxa: ${percentage}%`;
       },
     },
     series: [
       {
         name: 'Funil',
         type: 'funnel',
-        left: '10%',
-        top: 60,
+        left: '5%',
+        top: 80,
         bottom: 60,
-        width: '80%',
+        width: '65%',
         min: 0,
         max: Math.max(...data.map(d => d.value)),
         minSize: '0%',
         maxSize: '100%',
         sort: 'descending',
-        gap: 2,
+        gap: 1,
         label: {
           show: true,
           position: 'inside',
-          formatter: '{b}: {c}',
+          formatter: '{b}\n{c}',
           color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
+          fontSize: 16,
+          fontWeight: 700,
+          lineHeight: 24,
         },
         labelLine: {
-          length: 10,
-          lineStyle: {
-            width: 1,
-            type: 'solid',
-          },
+          show: false,
         },
         itemStyle: {
-          borderColor: '#0e162d',
-          borderWidth: 2,
+          borderColor: '#1a1f3a',
+          borderWidth: 3,
+          borderRadius: 8,
           color: {
             type: 'linear',
             x: 0,
@@ -83,19 +86,23 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: '#00c6ff' },
-              { offset: 1, color: '#0072ff' },
+              { offset: 0, color: '#4A3F8C' },
+              { offset: 0.5, color: '#5B7FCE' },
+              { offset: 1, color: '#6B8FDE' },
             ],
           },
+          shadowBlur: 20,
+          shadowColor: 'rgba(91, 127, 206, 0.5)',
+          shadowOffsetY: 8,
         },
         emphasis: {
           label: {
-            fontSize: 16,
-            fontWeight: 700,
+            fontSize: 18,
+            fontWeight: 800,
           },
           itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 198, 255, 0.5)',
+            shadowBlur: 30,
+            shadowColor: 'rgba(139, 92, 246, 0.7)',
           },
         },
         data: data,
@@ -106,8 +113,18 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
   };
 
   return (
-    <div className="relative">
-      <BaseChart option={option} height="400px" />
+    <div className="relative animate-fade-in-up">
+      <BaseChart option={option} height="450px" />
+      
+      {/* Taxa de Conversão - Destacada à Direita */}
+      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-center animate-scale-in" style={{ animationDelay: '500ms' }}>
+        <div className="text-5xl md:text-7xl font-bold bg-gradient-to-br from-[#FFD700] via-[#FFC107] to-[#FFA500] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]">
+          {conversionRate}%
+        </div>
+        <div className="text-xs md:text-sm text-muted-foreground/70 mt-2 font-medium">
+          Taxa de Conversão
+        </div>
+      </div>
       
       {/* Animated Gold Coins */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 overflow-hidden pointer-events-none">
