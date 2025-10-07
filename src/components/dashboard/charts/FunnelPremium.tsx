@@ -46,8 +46,9 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.75)" 
-        strokeWidth="1.4"
+        stroke="#00E5FF" 
+        strokeWidth="2"
+        strokeOpacity="0.6"
       />
     </g>
   );
@@ -103,28 +104,27 @@ export function FunnelPremium({
         xmlns="http://www.w3.org/2000/svg" 
         className="overflow-visible"
         style={{
-          borderRadius: "24px",
-          boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+          filter: "drop-shadow(0 0 20px rgba(0, 229, 255, 0.3))",
         }}
       >
         <defs>
-          {/* Gradiente principal com mais contraste */}
+          {/* Gradiente neon vibrante para dark mode */}
           <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#B8F0FF" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#7DD9FF" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#4AC2FF" stopOpacity="1"/>
+            <stop offset="0%" stopColor="#00E5FF" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#00B8D9" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#0095B3" stopOpacity="1"/>
           </linearGradient>
 
-          {/* Sombra interna mais intensa */}
+          {/* Sombra interna suave */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feOffset dx="0" dy="4"/>
-            <feGaussianBlur stdDeviation="3" result="offset-blur"/>
+            <feOffset dx="0" dy="2"/>
+            <feGaussianBlur stdDeviation="2" result="offset-blur"/>
             <feComposite in="SourceGraphic" in2="offset-blur" operator="arithmetic" k2="-1" k3="1"/>
             <feColorMatrix type="matrix"
               values="0 0 0 0 0
                       0 0 0 0 0
                       0 0 0 0 0
-                      0 0 0 0.15 0"/>
+                      0 0 0 0.08 0"/>
           </filter>
 
           {/* Gradiente das moedas */}
