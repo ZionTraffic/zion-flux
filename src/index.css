@@ -46,12 +46,19 @@ All colors MUST be HSL.
     --input: 222 20% 15%;
     --ring: 199 100% 50%;
 
-    --radius: 1rem;
+    --radius: 12px;
 
-    /* Enhanced Glassmorphism */
-    --glass-light: 0 0% 100% / 0.03;
-    --glass-medium: 0 0% 100% / 0.08;
-    --glass-heavy: 0 0% 100% / 0.12;
+    /* Apple Glassmorphism */
+    --glass-light: 0 0% 100% / 0.05;
+    --glass-medium: 0 0% 100% / 0.1;
+    --glass-heavy: 0 0% 100% / 0.18;
+    --glass-ultra: 0 0% 100% / 0.25;
+    
+    /* Apple Blur */
+    --blur-sm: 10px;
+    --blur-md: 20px;
+    --blur-lg: 40px;
+    --blur-xl: 60px;
     
     /* Premium Gradients */
     --gradient-neon-blue: linear-gradient(135deg, hsl(var(--primary-start)), hsl(var(--primary-end)));
@@ -72,10 +79,17 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background: linear-gradient(180deg, #0a0f1f 0%, #0e162d 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    
+    /* Apple-style dark gradient */
+    background: linear-gradient(180deg, rgb(10, 10, 20) 0%, rgb(18, 18, 30) 50%, rgb(10, 10, 20) 100%);
     background-attachment: fixed;
     min-height: 100vh;
+    
+    /* Apple-style text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* Inter font class */
@@ -85,36 +99,64 @@ All colors MUST be HSL.
 }
 
 @layer components {
-  /* Enhanced Glassmorphism utilities */
+  /* Apple Glassmorphism utilities */
   .glass {
-    background: hsl(var(--glass-light));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsl(var(--border));
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .glass-medium {
-    background: hsl(var(--glass-medium));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border));
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .glass-heavy {
-    background: hsl(var(--glass-heavy));
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid hsl(var(--border));
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
   }
 
-  /* Card hover effect */
+  /* Apple Card hover effect */
   .card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
     transform: translateY(0) scale(1);
   }
 
   .card-hover:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-hover:active {
+    transform: translateY(0) scale(0.995);
+    transition-duration: 0.1s;
+  }
+
+  /* Apple button press effect */
+  .apple-press {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .apple-press:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
+
+  /* Apple glow effect */
+  .apple-glow {
+    transition: box-shadow 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .apple-glow:hover {
+    box-shadow: 
+      0 0 20px rgba(0, 122, 255, 0.3),
+      0 0 40px rgba(0, 122, 255, 0.2),
+      0 0 60px rgba(0, 122, 255, 0.1);
   }
 }
 

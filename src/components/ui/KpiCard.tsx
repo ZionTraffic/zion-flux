@@ -16,7 +16,7 @@ interface KpiCardProps {
 export const KpiCard = ({ label, value, icon, trend, gradient, delay }: KpiCardProps) => {
   return (
     <div 
-      className={`glass rounded-2xl p-6 border border-border/50 card-hover animate-slide-up`}
+      className={`glass rounded-apple-lg p-6 border border-border/50 card-hover shadow-apple-lg animate-apple-slide-up`}
       style={{ 
         animationDelay: `${delay}s`,
         background: `linear-gradient(135deg, ${gradient})`,

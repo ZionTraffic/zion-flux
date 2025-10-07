@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        inter: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Inter', 'Helvetica Neue', 'sans-serif'],
+        display: ['-apple-system', 'SF Pro Display', 'Inter', 'Helvetica Neue', 'sans-serif'],
+        mono: ['SF Mono', 'Monaco', 'Menlo', 'Courier New', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,6 +74,33 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        'apple-sm': '8px',
+        'apple-md': '12px',
+        'apple-lg': '16px',
+        'apple-xl': '20px',
+        'apple-2xl': '24px',
+        'apple-full': '9999px',
+      },
+      transitionTimingFunction: {
+        'apple': 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'apple-smooth': 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        'apple-bouncy': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'apple-ease-in-out': 'cubic-bezier(0.42, 0, 0.58, 1)',
+        'apple-entrance': 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      transitionDuration: {
+        'apple-fast': '150ms',
+        'apple-base': '250ms',
+        'apple-slow': '350ms',
+        'apple-slower': '500ms',
+      },
+      boxShadow: {
+        'apple-sm': '0 1px 3px rgba(0, 0, 0, 0.08)',
+        'apple-md': '0 4px 12px rgba(0, 0, 0, 0.1)',
+        'apple-lg': '0 8px 24px rgba(0, 0, 0, 0.12)',
+        'apple-xl': '0 12px 40px rgba(0, 0, 0, 0.15)',
+        'apple-2xl': '0 20px 60px rgba(0, 0, 0, 0.2)',
+        'apple-inner': 'inset 0 1px 2px rgba(0, 0, 0, 0.05)',
       },
       backdropBlur: {
         'xl': '20px',
@@ -90,6 +118,22 @@ export default {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        "apple-fade-in": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" }
+        },
+        "apple-slide-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "apple-scale-in": {
+          "0%": { transform: "scale(0.9)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" }
+        },
+        "apple-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" }
         },
         "glow": {
           "0%, 100%": { 
@@ -153,6 +197,10 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "coin-fall": "coin-fall 3s ease-in infinite",
         "fade-in-up": "fade-in-up 0.6s ease-out backwards",
+        "apple-fade-in": "apple-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "apple-slide-up": "apple-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+        "apple-scale-in": "apple-scale-in 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)",
+        "apple-bounce": "apple-bounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
       },
     },
   },

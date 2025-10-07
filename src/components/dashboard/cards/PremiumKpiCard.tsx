@@ -35,8 +35,8 @@ export const PremiumKpiCard = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay }}
-      className="glass rounded-2xl p-6 border border-border/50 shadow-premium card-hover"
+      transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="glass rounded-apple-lg p-6 border border-border/50 shadow-apple-lg card-hover"
       style={{ 
         background: variantGradients[variant],
       }}

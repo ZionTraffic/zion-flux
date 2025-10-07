@@ -29,8 +29,8 @@ export function OperationalKpiCard({ icon: Icon, label, value, subtitle, colorSc
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3, delay }}
-      className={`group glass rounded-2xl p-6 border bg-gradient-to-br ${colorSchemes[colorScheme]} hover:shadow-xl transition-all duration-300`}
+      transition={{ duration: 0.3, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`group glass rounded-apple-lg p-6 border bg-gradient-to-br ${colorSchemes[colorScheme]} shadow-apple-lg hover:shadow-apple-xl transition-apple-base`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-xl ${iconSchemes[colorScheme]} transition-all duration-300`}>

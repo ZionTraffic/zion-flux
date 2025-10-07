@@ -31,8 +31,8 @@ export function GlobalKpiCard({ icon: Icon, label, value, subtitle, colorScheme,
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      className={`glass rounded-2xl p-6 border bg-gradient-to-br ${colorSchemes[colorScheme]} hover:shadow-xl hover:scale-105 hover:border-white/20 transition-all duration-300`}
+      transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`glass rounded-apple-lg p-6 border bg-gradient-to-br ${colorSchemes[colorScheme]} shadow-apple-lg hover:shadow-apple-xl hover:scale-105 hover:border-white/20 transition-apple-base`}
     >
       <div className="flex items-center gap-4">
         <div className={`p-3 rounded-xl border ${iconSchemes[colorScheme]} transition-all duration-300 group-hover:scale-110`}>

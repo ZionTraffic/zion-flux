@@ -9,14 +9,15 @@ const LoaderOne = () => {
           className="h-3 w-3 rounded-full bg-primary"
           initial={{ x: 0 }}
           animate={{
-            x: [0, 10, 0],
-            opacity: [0.5, 1, 0.5],
-            scale: [1, 1.2, 1],
+            x: [0, 8, 0],
+            opacity: [0.4, 1, 0.4],
+            scale: [1, 1.1, 1],
           }}
           transition={{
-            duration: 1,
+            duration: 0.8,
             repeat: Infinity,
-            delay: i * 0.2,
+            delay: i * 0.15,
+            ease: [0.25, 0.1, 0.25, 1],
           }}
         />
       ))}
