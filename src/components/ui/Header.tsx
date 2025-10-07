@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
+import { MobileMenu } from "./MobileMenu";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -96,33 +97,43 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   return (
     <TooltipProvider>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-medium">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left Section: Logo + Navigation */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+          <div className="flex items-center gap-3 lg:gap-6">
+            {/* Mobile Menu Button */}
+            <MobileMenu
+              items={menuItems}
+              activeItem={getActiveItem()}
+              onItemClick={handleMenuClick}
+              currentWorkspace={currentWorkspace}
+              onWorkspaceChange={onWorkspaceChange}
+            />
+
+            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => navigate("/")}>
               <img 
                 src={logoZion} 
                 alt="Zion Analytics" 
-                className="w-12 h-12 rounded-full object-cover shadow-glow-blue" 
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover shadow-glow-blue" 
               />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold tracking-tight">Zion Analytics</h1>
+                <h1 className="text-base lg:text-lg font-bold tracking-tight">Zion Analytics</h1>
                 <p className="text-xs text-muted-foreground">Premium Dashboard</p>
               </div>
             </div>
 
-            {/* Navigation Menu with Glow Effect */}
+            {/* Desktop Navigation Menu */}
             <div className="hidden lg:block">
               <MenuBar 
                 items={menuItems}
                 activeItem={getActiveItem()}
                 onItemClick={handleMenuClick}
+                className="scale-90 xl:scale-100"
               />
             </div>
           </div>
 
-          {/* Center Section: Workspace Selector */}
-          <div className="hidden md:flex flex-1 justify-center max-w-xs">
+          {/* Center Section: Workspace Selector (Desktop Only) */}
+          <div className="hidden lg:flex flex-1 justify-center max-w-xs">
             <WorkspaceSelector 
               current={currentWorkspace} 
               onChange={onWorkspaceChange} 
@@ -130,11 +141,11 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
           </div>
 
           {/* Right Section: Status + Actions */}
-          <div className="flex items-center gap-3">
-            {/* Live Status Indicator */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Live Status Indicator (Hidden on Mobile) */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full glass">
+                <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-full glass">
                   <div className="w-2 h-2 rounded-full bg-accent animate-pulse-glow" />
                   <span className="text-xs text-accent font-medium">Live</span>
                 </div>
@@ -145,7 +156,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             </Tooltip>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -168,7 +179,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="glass hover:glass-medium"
+                    className="glass hover:glass-medium hidden sm:flex"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -178,7 +189,9 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                 </TooltipContent>
               </Tooltip>
 
-              <SettingsMenu />
+              <div className="hidden sm:block">
+                <SettingsMenu />
+              </div>
 
               <Tooltip>
                 <TooltipTrigger asChild>
