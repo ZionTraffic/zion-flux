@@ -37,7 +37,7 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(10, 15, 31, 0.95)',
-      borderColor: 'rgba(139, 92, 246, 0.3)',
+      borderColor: 'rgba(91, 155, 213, 0.3)',
       borderWidth: 1,
       textStyle: {
         color: '#e5e7eb',
@@ -54,46 +54,40 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
         name: 'Funil',
         type: 'funnel',
         left: '5%',
-        top: 80,
-        bottom: 60,
-        width: '65%',
+        top: 60,
+        bottom: 100,
+        width: '90%',
         min: 0,
         max: Math.max(...data.map(d => d.value)),
-        minSize: '0%',
+        minSize: '15%',
         maxSize: '100%',
         sort: 'descending',
-        gap: 1,
+        gap: 2,
         label: {
           show: true,
           position: 'inside',
-          formatter: '{b}\n{c}',
+          formatter: (params: any) => {
+            const value = params.value.toLocaleString('pt-BR');
+            return params.value < 1000 
+              ? `${value}`
+              : `${params.name}\n${value}`;
+          },
           color: '#fff',
           fontSize: 16,
           fontWeight: 700,
-          lineHeight: 24,
+          lineHeight: 22,
         },
         labelLine: {
           show: false,
         },
         itemStyle: {
-          borderColor: '#1a1f3a',
-          borderWidth: 3,
-          borderRadius: 8,
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: '#4A3F8C' },
-              { offset: 0.5, color: '#5B7FCE' },
-              { offset: 1, color: '#6B8FDE' },
-            ],
-          },
-          shadowBlur: 20,
-          shadowColor: 'rgba(91, 127, 206, 0.5)',
-          shadowOffsetY: 8,
+          borderColor: '#2E5C8A',
+          borderWidth: 2,
+          borderRadius: 12,
+          color: '#5B9BD5',
+          shadowBlur: 15,
+          shadowColor: 'rgba(91, 155, 213, 0.4)',
+          shadowOffsetY: 5,
         },
         emphasis: {
           label: {
@@ -101,8 +95,9 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
             fontWeight: 800,
           },
           itemStyle: {
-            shadowBlur: 30,
-            shadowColor: 'rgba(139, 92, 246, 0.7)',
+            shadowBlur: 25,
+            shadowColor: 'rgba(91, 155, 213, 0.6)',
+            color: '#6BAED6',
           },
         },
         data: data,
@@ -114,15 +109,19 @@ export const FunnelChart = ({ data, title = 'Funil de Conversão' }: FunnelChart
 
   return (
     <div className="relative animate-fade-in-up">
-      <BaseChart option={option} height="450px" />
+      <BaseChart option={option} height="500px" />
       
-      {/* Taxa de Conversão - Destacada à Direita */}
-      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-center animate-scale-in" style={{ animationDelay: '500ms' }}>
-        <div className="text-5xl md:text-7xl font-bold bg-gradient-to-br from-[#FFD700] via-[#FFC107] to-[#FFA500] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]">
+      {/* Taxa de Conversão - Canto Inferior Esquerdo */}
+      <div className="absolute bottom-8 left-8 animate-scale-in" style={{ animationDelay: '500ms' }}>
+        <div className="text-xs text-muted-foreground/60 mb-1 font-medium">
+          Convert Rate
+        </div>
+        <div className="text-5xl md:text-6xl font-bold bg-gradient-to-br from-[#FFD700] via-[#FFC107] to-[#FFA500] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]">
           {conversionRate}%
         </div>
-        <div className="text-xs md:text-sm text-muted-foreground/70 mt-2 font-medium">
-          Taxa de Conversão
+        <div className="text-xs text-accent/80 mt-1 flex items-center gap-1">
+          <span>▲</span>
+          <span>4.3%</span>
         </div>
       </div>
       
