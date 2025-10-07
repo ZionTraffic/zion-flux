@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { logger } from '@/utils/logger';
 import { motion } from 'framer-motion';
 import logoZionCircle from "@/assets/logo-zion-circle.png";
+import logoZionBlue from "@/assets/logo-zion-blue.png";
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -121,16 +122,16 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background com logo marca d'água */}
-      <div className="absolute inset-0 opacity-[0.015] pointer-events-none">
+      {/* Background com logo azul expandida */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
         <div 
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${logoZionCircle})`,
-            backgroundSize: '300px',
-            backgroundRepeat: 'repeat',
+            backgroundImage: `url(${logoZionBlue})`,
+            backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'grayscale(100%)'
+            backgroundRepeat: 'no-repeat',
+            filter: 'brightness(1.1)'
           }}
         />
       </div>
