@@ -46,17 +46,25 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
 
   return (
     <g filter="url(#innerShadow)">
+      {/* Corpo principal com gradiente */}
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
-        stroke="rgba(255,255,255,0.35)" 
+        stroke="rgba(255,255,255,0.4)" 
         strokeWidth="1.5"
       />
+      {/* Camada de reflexo translúcido */}
+      <path 
+        d={bodyPath} 
+        fill="url(#topHighlight)" 
+        opacity="0.35"
+      />
+      {/* Linha de brilho no topo */}
       <path 
         d={highlightPath} 
-        stroke="rgba(255,255,255,0.55)" 
-        strokeWidth="2.5" 
-        opacity="0.7"
+        stroke="rgba(255,255,255,0.65)" 
+        strokeWidth="1.6" 
+        opacity="0.8"
         strokeLinecap="round"
       />
     </g>
@@ -104,25 +112,32 @@ export function FunnelPremium({
   );
 
   return (
-    <div className={`relative rounded-3xl p-4 md:p-6 bg-white/5 backdrop-blur-md shadow-[0_10px_35px_rgba(0,0,0,0.35)] ${className}`}>
+    <div className={`relative rounded-3xl p-4 md:p-6 bg-gradient-to-br from-slate-900/90 to-slate-800/80 backdrop-blur-md border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.35)] ${className}`}>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
         <defs>
-          {/* Gradiente azul suave 3D */}
-          <linearGradient id="bowlGradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#6DC1F9"/>
-            <stop offset="100%" stopColor="#2A76C8"/>
+          {/* Gradiente principal com mais contraste */}
+          <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#7cc8ff" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#3fa2e3" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#2464b6" stopOpacity="1"/>
           </linearGradient>
 
-          {/* Sombra interna sutil */}
+          {/* Gradiente do reflexo superior */}
+          <linearGradient id="topHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.8)"/>
+            <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+          </linearGradient>
+
+          {/* Sombra interna mais intensa */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feOffset dx="0" dy="2"/>
-            <feGaussianBlur stdDeviation="2"/>
-            <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+            <feOffset dx="0" dy="4"/>
+            <feGaussianBlur stdDeviation="3" result="offset-blur"/>
+            <feComposite in="SourceGraphic" in2="offset-blur" operator="arithmetic" k2="-1" k3="1"/>
             <feColorMatrix type="matrix"
               values="0 0 0 0 0
                       0 0 0 0 0
                       0 0 0 0 0
-                      0 0 0 0.35 0"/>
+                      0 0 0 0.55 0"/>
           </filter>
 
           {/* Gradiente das moedas */}
