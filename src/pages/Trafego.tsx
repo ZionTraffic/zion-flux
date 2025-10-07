@@ -162,10 +162,16 @@ const Trafego = () => {
   ];
 
   // Chart Data - Real Meta Ads data
+  console.log('📊 Daily data count:', daily.length);
+  console.log('📊 First 3 daily records:', daily.slice(0, 3));
+  
   const barChartData = daily.map((d) => ({
     day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
     value: d.impressions,
   }));
+  
+  console.log('📊 Bar chart data count:', barChartData.length);
+  console.log('📊 First 3 bar chart items:', barChartData.slice(0, 3));
 
   const donutChartData = campaigns.slice(0, 3).map((c) => ({
     name: c.name,
@@ -260,7 +266,7 @@ const Trafego = () => {
       {/* Charts Grid - Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <BarChart data={barChartData} title="Impressões (Últimos Dias)" />
+          <BarChart data={barChartData} title="Impressões (Últimos Dias)" valueType="number" />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <DonutChart data={donutChartData} title="Investimento por Campanha" />

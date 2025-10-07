@@ -4,9 +4,10 @@ import { EChartsOption } from 'echarts';
 interface BarChartProps {
   data: { day: string; value: number }[];
   title?: string;
+  valueType?: 'currency' | 'number';
 }
 
-export const BarChart = ({ data, title = 'Valor Levado' }: BarChartProps) => {
+export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' }: BarChartProps) => {
   const option: EChartsOption = {
     title: {
       text: title,
@@ -27,7 +28,10 @@ export const BarChart = ({ data, title = 'Valor Levado' }: BarChartProps) => {
       },
       formatter: (params: any) => {
         const param = params[0];
-        return `${param.name}<br/>R$ ${param.value.toLocaleString('pt-BR')}`;
+        const formattedValue = valueType === 'currency' 
+          ? `R$ ${param.value.toLocaleString('pt-BR')}`
+          : param.value.toLocaleString('pt-BR');
+        return `${param.name}<br/>${formattedValue}`;
       },
     },
     xAxis: {
@@ -56,7 +60,19 @@ export const BarChart = ({ data, title = 'Valor Levado' }: BarChartProps) => {
       axisLabel: {
         color: '#9ca3af',
         fontSize: 11,
-        formatter: (value: number) => `R$ ${value.toLocaleString('pt-BR')}`,
+        formatter: (value: number) => {
+          if (valueType === 'currency') {
+            return `R$ ${value.toLocaleString('pt-BR')}`;
+          }
+          // For large numbers, use K, M notation
+          if (value >= 1000000) {
+            return `${(value / 1000000).toFixed(1)}M`;
+          }
+          if (value >= 1000) {
+            return `${(value / 1000).toFixed(1)}K`;
+          }
+          return value.toLocaleString('pt-BR');
+        },
       },
     },
     series: [
