@@ -18,6 +18,10 @@ const Conversas = () => {
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    await setCurrentWorkspaceId(workspaceId);
+  };
+
   const filteredConversations = conversations.filter((conv) =>
     conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.phone.includes(searchTerm)
@@ -53,7 +57,7 @@ const Conversas = () => {
         isRefreshing={isLoading} 
         lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={setCurrentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">

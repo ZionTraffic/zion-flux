@@ -13,6 +13,9 @@ import { Users, Plug, Settings, CreditCard } from "lucide-react";
 const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
 
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    await setCurrentWorkspaceId(workspaceId);
+  };
   return (
     <div className="min-h-screen">
       <Header 
@@ -20,7 +23,7 @@ const Configuracoes = () => {
         isRefreshing={false} 
         lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={setCurrentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">

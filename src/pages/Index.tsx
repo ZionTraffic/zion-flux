@@ -15,6 +15,10 @@ const Index = () => {
   const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
   const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
 
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    await setCurrentWorkspaceId(workspaceId);
+  };
+
   // Diagnóstico em andamento
   if (diagnostics.status === "checking") {
     return (
@@ -148,7 +152,7 @@ const Index = () => {
         isRefreshing={loading} 
         lastUpdate={lastUpdate}
         currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={setCurrentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">

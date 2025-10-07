@@ -12,6 +12,10 @@ const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { columns, isLoading, error, moveLead, refetch, kpis } = useLeadsKanban(currentWorkspaceId);
 
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    await setCurrentWorkspaceId(workspaceId);
+  };
+
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
 
@@ -59,7 +63,7 @@ const Qualificacao = () => {
         isRefreshing={isLoading} 
         lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={setCurrentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
