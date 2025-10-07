@@ -5,19 +5,33 @@ import { DataTable } from "@/components/tables/DataTable";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
   const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
   const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserEmail(user.email);
+    });
+  }, []);
+
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
   };
+
+  // Show no workspace screen if user has no workspace access
+  if (!currentWorkspaceId && diagnostics.status !== "checking") {
+    return <NoWorkspaceAccess userEmail={userEmail} />;
+  }
 
   // Diagnóstico em andamento
   if (diagnostics.status === "checking") {

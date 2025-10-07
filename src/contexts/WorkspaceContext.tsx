@@ -63,7 +63,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
     }
     
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        // Clear workspace data on logout
+        setCurrentWorkspaceIdState(null);
+        localStorage.removeItem('currentWorkspaceId');
+      } else if (event === 'SIGNED_IN') {
+        // Reinitialize workspace on login
+        initializeWorkspace();
+      }
+    });
+    
     initializeWorkspace();
+    
+    return () => subscription.unsubscribe();
   }, []);
 
   const setCurrentWorkspaceId = async (id: string) => {
@@ -111,17 +125,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!currentWorkspaceId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold">No Workspace Access</h2>
-          <p className="text-muted-foreground">You don't have access to any workspaces yet.</p>
-        </div>
       </div>
     );
   }
