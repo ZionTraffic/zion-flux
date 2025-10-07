@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { logger } from '@/utils/logger';
 import { motion } from 'framer-motion';
-import logoZion from '@/assets/logo-zion-blue.png';
+import logoZionCircle from "@/assets/logo-zion-circle.png";
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -126,7 +126,7 @@ const Auth = () => {
         <div 
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${logoZion})`,
+            backgroundImage: `url(${logoZionCircle})`,
             backgroundSize: '300px',
             backgroundRepeat: 'repeat',
             backgroundPosition: 'center',
@@ -150,11 +150,11 @@ const Auth = () => {
           <div className="relative p-8">
             {/* Logo */}
             <div className="flex flex-col items-center mb-8">
-              <div className="bg-white p-4 rounded-apple-xl shadow-apple-lg mb-6 animate-apple-fade-in">
+              <div className="bg-white p-3 rounded-full shadow-apple-xl mb-6 animate-apple-fade-in">
                 <img 
-                  src={logoZion} 
+                  src={logoZionCircle} 
                   alt="Zion" 
-                  className="w-16 h-16 object-contain"
+                  className="w-20 h-20 object-cover rounded-full"
                 />
               </div>
               <h2 className="text-2xl font-bold text-foreground">
