@@ -2,22 +2,18 @@
 
 import * as React from "react";
 import { type DateRange } from "react-day-picker";
-import { CalendarIcon } from "lucide-react";
+import { X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import { Calendar } from "@/components/ui/calendar";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface DateRangePickerProps {
   dateRange: DateRange | undefined;
   onDateRangeChange: (range: DateRange | undefined) => void;
+  onClearFilter?: () => void;
   minDays?: number;
   maxDays?: number;
 }
@@ -25,69 +21,135 @@ interface DateRangePickerProps {
 export function DateRangePicker({
   dateRange,
   onDateRangeChange,
+  onClearFilter,
   minDays = 1,
   maxDays = 90,
 }: DateRangePickerProps) {
-  const [open, setOpen] = React.useState(false);
+  const [error, setError] = React.useState<string>("");
 
-  const validateRange = (range: DateRange | undefined): boolean => {
-    if (!range?.from || !range?.to) return true;
-    
-    const diffTime = Math.abs(range.to.getTime() - range.from.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays >= minDays && diffDays <= maxDays;
-  };
+  const handleFromDateChange = (date: Date | undefined) => {
+    if (!date) {
+      onDateRangeChange({ from: undefined, to: dateRange?.to });
+      return;
+    }
 
-  const handleSelect = (range: DateRange | undefined) => {
-    if (validateRange(range)) {
-      onDateRangeChange(range);
-      if (range?.from && range?.to) {
-        setOpen(false);
+    const newRange: DateRange = { from: date, to: dateRange?.to };
+    
+    // Validar se a data de término é depois da data de início
+    if (newRange.to && newRange.to < date) {
+      setError("Data de término não pode ser anterior à data de início");
+      return;
+    }
+
+    // Validar range de dias
+    if (newRange.to) {
+      const diffTime = Math.abs(newRange.to.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < minDays || diffDays > maxDays) {
+        setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
+        return;
       }
     }
+
+    setError("");
+    onDateRangeChange(newRange);
   };
 
-  const formatDateRange = () => {
-    if (!dateRange?.from) {
-      return <span className="text-muted-foreground">Selecione o período</span>;
+  const handleToDateChange = (date: Date | undefined) => {
+    if (!date) {
+      onDateRangeChange({ from: dateRange?.from, to: undefined });
+      return;
     }
+
+    const newRange: DateRange = { from: dateRange?.from, to: date };
     
-    if (!dateRange.to) {
-      return format(dateRange.from, "dd/MM/yyyy", { locale: ptBR });
+    // Validar se a data de término é depois da data de início
+    if (newRange.from && date < newRange.from) {
+      setError("Data de término não pode ser anterior à data de início");
+      return;
     }
+
+    // Validar range de dias
+    if (newRange.from) {
+      const diffTime = Math.abs(date.getTime() - newRange.from.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < minDays || diffDays > maxDays) {
+        setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
+        return;
+      }
+    }
+
+    setError("");
+    onDateRangeChange(newRange);
+  };
+
+  const isCustomRange = () => {
+    if (!dateRange?.from || !dateRange?.to) return false;
     
-    return `${format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} - ${format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}`;
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
+    
+    return !(isSameDay(dateRange.from, thirtyDaysAgo) && isSameDay(dateRange.to, today));
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+        <DatePickerField
+          date={dateRange?.from}
+          onDateChange={handleFromDateChange}
+          label="Data de Início"
+          maxDate={dateRange?.to || new Date()}
+        />
+        
+        <DatePickerField
+          date={dateRange?.to}
+          onDateChange={handleToDateChange}
+          label="Data de Término"
+          minDate={dateRange?.from}
+          maxDate={new Date()}
+        />
+        
+        {onClearFilter && (
           <Button
             variant="outline"
+            onClick={onClearFilter}
             className={cn(
-              "justify-start text-left font-normal glass-medium hover:border-primary/50 transition-all w-[280px]",
-              !dateRange && "text-muted-foreground"
+              "glass-medium hover:border-destructive/50 hover:text-destructive transition-all",
+              "sm:self-end w-full sm:w-auto"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {formatDateRange()}
+            <X className="h-4 w-4 mr-2" />
+            Limpar Filtro
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue backdrop-blur-xl" align="start">
-          <Calendar
-            mode="range"
-            selectedRange={dateRange}
-            onSelectRange={handleSelect}
-            showMonthYearPickers={true}
-            className="rounded-lg border-0"
-          />
-          <div className="px-4 pb-3 text-xs text-muted-foreground/80 text-center border-t border-border/50">
-            O período deve ter entre {minDays} e {maxDays} dias
-          </div>
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-sm text-destructive animate-fade-in">{error}</p>
+      )}
+
+      {dateRange?.from && dateRange?.to && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Exibindo: {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+            {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+          </span>
+          {isCustomRange() && (
+            <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              Personalizado
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

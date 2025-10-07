@@ -14,11 +14,13 @@ import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
+  const { toast } = useToast();
   
   // Date range state - default to last 30 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -43,6 +45,25 @@ const Trafego = () => {
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: "Dados atualizados",
+      description: "As métricas foram atualizadas com sucesso",
+    });
+  };
+
+  const handleClearFilter = () => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+    setDateRange({ from, to });
+    toast({
+      title: "Filtro limpo",
+      description: "Voltando para os últimos 30 dias",
+    });
   };
 
   // Show no workspace screen if user has no workspace access
@@ -214,12 +235,13 @@ const Trafego = () => {
     >
       {/* Date Range Filter */}
       <div className="mb-6">
-        <DateRangePicker
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          minDays={1}
-          maxDays={90}
-        />
+          <DateRangePicker
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            onClearFilter={handleClearFilter}
+            minDays={1}
+            maxDays={90}
+          />
       </div>
 
       {/* Error Messages */}
