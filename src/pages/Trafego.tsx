@@ -279,12 +279,6 @@ const Trafego = () => {
               { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
               { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
             ]}
-            conversionRate={
-              totals && totals.impressions > 0
-                ? ((totals.conversas_iniciadas / totals.impressions) * 100).toFixed(2)
-                : '0.00'
-            }
-            conversionDelta={{ value: '▲ 4,3%', trend: 'up' }}
             coinsCount={16}
             showCoins={true}
           />

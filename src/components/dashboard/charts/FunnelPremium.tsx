@@ -11,8 +11,6 @@ export interface FunnelPremiumProps {
   className?: string;
   coinsCount?: number;
   showCoins?: boolean;
-  conversionRate: string;
-  conversionDelta?: { value: string; trend: 'up' | 'down' };
 }
 
 const formatValue = (value: number) => value.toLocaleString('pt-BR');
@@ -69,8 +67,6 @@ export function FunnelPremium({
   className = '',
   coinsCount = 16,
   showCoins = true,
-  conversionRate,
-  conversionDelta = { value: '▲ 4,3%', trend: 'up' },
 }: FunnelPremiumProps) {
   // Viewbox responsivo
   const W = 740;
@@ -253,36 +249,6 @@ export function FunnelPremium({
         )}
       </svg>
 
-      {/* Convert Rate com Glow (Canto Inferior Esquerdo) */}
-      <motion.div
-        className="absolute bottom-6 left-6 md:bottom-8 md:left-8"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-      >
-        <div className="relative">
-          {/* Glow effect */}
-          <div
-            className="pointer-events-none absolute -inset-6 rounded-full blur-2xl opacity-70"
-            style={{
-              background: 'radial-gradient(ellipse at center, rgba(255,215,0,0.22), rgba(0,0,0,0))',
-            }}
-          />
-          
-          {/* Conteúdo */}
-          <div className="relative">
-            <div className="text-xs text-zinc-200/80 mb-1 font-medium">
-              Convert Rate
-            </div>
-            <div className="text-5xl md:text-6xl font-bold text-[#FFD700] tracking-tight drop-shadow-[0_0_18px_rgba(255,215,0,0.35)]">
-              {conversionRate}%
-            </div>
-            <div className={`text-xs mt-1 flex items-center gap-1 ${conversionDelta.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
-              <span>{conversionDelta.value}</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }
