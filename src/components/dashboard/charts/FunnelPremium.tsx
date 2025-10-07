@@ -111,9 +111,9 @@ export function FunnelPremium({
         <defs>
           {/* Gradiente principal com mais contraste */}
           <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#7cc8ff" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#3fa2e3" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#2464b6" stopOpacity="1"/>
+            <stop offset="0%" stopColor="#66D9FF" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#3DAEF5" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#2D9BF0" stopOpacity="1"/>
           </linearGradient>
 
           {/* Sombra interna mais intensa */}
