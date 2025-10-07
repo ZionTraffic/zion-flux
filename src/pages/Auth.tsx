@@ -151,7 +151,7 @@ const Auth = () => {
           <div className="relative p-8">
             {/* Logo */}
             <div className="flex flex-col items-center mb-8">
-              <div className="p-3 rounded-full shadow-apple-xl mb-6 animate-apple-fade-in">
+              <div className="bg-white p-3 rounded-full shadow-apple-xl mb-6 animate-apple-fade-in">
                 <img 
                   src={logoZionCircular} 
                   alt="Zion" 
