@@ -67,7 +67,7 @@ const Trafego = () => {
     });
   };
 
-  const applyQuickFilter = (type: 'today' | 'last7days' | 'last30days' | 'lastMonth') => {
+  const applyQuickFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
     const to = new Date();
     const from = new Date();
     
@@ -80,6 +80,9 @@ const Trafego = () => {
         break;
       case 'last30days':
         from.setDate(to.getDate() - 30);
+        break;
+      case 'thisMonth':
+        from.setDate(1); // Primeiro dia do mês atual
         break;
       case 'lastMonth':
         from.setMonth(to.getMonth() - 1);
@@ -96,7 +99,7 @@ const Trafego = () => {
     });
   };
 
-  const isActiveFilter = (type: 'today' | 'last7days' | 'last30days' | 'lastMonth') => {
+  const isActiveFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
     if (!dateRange?.from || !dateRange?.to) return false;
     
     const today = new Date();
@@ -118,6 +121,10 @@ const Trafego = () => {
         const from = new Date();
         from.setDate(today.getDate() - 30);
         return isSameDay(dateRange.from, from) && isSameDay(dateRange.to, today);
+      }
+      case 'thisMonth': {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        return isSameDay(dateRange.from, firstDay) && isSameDay(dateRange.to, today);
       }
       case 'lastMonth': {
         const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -343,6 +350,18 @@ const Trafego = () => {
               )}
             >
               Últimos 30 Dias
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('thisMonth')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('thisMonth') && "border-primary bg-primary/10"
+              )}
+            >
+              Este Mês
             </Button>
             
             <Button
