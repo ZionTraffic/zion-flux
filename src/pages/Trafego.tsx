@@ -4,7 +4,7 @@ import { BarChart } from "@/components/dashboard/charts/BarChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
 import { FunnelChart } from "@/components/dashboard/charts/FunnelChart";
-import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
@@ -17,7 +17,7 @@ const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
-  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
+  const { totals, daily, campaigns, loading, error, lastUpdate, refetch } = useMetaAdsData(currentWorkspaceId || '');
   const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
 
   useEffect(() => {
@@ -79,70 +79,108 @@ const Trafego = () => {
     );
   }
 
-  // Verificar se há dados para exibir
-  const showNoDataWarning = testResult && !testResult.dataDisplayed;
+  // Helper function to calculate trend
+  const calculateTrend = (
+    dailyData: typeof daily,
+    metric: keyof typeof daily[0],
+    higherIsBetter: boolean = true
+  ): { value: number; isPositive: boolean } => {
+    if (dailyData.length < 2) return { value: 0, isPositive: true };
 
-  // KPI Cards Data - TODO: Substituir por dados reais do Meta Ads
+    const midPoint = Math.floor(dailyData.length / 2);
+    const firstHalf = dailyData.slice(0, midPoint);
+    const secondHalf = dailyData.slice(midPoint);
+
+    const avgFirst = firstHalf.reduce((sum, d) => sum + Number(d[metric]), 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((sum, d) => sum + Number(d[metric]), 0) / secondHalf.length;
+
+    const percentChange = avgFirst === 0 ? 0 : ((avgSecond - avgFirst) / avgFirst) * 100;
+    const isPositive = higherIsBetter ? percentChange > 0 : percentChange < 0;
+
+    return {
+      value: Math.abs(percentChange),
+      isPositive,
+    };
+  };
+
+  // KPI Cards Data - Real Meta Ads data
   const kpiCards = [
     {
       id: 'impressoes',
       label: 'Impressões',
-      value: totals.leads_recebidos.toLocaleString('pt-BR'),
+      value: totals?.impressions.toLocaleString('pt-BR') || '0',
       icon: '👁️',
       variant: 'emerald' as const,
-      trend: { value: 12.5, isPositive: true },
+      trend: totals ? calculateTrend(daily, 'impressions') : { value: 0, isPositive: true },
       delay: 0,
     },
     {
       id: 'cliques',
       label: 'Cliques',
-      value: totals.leads_qualificados.toLocaleString('pt-BR'),
+      value: totals?.clicks.toLocaleString('pt-BR') || '0',
       icon: '🖱️',
       variant: 'blue' as const,
-      trend: { value: 8.3, isPositive: true },
+      trend: totals ? calculateTrend(daily, 'clicks') : { value: 0, isPositive: true },
       delay: 0.1,
     },
     {
       id: 'investimento',
       label: 'Investimento',
-      value: `R$ ${totals.leads_followup.toLocaleString('pt-BR')}`,
+      value: `R$ ${totals?.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}`,
       icon: '💰',
       variant: 'amber' as const,
-      trend: { value: 5.1, isPositive: false },
+      trend: totals ? calculateTrend(daily, 'spend') : { value: 0, isPositive: true },
       delay: 0.2,
     },
     {
       id: 'cpc',
       label: 'CPC Médio',
-      value: `R$ ${(totals.leads_descartados / 100).toFixed(2)}`,
+      value: `R$ ${totals?.cpc.toFixed(2) || '0,00'}`,
       icon: '📊',
       variant: 'gray' as const,
-      trend: { value: 2.8, isPositive: false },
+      trend: totals ? calculateTrend(daily, 'cpc', false) : { value: 0, isPositive: true },
       delay: 0.3,
+    },
+    {
+      id: 'ctr',
+      label: 'CTR Médio',
+      value: `${totals?.ctr.toFixed(2) || '0,00'}%`,
+      icon: '🎯',
+      variant: 'purple' as const,
+      trend: totals ? calculateTrend(daily, 'ctr') : { value: 0, isPositive: true },
+      delay: 0.4,
+    },
+    {
+      id: 'conversoes',
+      label: 'Conversões',
+      value: totals?.conversions.toLocaleString('pt-BR') || '0',
+      icon: '✅',
+      variant: 'rose' as const,
+      trend: totals ? calculateTrend(daily, 'conversions') : { value: 0, isPositive: true },
+      delay: 0.5,
     },
   ];
 
-  // Chart Data - TODO: Conectar com API do Meta Ads
+  // Chart Data - Real Meta Ads data
   const barChartData = daily.map((d) => ({
-    day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.leads_recebidos,
+    day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    value: d.impressions,
   }));
 
-  const donutChartData = [
-    { name: 'Facebook', value: totals.leads_qualificados },
-    { name: 'Instagram', value: totals.leads_followup },
-    { name: 'Messenger', value: totals.leads_descartados },
-  ];
+  const donutChartData = campaigns.slice(0, 3).map((c) => ({
+    name: c.name,
+    value: c.spend,
+  }));
 
   const lineChartData = daily.map((d) => ({
-    day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.leads_qualificados,
+    day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    value: d.clicks,
   }));
 
   const funnelData = [
-    { name: 'Impressões', value: totals.leads_recebidos },
-    { name: 'Cliques', value: totals.leads_qualificados },
-    { name: 'Conversões', value: Math.floor(totals.leads_qualificados * 0.3) },
+    { name: 'Impressões', value: totals?.impressions || 0 },
+    { name: 'Cliques', value: totals?.clicks || 0 },
+    { name: 'Conversões', value: totals?.conversions || 0 },
   ];
 
   return (
@@ -153,23 +191,59 @@ const Trafego = () => {
       currentWorkspace={currentWorkspaceId}
       onWorkspaceChange={handleWorkspaceChange}
     >
-      {/* No Data Warning */}
-      {showNoDataWarning && (
+      {/* Error Messages */}
+      {error === 'TOKEN_EXPIRED' && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <span className="text-2xl">🔑</span>
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-700 dark:text-red-400">
+              Token do Meta Ads expirado
+            </h3>
+            <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+              Seu token de acesso expirou. Renove a conexão com o Meta Business.
+            </p>
+            <Button
+              onClick={() => window.open('https://business.facebook.com', '_blank')}
+              variant="destructive"
+              size="sm"
+              className="mt-3"
+            >
+              🔄 Renovar Conexão
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {error === 'CREDENTIALS_MISSING' && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <span className="text-2xl">⚠️</span>
+          <span className="text-2xl">⚙️</span>
           <div className="flex-1">
             <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">
-              Aguardando integração com Meta Ads
+              Credenciais não configuradas
             </h3>
             <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
-              Exibindo dados simulados. Configure a integração para ver dados reais.
+              Configure as credenciais do Meta Ads no Supabase para ver os dados.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!error && totals && totals.impressions === 0 && !loading && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <span className="text-2xl">📊</span>
+          <div className="flex-1">
+            <h3 className="font-semibold text-blue-700 dark:text-blue-400">
+              Nenhuma campanha ativa
+            </h3>
+            <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+              Não há dados de campanhas nos últimos 30 dias para esta conta.
             </p>
           </div>
         </div>
       )}
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {kpiCards.map((card) => (
           <PremiumKpiCard
             key={card.id}
@@ -189,7 +263,7 @@ const Trafego = () => {
           <BarChart data={barChartData} title="Impressões (Últimos Dias)" />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <DonutChart data={donutChartData} title="Distribuição por Plataforma" />
+          <DonutChart data={donutChartData} title="Investimento por Campanha" />
         </div>
       </div>
 
