@@ -151,12 +151,8 @@ const Auth = () => {
           <div className="relative p-8">
             {/* Logo */}
             <div className="flex flex-col items-center mb-8">
-              <div className="bg-white p-3 rounded-full shadow-apple-xl mb-6 animate-apple-fade-in">
-                <img 
-                  src={logoZionCircle} 
-                  alt="Zion" 
-                  className="w-20 h-20 object-cover rounded-full"
-                />
+              <div className="bg-white w-28 h-28 rounded-full shadow-apple-xl mb-6 animate-apple-fade-in">
+                {/* Bolinha branca vazia */}
               </div>
               <h2 className="text-2xl font-bold text-foreground">
                 {isSignUp ? 'Criar Conta' : 'Bem-vindo de volta'}
