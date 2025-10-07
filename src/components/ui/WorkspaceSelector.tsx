@@ -1,20 +1,53 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
 interface Workspace {
   id: string;
   name: string;
 }
 
 interface WorkspaceSelectorProps {
-  current: string;
-  onChange: (workspaceId: string) => void;
+  current: string | null;
+  onChange: (workspaceId: string) => Promise<void>;
 }
 
-const workspaces: Workspace[] = [
-  { id: "3f14bb25-0eda-4c58-8486-16b96dca6f9e", name: "ASF Finance" },
-  { id: "4e99af61-d5a2-4319-bd6c-77d31c77b411", name: "Bem Estar" },
-  { id: "8d10ce88-6e33-4822-92aa-cdd2c72d91de", name: "Dr. Premium" },
-];
-
 export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps) {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchWorkspaces() {
+      try {
+        // RLS will automatically filter to user's workspaces
+        const { data, error } = await supabase
+          .from('workspaces')
+          .select('id, name')
+          .order('name');
+        
+        if (data && !error) {
+          setWorkspaces(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch workspaces:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchWorkspaces();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground">Loading workspaces...</span>
+      </div>
+    );
+  }
+
+  if (workspaces.length === 0) {
+    return null;
+  }
   return (
     <div className="flex items-center gap-3">
       <label className="text-sm text-muted-foreground font-medium">
