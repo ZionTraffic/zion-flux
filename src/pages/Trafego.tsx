@@ -3,7 +3,7 @@ import { PremiumKpiCard } from "@/components/dashboard/cards/PremiumKpiCard";
 import { BarChart } from "@/components/dashboard/charts/BarChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
-import { FunnelChart } from "@/components/dashboard/charts/FunnelChart";
+import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
@@ -273,7 +273,21 @@ const Trafego = () => {
           <LineChart data={lineChartData} title="Evolução de Cliques" />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <FunnelChart data={funnelData} title="Funil de Conversão" />
+          <FunnelPremium
+            stages={[
+              { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
+              { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
+              { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
+            ]}
+            conversionRate={
+              totals && totals.impressions > 0
+                ? ((totals.conversas_iniciadas / totals.impressions) * 100).toFixed(2)
+                : '0.00'
+            }
+            conversionDelta={{ value: '▲ 4,3%', trend: 'up' }}
+            coinsCount={16}
+            showCoins={true}
+          />
         </div>
       </div>
     </DashboardLayout>
