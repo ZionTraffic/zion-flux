@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import DashboardIndex from "./pages/DashboardIndex";
+import Trafego from "./pages/Trafego";
 import Qualificacao from "./pages/Qualificacao";
 import Analise from "./pages/Analise";
 import Configuracoes from "./pages/Configuracoes";
@@ -25,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
+            <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><Analise /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><Configuracoes /></WorkspaceProvider></ProtectedRoute>} />

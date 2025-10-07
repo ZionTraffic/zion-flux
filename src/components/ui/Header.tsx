@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, Settings } from "lucide-react";
+import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, Settings, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
@@ -51,6 +51,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
       href: "/",
       gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
       iconColor: "text-primary",
+    },
+    {
+      icon: TrendingUp,
+      label: "Tráfego",
+      href: "/trafego",
+      gradient: "radial-gradient(circle, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.06) 50%, rgba(217,119,6,0) 100%)",
+      iconColor: "text-amber-400",
     },
     {
       icon: Layers,
