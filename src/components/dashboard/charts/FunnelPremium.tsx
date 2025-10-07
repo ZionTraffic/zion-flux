@@ -42,7 +42,7 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
   `;
 
   return (
-    <g filter="url(#innerShadow)">
+    <g filter="url(#glow)">
       <path 
         d={bodyPath} 
         fill="url(#bowlGradient)" 
@@ -102,19 +102,23 @@ export function FunnelPremium({
         preserveAspectRatio="xMidYMid meet"
         xmlns="http://www.w3.org/2000/svg" 
         className="overflow-visible"
-        style={{
-          background: "linear-gradient(180deg, rgba(10,20,40,0.8) 0%, rgba(5,10,20,0.9) 100%)",
-          borderRadius: "24px",
-          boxShadow: "inset 0 0 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.4)",
-        }}
       >
         <defs>
-          {/* Gradiente principal com mais contraste */}
+          {/* Gradiente principal vibrante */}
           <linearGradient id="bowlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#7cc8ff" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#3fa2e3" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#2464b6" stopOpacity="1"/>
+            <stop offset="0%" stopColor="#00d4ff" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#0284c7" stopOpacity="1"/>
           </linearGradient>
+
+          {/* Efeito glow para os bowls */}
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
 
           {/* Sombra interna mais intensa */}
           <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
