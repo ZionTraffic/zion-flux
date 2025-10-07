@@ -272,7 +272,7 @@ const Trafego = () => {
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <LineChart data={lineChartData} title="Evolução de Cliques" />
         </div>
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+        <div className="glass-medium rounded-2xl p-6 border border-primary/20 shadow-glow-blue">
           <FunnelPremium
             stages={[
               { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
