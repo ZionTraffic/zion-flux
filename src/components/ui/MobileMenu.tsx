@@ -8,6 +8,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { WorkspaceSelector } from "./WorkspaceSelector";
+import { SettingsMenu } from "./SettingsMenu";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 import { useState } from "react";
@@ -108,6 +110,14 @@ export function MobileMenu({
             );
           })}
         </nav>
+
+        <Separator className="my-6" />
+
+        {/* Settings Menu */}
+        <div className="px-2">
+          <p className="text-xs text-muted-foreground mb-3 px-2 uppercase tracking-wider">Configurações</p>
+          <SettingsMenu />
+        </div>
       </SheetContent>
     </Sheet>
   );

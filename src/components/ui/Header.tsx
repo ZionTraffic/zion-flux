@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, Settings, TrendingUp } from "lucide-react";
+import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
@@ -73,13 +73,6 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
       href: "/analise",
       gradient: "radial-gradient(circle, rgba(52,199,89,0.15) 0%, rgba(34,197,94,0.06) 50%, rgba(22,163,74,0) 100%)",
       iconColor: "text-accent",
-    },
-    {
-      icon: Settings,
-      label: "Configurações",
-      href: "/configuracoes",
-      gradient: "radial-gradient(circle, rgba(148,163,184,0.15) 0%, rgba(100,116,139,0.06) 50%, rgba(71,85,105,0) 100%)",
-      iconColor: "text-muted-foreground",
     },
   ];
 
