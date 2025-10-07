@@ -155,7 +155,7 @@ const Auth = () => {
                 <img 
                   src={logoZionCircular} 
                   alt="Zion" 
-                  className="w-20 h-20 object-contain"
+                  className="w-20 h-20 object-contain rounded-full"
                 />
               </div>
               <h2 className="text-2xl font-bold text-foreground">
