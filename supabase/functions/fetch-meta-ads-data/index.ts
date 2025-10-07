@@ -26,6 +26,7 @@ interface ProcessedData {
   cpc: number;
   ctr: number;
   conversions: number;
+  conversas_iniciadas: number;
   campaign?: string;
 }
 
@@ -130,6 +131,7 @@ serve(async (req) => {
           cpc: 0,
           ctr: 0,
           conversions: 0,
+          conversas_iniciadas: 0,
         });
       }
 
@@ -144,6 +146,14 @@ serve(async (req) => {
              a.action_type === 'offsite_conversion'
       );
       dayData.conversions += Number(conversionAction?.value || 0);
+      
+      // Find messaging/conversation started actions
+      const messagingAction = item.actions?.find(
+        a => a.action_type.includes('messaging_conversation_started') || 
+             a.action_type.includes('messaging_first_reply') ||
+             a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+      );
+      dayData.conversas_iniciadas += Number(messagingAction?.value || 0);
     });
 
     // Calculate aggregates
@@ -154,9 +164,10 @@ serve(async (req) => {
       clicks: acc.clicks + day.clicks,
       spend: acc.spend + day.spend,
       conversions: acc.conversions + day.conversions,
+      conversas_iniciadas: acc.conversas_iniciadas + day.conversas_iniciadas,
       cpc: 0,
       ctr: 0,
-    }), { impressions: 0, clicks: 0, spend: 0, conversions: 0, cpc: 0, ctr: 0 });
+    }), { impressions: 0, clicks: 0, spend: 0, conversions: 0, conversas_iniciadas: 0, cpc: 0, ctr: 0 });
 
     // Calculate averages
     totals.cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
@@ -182,6 +193,7 @@ serve(async (req) => {
     console.log("Returning processed data:", {
       totalImpressions: totals.impressions,
       totalClicks: totals.clicks,
+      totalConversasIniciadas: totals.conversas_iniciadas,
       dailyCount: daily.length,
     });
 

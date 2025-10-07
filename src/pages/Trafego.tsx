@@ -151,12 +151,12 @@ const Trafego = () => {
       delay: 0.4,
     },
     {
-      id: 'conversoes',
-      label: 'Conversões',
-      value: totals?.conversions.toLocaleString('pt-BR') || '0',
-      icon: '✅',
+      id: 'conversas_iniciadas',
+      label: 'Conversas Iniciadas',
+      value: totals?.conversas_iniciadas.toLocaleString('pt-BR') || '0',
+      icon: '💬',
       variant: 'rose' as const,
-      trend: totals ? calculateTrend(daily, 'conversions') : { value: 0, isPositive: true },
+      trend: totals ? calculateTrend(daily, 'conversas_iniciadas') : { value: 0, isPositive: true },
       delay: 0.5,
     },
   ];
@@ -180,7 +180,7 @@ const Trafego = () => {
   const funnelData = [
     { name: 'Impressões', value: totals?.impressions || 0 },
     { name: 'Cliques', value: totals?.clicks || 0 },
-    { name: 'Conversões', value: totals?.conversions || 0 },
+    { name: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
   ];
 
   return (

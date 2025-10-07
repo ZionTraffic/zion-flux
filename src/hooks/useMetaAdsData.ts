@@ -8,6 +8,7 @@ export interface MetaAdsTotals {
   cpc: number;
   ctr: number;
   conversions: number;
+  conversas_iniciadas: number;
 }
 
 export interface MetaAdsDaily {
@@ -18,6 +19,7 @@ export interface MetaAdsDaily {
   cpc: number;
   ctr: number;
   conversions: number;
+  conversas_iniciadas: number;
 }
 
 export interface MetaCampaign {
@@ -71,6 +73,7 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
           cpc: 0,
           ctr: 0,
           conversions: 0,
+          conversas_iniciadas: 0,
         });
         setDaily([]);
         setCampaigns([]);
@@ -87,6 +90,7 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
         cpc: 0,
         ctr: 0,
         conversions: 0,
+        conversas_iniciadas: 0,
       });
       setDaily(data.daily || []);
       setCampaigns(data.campaigns || []);
@@ -102,6 +106,7 @@ export function useMetaAdsData(workspaceId: string, days: number = 30) {
         cpc: 0,
         ctr: 0,
         conversions: 0,
+        conversas_iniciadas: 0,
       });
       setDaily([]);
       setCampaigns([]);
