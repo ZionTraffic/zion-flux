@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 export interface TrainerConversation {
   id: number;
@@ -142,7 +143,7 @@ export function useTrainerData(workspaceId: string) {
         });
 
       } catch (error) {
-        console.error('Error loading trainer data:', error);
+        logger.error('Error loading trainer data:', error);
       } finally {
         setIsLoading(false);
       }

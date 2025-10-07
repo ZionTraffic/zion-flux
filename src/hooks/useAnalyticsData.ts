@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface TotalsData {
   leads_recebidos: number;
@@ -46,7 +47,7 @@ export function useAnalyticsData(workspaceId: string) {
       });
 
       if (totalsError) {
-        console.error('Erro ao carregar totais:', totalsError.message);
+        logger.error('Erro ao carregar totais:', totalsError.message);
         throw totalsError;
       }
 
@@ -59,7 +60,7 @@ export function useAnalyticsData(workspaceId: string) {
         .order('day', { ascending: true });
 
       if (dailyError) {
-        console.error('Erro ao carregar dados diários:', dailyError.message);
+        logger.error('Erro ao carregar dados diários:', dailyError.message);
         throw dailyError;
       }
 
@@ -77,7 +78,7 @@ export function useAnalyticsData(workspaceId: string) {
       setDaily(dailyData || []);
       setLastUpdate(new Date());
     } catch (error: any) {
-      console.error('Erro ao carregar dados:', error.message);
+      logger.error('Erro ao carregar dados:', error.message);
     } finally {
       setLoading(false);
     }

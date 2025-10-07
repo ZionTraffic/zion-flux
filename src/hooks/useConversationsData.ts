@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 export interface ConversationData {
   id: number;
@@ -121,7 +122,7 @@ export function useConversationsData(workspaceId: string) {
           averageDuration: total > 0 ? totalDuration / total : 0,
         });
       } catch (err) {
-        console.error("Error fetching conversations:", err);
+        logger.error("Error fetching conversations:", err);
         setError(err instanceof Error ? err.message : "Erro ao carregar conversas");
       } finally {
         setIsLoading(false);

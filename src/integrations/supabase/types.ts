@@ -445,6 +445,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       kpi_totais_periodo: {
         Args: { p_from: string; p_to: string; p_workspace_id: string }
         Returns: {

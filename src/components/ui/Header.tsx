@@ -1,9 +1,11 @@
-import { RefreshCw, Download, BarChart3, Layers, MessageSquare } from "lucide-react";
+import { RefreshCw, Download, BarChart3, Layers, MessageSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +24,24 @@ interface HeaderProps {
 export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Até logo!",
+      });
+      navigate('/auth');
+    } catch (error) {
+      toast({
+        title: "Erro ao fazer logout",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const menuItems = [
     {
@@ -144,6 +164,22 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
               </Tooltip>
 
               <SettingsMenu />
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="glass hover:glass-medium text-destructive hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sair</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>

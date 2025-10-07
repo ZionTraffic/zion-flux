@@ -5,6 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Loader2 } from "lucide-react";
 import { CreateWorkspaceData } from "@/hooks/useWorkspaces";
+import { z } from "zod";
+import { logger } from "@/utils/logger";
+import { useToast } from "@/hooks/use-toast";
+
+// Input validation schema to prevent SQL injection and XSS
+const workspaceSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(1, 'Nome é obrigatório')
+    .max(100, 'Nome deve ter no máximo 100 caracteres')
+    .regex(/^[a-zA-Z0-9\s\u00C0-\u00FF-_]+$/, 'Nome contém caracteres inválidos'),
+  slug: z.string()
+    .trim()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
+  segment: z.string()
+    .trim()
+    .max(100, 'Segmento deve ter no máximo 100 caracteres')
+    .optional()
+    .or(z.literal('')),
+  primary_color: z.string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida. Use formato hexadecimal (#RRGGBB)')
+});
 
 interface CreateWorkspaceModalProps {
   open: boolean;
@@ -24,16 +48,46 @@ export function CreateWorkspaceModal({
     segment: "",
     primary_color: "#007AFF",
   });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
     setIsSubmitting(true);
 
     try {
-      await onCreateWorkspace({
+      // Generate slug from name
+      const slug = formData.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+      const dataToValidate = {
         ...formData,
-        slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
+        slug,
+        segment: formData.segment || ''
+      };
+
+      // Validate inputs to prevent SQL injection and XSS
+      const validatedData = workspaceSchema.parse(dataToValidate);
+
+      await onCreateWorkspace({
+        name: validatedData.name,
+        slug: validatedData.slug,
+        segment: validatedData.segment,
+        primary_color: validatedData.primary_color
       });
+      
+      toast({
+        title: "Workspace criada",
+        description: "A workspace foi criada com sucesso!",
+      });
+      
       onOpenChange(false);
       setFormData({
         name: "",
@@ -42,7 +96,28 @@ export function CreateWorkspaceModal({
         primary_color: "#007AFF",
       });
     } catch (error) {
-      console.error('Error creating workspace:', error);
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        const errors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0].toString()] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+        toast({
+          title: "Erro de validação",
+          description: "Por favor, corrija os erros no formulário.",
+          variant: "destructive",
+        });
+      } else {
+        logger.error('Error creating workspace:', error);
+        toast({
+          title: "Erro ao criar workspace",
+          description: "Ocorreu um erro ao criar a workspace. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -71,6 +146,9 @@ export function CreateWorkspaceModal({
               required
               className="glass-medium border-border/50"
             />
+            {validationErrors.name && (
+              <p className="text-sm text-destructive">{validationErrors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -82,6 +160,9 @@ export function CreateWorkspaceModal({
               onChange={(e) => setFormData({ ...formData, segment: e.target.value })}
               className="glass-medium border-border/50"
             />
+            {validationErrors.segment && (
+              <p className="text-sm text-destructive">{validationErrors.segment}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -99,9 +180,13 @@ export function CreateWorkspaceModal({
                 value={formData.primary_color}
                 onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
                 placeholder="#007AFF"
+                pattern="^#[0-9A-Fa-f]{6}$"
                 className="flex-1 glass-medium border-border/50"
               />
             </div>
+            {validationErrors.primary_color && (
+              <p className="text-sm text-destructive">{validationErrors.primary_color}</p>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">

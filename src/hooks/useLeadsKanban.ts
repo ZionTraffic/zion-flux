@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export type LeadStage = 'recebidos' | 'qualificacao' | 'qualificados' | 'followup' | 'descartados';
 
@@ -72,7 +73,7 @@ export function useLeadsKanban(workspaceId: string) {
     } catch (err: any) {
       setError(err.message);
       toast.error('Erro ao carregar leads');
-      console.error('Error fetching leads:', err);
+      logger.error('Error fetching leads:', err);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +118,7 @@ export function useLeadsKanban(workspaceId: string) {
     } catch (err: any) {
       // Revert on error
       toast.error('Erro ao mover lead');
-      console.error('Error moving lead:', err);
+      logger.error('Error moving lead:', err);
       await fetchLeads(); // Refetch to restore correct state
     }
   };
