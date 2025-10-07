@@ -77,12 +77,13 @@ serve(async (req) => {
       access_token: META_ACCESS_TOKEN,
     });
 
-    console.log("Calling Meta API:", endpoint);
+    console.log("Calling Meta API for daily data:", endpoint);
 
+    // First API call: Account-level daily data
     const response = await fetch(`${endpoint}?${params}`);
     const data = await response.json();
 
-    console.log("Meta API response status:", response.status);
+    console.log("Meta API daily response status:", response.status);
 
     if (data.error) {
       console.error("Meta API error:", data.error);
@@ -111,6 +112,25 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Second API call: Campaign-level aggregated data
+    const campaignParams = new URLSearchParams({
+      fields: 'campaign_name,impressions,clicks,spend',
+      time_range: JSON.stringify({ since, until }),
+      level: 'campaign',
+      access_token: META_ACCESS_TOKEN,
+    });
+
+    console.log("Calling Meta API for campaign data:", endpoint);
+    const campaignResponse = await fetch(`${endpoint}?${campaignParams}`);
+    const campaignData = await campaignResponse.json();
+
+    console.log("Meta API campaign response status:", campaignResponse.status);
+
+    if (campaignData.error) {
+      console.error("Meta API campaign error:", campaignData.error);
+      // Campaign data is optional, so we continue even if it fails
     }
 
     // Process the data
@@ -180,15 +200,41 @@ serve(async (req) => {
       day.ctr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0;
     });
 
+    // Process campaign data from second API call
+    const campaignInsights: MetaInsight[] = campaignData.data || [];
+    console.log(`Processing ${campaignInsights.length} campaign insights`);
+
+    // Aggregate campaigns by name
+    const campaignMap = new Map<string, { impressions: number; clicks: number; spend: number }>();
+    
+    campaignInsights.forEach((campaign) => {
+      const name = campaign.campaign_name || 'Sem Nome';
+      
+      if (!campaignMap.has(name)) {
+        campaignMap.set(name, {
+          impressions: 0,
+          clicks: 0,
+          spend: 0,
+        });
+      }
+      
+      const campaignData = campaignMap.get(name)!;
+      campaignData.impressions += Number(campaign.impressions || 0);
+      campaignData.clicks += Number(campaign.clicks || 0);
+      campaignData.spend += Number(campaign.spend || 0);
+    });
+
+    const campaigns = Array.from(campaignMap.entries()).map(([name, data]) => ({
+      name,
+      impressions: data.impressions,
+      clicks: data.clicks,
+      spend: data.spend,
+    }));
+
     const result = {
       totals,
       daily,
-      campaigns: insights.map(i => ({
-        name: i.campaign_name || 'Indefinida',
-        impressions: Number(i.impressions || 0),
-        clicks: Number(i.clicks || 0),
-        spend: Number(i.spend || 0),
-      })),
+      campaigns,
     };
 
     console.log("Returning processed data:", {
@@ -196,6 +242,7 @@ serve(async (req) => {
       totalClicks: totals.clicks,
       totalConversasIniciadas: totals.conversas_iniciadas,
       dailyCount: daily.length,
+      campaignsCount: campaigns.length,
     });
 
     return new Response(
