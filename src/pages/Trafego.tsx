@@ -23,11 +23,11 @@ const Trafego = () => {
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
   
-  // Date range state - default to last 30 days
+  // Date range state - default to last 90 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 30);
+    from.setDate(from.getDate() - 90);
     return { from, to };
   });
 
@@ -59,11 +59,11 @@ const Trafego = () => {
   const handleClearFilter = () => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 30);
+    from.setDate(from.getDate() - 90);
     setDateRange({ from, to });
     toast({
       title: "Filtro limpo",
-      description: "Voltando para os últimos 30 dias",
+      description: "Exibindo dados dos últimos 90 dias",
     });
   };
 
