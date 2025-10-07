@@ -50,7 +50,7 @@ export function DateRangePicker({
 
   const formatDateRange = () => {
     if (!dateRange?.from) {
-      return "Selecione o período";
+      return <span className="text-muted-foreground">Selecione o período</span>;
     }
     
     if (!dateRange.to) {
@@ -67,7 +67,7 @@ export function DateRangePicker({
           <Button
             variant="outline"
             className={cn(
-              "justify-start text-left font-normal",
+              "justify-start text-left font-normal glass-medium hover:border-primary/50 transition-all w-[280px]",
               !dateRange && "text-muted-foreground"
             )}
           >
@@ -75,17 +75,17 @@ export function DateRangePicker({
             {formatDateRange()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue" align="start">
           <Calendar
             mode="range"
             defaultMonth={dateRange?.from}
             selected={dateRange}
             onSelect={handleSelect}
             numberOfMonths={2}
-            className="rounded-lg border shadow-sm"
+            className="rounded-lg"
           />
-          <div className="px-4 pb-3 text-xs text-muted-foreground text-center">
-            Selecione entre {minDays} e {maxDays} dias
+          <div className="px-4 pb-3 text-xs text-muted-foreground/80 text-center border-t border-border">
+            O período deve ter entre {minDays} e {maxDays} dias
           </div>
         </PopoverContent>
       </Popover>
