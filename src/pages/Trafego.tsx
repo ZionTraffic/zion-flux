@@ -3,7 +3,7 @@ import { PremiumKpiCard } from "@/components/dashboard/cards/PremiumKpiCard";
 import { BarChart } from "@/components/dashboard/charts/BarChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
-import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
+import { FunnelPremium } from "@/components/funnel/FunnelPremium";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
@@ -177,11 +177,10 @@ const Trafego = () => {
     value: d.clicks,
   }));
 
-  const funnelData = [
-    { name: 'Impressões', value: totals?.impressions || 0 },
-    { name: 'Cliques', value: totals?.clicks || 0 },
-    { name: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
-  ];
+  // Calcula taxa de conversão
+  const convRate = totals && totals.impressions > 0 
+    ? (totals.conversas_iniciadas / totals.impressions) * 100 
+    : 0;
 
   return (
     <DashboardLayout
@@ -272,17 +271,19 @@ const Trafego = () => {
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <LineChart data={lineChartData} title="Evolução de Cliques" />
         </div>
-        <div className="glass-medium rounded-2xl p-6 border border-primary/20 shadow-glow-blue">
-          <FunnelPremium
-            stages={[
-              { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
-              { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
-              { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
-            ]}
-            coinsCount={16}
-            showCoins={true}
-          />
-        </div>
+        <FunnelPremium
+          stages={[
+            { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
+            { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
+            { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
+          ]}
+          coinsCount={16}
+          showCoins={true}
+          glowLabel="Taxa de Conversão"
+          glowValue={`${convRate.toFixed(2)}%`}
+          glowDelta={{ value: "▲ 4,3%", trend: "up" }}
+          className="min-h-[520px]"
+        />
       </div>
     </DashboardLayout>
   );
