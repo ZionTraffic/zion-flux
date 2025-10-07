@@ -27,68 +27,36 @@ interface BowlProps {
 function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
   const dx = (topWidth - bottomWidth) / 2;
   
-  // Path côncavo 3D acentuado
+  // Path côncavo suave com curvas simétricas
   const bodyPath = `
-    M ${x},${y}
-    L ${x + topWidth},${y}
-    Q ${x + topWidth} ${y + height * 0.12}, ${x + topWidth - dx * 0.3} ${y + height * 0.28}
-    C ${x + topWidth - dx * 1.4} ${y + height * 0.55},
-      ${x + bottomWidth + dx * 1.4} ${y + height * 0.82},
-      ${x + bottomWidth + dx} ${y + height}
-    L ${x + dx},${y + height}
-    C ${x + dx * 0.6} ${y + height * 0.82},
-      ${x + dx * 0.6} ${y + height * 0.55},
-      ${x + dx * 0.3} ${y + height * 0.28}
-    Q ${x} ${y + height * 0.12}, ${x} ${y}
+    M ${x} ${y}
+    H ${x + topWidth}
+    C ${x + topWidth - dx * 0.2} ${y + height * 0.45}, 
+      ${x + bottomWidth + dx * 1.2} ${y + height * 0.75}, 
+      ${x + bottomWidth} ${y + height}
+    H ${x + dx}
+    C ${x - dx * 0.2} ${y + height * 0.75}, 
+      ${x + dx * 0.2} ${y + height * 0.45}, 
+      ${x} ${y}
     Z
   `;
 
-  // Lip superior (aro da tigela 3D)
-  const lipPath = `
-    M ${x - 6},${y - 3}
-    L ${x + topWidth + 6},${y - 3}
-    L ${x + topWidth + 2},${y + 8}
-    L ${x - 2},${y + 8}
-    Z
-  `;
-
-  // Sombra interna no fundo
-  const innerShadowCx = x + topWidth / 2;
-  const innerShadowCy = y + height - 18;
-  const innerShadowRx = (bottomWidth * 0.42);
-  const innerShadowRy = 14;
-
-  // Specular highlight no topo
-  const highlightPath = `M ${x + 12},${y + 4} L ${x + topWidth - 12},${y + 4}`;
+  // Highlight no topo (reflexo)
+  const highlightPath = `M ${x + 8} ${y + 3} H ${x + topWidth - 8}`;
 
   return (
-    <g filter="url(#dropShadow)">
-      {/* Lip superior com gradiente metálico */}
-      <path d={lipPath} fill="url(#lipGradient)" opacity="0.85" />
-      
-      {/* Corpo principal com gradiente radial 3D */}
+    <g filter="url(#innerShadow)">
       <path 
         d={bodyPath} 
-        fill="url(#bowl3DGradient)" 
-        stroke="rgba(0,0,0,0.35)" 
-        strokeWidth="1.2"
+        fill="url(#bowlGradient)" 
+        stroke="rgba(255,255,255,0.35)" 
+        strokeWidth="1.5"
       />
-      
-      {/* Sombra interna no fundo */}
-      <ellipse 
-        cx={innerShadowCx}
-        cy={innerShadowCy}
-        rx={innerShadowRx}
-        ry={innerShadowRy}
-        fill="url(#innerShadowGradient)"
-      />
-      
-      {/* Specular highlight no topo */}
       <path 
         d={highlightPath} 
-        stroke="rgba(255,255,255,0.7)" 
-        strokeWidth="3.5" 
-        opacity="0.75"
+        stroke="rgba(255,255,255,0.55)" 
+        strokeWidth="2.5" 
+        opacity="0.7"
         strokeLinecap="round"
       />
     </g>
@@ -139,42 +107,22 @@ export function FunnelPremium({
     <div className={`relative rounded-3xl p-4 md:p-6 bg-white/5 backdrop-blur-md shadow-[0_10px_35px_rgba(0,0,0,0.35)] ${className}`}>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
         <defs>
-          {/* Gradiente radial 3D para corpo do bowl */}
-          <radialGradient id="bowl3DGradient" cx="50%" cy="18%" r="85%">
-            <stop offset="0%" stopColor="#8DD3F8" />
-            <stop offset="25%" stopColor="#7BC8F5" />
-            <stop offset="50%" stopColor="#5FB0F0" />
-            <stop offset="75%" stopColor="#4A9DD9" />
-            <stop offset="90%" stopColor="#3A8ED6" />
-            <stop offset="100%" stopColor="#2B7AC2" />
-          </radialGradient>
-
-          {/* Gradiente do lip (aro superior) */}
-          <linearGradient id="lipGradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#B8E3FA" />
-            <stop offset="40%" stopColor="#A0D8F7" />
-            <stop offset="70%" stopColor="#7BC8F5" />
-            <stop offset="100%" stopColor="#5FB0F0" />
+          {/* Gradiente azul suave 3D */}
+          <linearGradient id="bowlGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#6DC1F9"/>
+            <stop offset="100%" stopColor="#2A76C8"/>
           </linearGradient>
 
-          {/* Sombra interna no fundo */}
-          <radialGradient id="innerShadowGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(0,0,0,0.4)" />
-            <stop offset="70%" stopColor="rgba(0,0,0,0.15)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-          </radialGradient>
-
-          {/* Sombra projetada entre estágios */}
-          <filter id="dropShadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="5" />
-            <feOffset dx="0" dy="8" result="offsetblur" />
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.35" />
-            </feComponentTransfer>
-            <feMerge>
-              <feMergeNode />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
+          {/* Sombra interna sutil */}
+          <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feOffset dx="0" dy="2"/>
+            <feGaussianBlur stdDeviation="2"/>
+            <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+            <feColorMatrix type="matrix"
+              values="0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0.35 0"/>
           </filter>
 
           {/* Gradiente das moedas */}
@@ -222,7 +170,7 @@ export function FunnelPremium({
         </text>
 
         {/* Estágio 2 (Meio) */}
-        <Bowl x={x2} y={y2} topWidth={midW} bottomWidth={midW} height={stageH} />
+        <Bowl x={x2} y={y2} topWidth={midW} bottomWidth={botW} height={stageH} />
         <text
           x={W / 2}
           y={y2 + stageH / 2 - 12}
@@ -248,7 +196,7 @@ export function FunnelPremium({
         </text>
 
         {/* Estágio 3 (Base) */}
-        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW} height={stageH} />
+        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} />
         <text
           x={W / 2}
           y={y3 + stageH / 2 - 12}
