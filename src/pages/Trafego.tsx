@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -64,6 +65,60 @@ const Trafego = () => {
       title: "Filtro limpo",
       description: "Voltando para os últimos 30 dias",
     });
+  };
+
+  const applyQuickFilter = (type: 'last7days' | 'last30days' | 'lastMonth') => {
+    const to = new Date();
+    const from = new Date();
+    
+    switch(type) {
+      case 'last7days':
+        from.setDate(to.getDate() - 7);
+        break;
+      case 'last30days':
+        from.setDate(to.getDate() - 30);
+        break;
+      case 'lastMonth':
+        from.setMonth(to.getMonth() - 1);
+        from.setDate(1);
+        to.setMonth(to.getMonth() - 1);
+        to.setDate(new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate());
+        break;
+    }
+    
+    setDateRange({ from, to });
+    toast({
+      title: "Filtro aplicado",
+      description: `Exibindo dados do período selecionado`,
+    });
+  };
+
+  const isActiveFilter = (type: 'last7days' | 'last30days' | 'lastMonth') => {
+    if (!dateRange?.from || !dateRange?.to) return false;
+    
+    const today = new Date();
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
+    
+    switch(type) {
+      case 'last7days': {
+        const from = new Date();
+        from.setDate(today.getDate() - 7);
+        return isSameDay(dateRange.from, from) && isSameDay(dateRange.to, today);
+      }
+      case 'last30days': {
+        const from = new Date();
+        from.setDate(today.getDate() - 30);
+        return isSameDay(dateRange.from, from) && isSameDay(dateRange.to, today);
+      }
+      case 'lastMonth': {
+        const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+        return isSameDay(dateRange.from, firstDay) && isSameDay(dateRange.to, lastDay);
+      }
+    }
   };
 
   // Show no workspace screen if user has no workspace access
@@ -233,6 +288,47 @@ const Trafego = () => {
       currentWorkspace={currentWorkspaceId}
       onWorkspaceChange={handleWorkspaceChange}
     >
+      {/* Quick Filters */}
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('last7days')}
+            className={cn(
+              "glass-medium",
+              isActiveFilter('last7days') && "border-primary bg-primary/10"
+            )}
+          >
+            📅 Últimos 7 Dias
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('last30days')}
+            className={cn(
+              "glass-medium",
+              isActiveFilter('last30days') && "border-primary bg-primary/10"
+            )}
+          >
+            📅 Últimos 30 Dias
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyQuickFilter('lastMonth')}
+            className={cn(
+              "glass-medium",
+              isActiveFilter('lastMonth') && "border-primary bg-primary/10"
+            )}
+          >
+            📅 Mês Passado
+          </Button>
+        </div>
+      </div>
+
       {/* Date Range Filter */}
       <div className="mb-6">
           <DateRangePicker
