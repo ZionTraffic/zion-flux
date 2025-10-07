@@ -72,6 +72,7 @@ serve(async (req) => {
     const params = new URLSearchParams({
       fields: 'date_start,date_stop,impressions,clicks,spend,cpc,ctr,actions,campaign_name,account_name',
       time_range: JSON.stringify({ since, until }),
+      time_increment: '1',
       level: 'account',
       access_token: META_ACCESS_TOKEN,
     });
