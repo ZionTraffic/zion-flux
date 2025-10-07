@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { logger } from '@/utils/logger';
+import { motion } from 'framer-motion';
+import logoZion from '@/assets/logo-zion-blue.png';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -20,6 +18,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -108,84 +107,156 @@ const Auth = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.35,
+        ease: [0.16, 1, 0.3, 1] as any
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md glass border-border/50">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-              <Lock className="h-5 w-5 text-blue-400" />
-            </div>
-            <CardTitle className="text-2xl">
-              {isSignUp ? 'Criar Conta' : 'Login'}
-            </CardTitle>
-          </div>
-          <CardDescription>
-            {isSignUp 
-              ? 'Crie sua conta para começar a usar o sistema' 
-              : 'Entre com suas credenciais para acessar o sistema'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                className="glass-medium border-border/50"
-              />
-              {validationErrors.email && (
-                <p className="text-sm text-destructive">{validationErrors.email}</p>
-              )}
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background com logo marca d'água */}
+      <div className="absolute inset-0 opacity-[0.015] pointer-events-none">
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${logoZion})`,
+            backgroundSize: '300px',
+            backgroundRepeat: 'repeat',
+            backgroundPosition: 'center',
+            filter: 'grayscale(100%)'
+          }}
+        />
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                className="glass-medium border-border/50"
-              />
-              {validationErrors.password && (
-                <p className="text-sm text-destructive">{validationErrors.password}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
-            >
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isSignUp ? 'Criar Conta' : 'Entrar'}
-            </Button>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                disabled={isLoading}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
+      {/* Card principal */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-md relative z-10"
+      >
+        <div className="glass-heavy rounded-apple-2xl shadow-apple-xl overflow-hidden border border-white/10 relative">
+          {/* Gradient top blur */}
+          <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-blue-500/20 via-blue-400/10 to-transparent opacity-40 blur-3xl -mt-20" />
+          
+          {/* Content */}
+          <div className="relative p-8">
+            {/* Logo */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="bg-white p-4 rounded-apple-xl shadow-apple-lg mb-6 animate-apple-fade-in">
+                <img 
+                  src={logoZion} 
+                  alt="Zion" 
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">
+                {isSignUp ? 'Criar Conta' : 'Bem-vindo de volta'}
+              </h2>
+              <p className="text-center text-muted-foreground mt-2">
                 {isSignUp 
-                  ? 'Já tem uma conta? Fazer login' 
-                  : 'Não tem uma conta? Criar conta'}
-              </button>
+                  ? 'Crie sua conta para começar' 
+                  : 'Entre com suas credenciais'}
+              </p>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+
+            {/* Form */}
+            <form onSubmit={handleAuth} className="space-y-6">
+              {/* Email Input */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-foreground">
+                  Email ou Telefone
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Digite seu email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="flex h-12 w-full rounded-apple-md border border-white/10 bg-white/5 px-4 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-apple-base"
+                />
+                {validationErrors.email && (
+                  <p className="text-sm text-destructive animate-apple-slide-up">{validationErrors.email}</p>
+                )}
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-foreground">
+                    Senha
+                  </label>
+                  <a href="#" className="text-xs text-blue-500 hover:underline transition-apple-fast">
+                    Esqueceu a senha?
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="flex h-12 w-full rounded-apple-md border border-white/10 bg-white/5 px-4 py-2 pr-16 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-apple-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-blue-500 hover:bg-white/10 inline-flex items-center justify-center whitespace-nowrap rounded-apple-sm text-sm font-medium transition-apple-fast h-9 px-3 disabled:opacity-50"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {validationErrors.password && (
+                  <p className="text-sm text-destructive animate-apple-slide-up">{validationErrors.password}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-700 hover:via-blue-600 hover:to-blue-500 text-white font-medium rounded-apple-md transition-apple-base shadow-apple-sm hover:shadow-apple-md active:scale-[0.98] inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isSignUp ? 'Criar Conta' : 'Entrar'}
+              </button>
+
+              {/* Divider */}
+              <div className="flex items-center my-6">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="px-4 text-sm text-muted-foreground">ou</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Toggle Login/Signup */}
+              <p className="text-sm text-center text-muted-foreground">
+                {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  disabled={isLoading}
+                  className="text-blue-500 font-medium hover:underline transition-apple-fast disabled:opacity-50"
+                >
+                  {isSignUp ? 'Fazer login' : 'Criar conta'}
+                </button>
+              </p>
+            </form>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
