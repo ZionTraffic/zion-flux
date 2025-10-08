@@ -1,19 +1,115 @@
-import { Header } from "@/components/ui/Header";
+import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
+import { PremiumKpiCard } from "@/components/dashboard/cards/PremiumKpiCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2 } from "lucide-react";
-import { KpiCard } from "@/components/ui/KpiCard";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLeadsKanban, LeadStage } from "@/hooks/useLeadsKanban";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { type DateRange } from "react-day-picker";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { columns, isLoading, error, moveLead, refetch, kpis } = useLeadsKanban(currentWorkspaceId);
+  const { toast } = useToast();
+  
+  // Date range state - default to last 90 days
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 90);
+    return { from, to };
+  });
+
+  const { columns, isLoading, error, moveLead, refetch, kpis } = useLeadsKanban(
+    currentWorkspaceId,
+    dateRange?.from,
+    dateRange?.to
+  );
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
+  };
+
+  const handleClearFilter = () => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 90);
+    setDateRange({ from, to });
+    toast({
+      title: "Filtro limpo",
+      description: "Exibindo dados dos últimos 90 dias",
+    });
+  };
+
+  const applyQuickFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+    const to = new Date();
+    const from = new Date();
+    
+    switch(type) {
+      case 'today':
+        break;
+      case 'last7days':
+        from.setDate(to.getDate() - 7);
+        break;
+      case 'last30days':
+        from.setDate(to.getDate() - 30);
+        break;
+      case 'thisMonth':
+        from.setDate(1);
+        break;
+      case 'lastMonth':
+        from.setMonth(to.getMonth() - 1);
+        from.setDate(1);
+        to.setMonth(to.getMonth() - 1);
+        to.setDate(new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate());
+        break;
+    }
+    
+    setDateRange({ from, to });
+    toast({
+      title: "Filtro aplicado",
+      description: "Período atualizado",
+    });
+  };
+
+  const isActiveFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+    if (!dateRange?.from || !dateRange?.to) return false;
+    
+    const today = new Date();
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
+    
+    switch(type) {
+      case 'today': {
+        return isSameDay(dateRange.from, today) && isSameDay(dateRange.to, today);
+      }
+      case 'last7days': {
+        const from = new Date();
+        from.setDate(today.getDate() - 7);
+        return isSameDay(dateRange.from, from) && isSameDay(dateRange.to, today);
+      }
+      case 'last30days': {
+        const from = new Date();
+        from.setDate(today.getDate() - 30);
+        return isSameDay(dateRange.from, from) && isSameDay(dateRange.to, today);
+      }
+      case 'thisMonth': {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        return isSameDay(dateRange.from, firstDay) && isSameDay(dateRange.to, today);
+      }
+      case 'lastMonth': {
+        const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+        return isSameDay(dateRange.from, firstDay) && isSameDay(dateRange.to, lastDay);
+      }
+    }
   };
 
   const onDragEnd = (result: DropResult) => {
@@ -34,63 +130,138 @@ const Qualificacao = () => {
       label: "Total de Leads",
       value: kpis.totalLeads.toString(),
       icon: "👥",
-      gradient: "rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)",
-      trend: { value: 12.5, isPositive: true },
+      variant: 'emerald' as const,
       delay: 0,
     },
     {
       label: "Taxa de Qualificação",
       value: `${kpis.qualificationRate.toFixed(1)}%`,
       icon: "📊",
-      gradient: "rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)",
-      trend: { value: 8.3, isPositive: true },
-      delay: 0.05,
+      variant: 'blue' as const,
+      delay: 0.1,
     },
     {
       label: "Qualificados",
       value: kpis.qualifiedLeads.toString(),
-      icon: "⏱️",
-      gradient: "rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)",
-      trend: { value: 5.1, isPositive: true },
-      delay: 0.1,
+      icon: "✅",
+      variant: 'purple' as const,
+      delay: 0.2,
     },
   ];
 
   return (
-    <div className="min-h-screen">
-      <Header 
-        onRefresh={refetch} 
-        isRefreshing={isLoading} 
-        lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
-      />
-
-      <main className="container mx-auto px-6 py-8 space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold">Qualificação de Leads</h1>
-          <p className="text-muted-foreground">
-            Gerencie o funil de qualificação com drag & drop
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {kpiCards.map((card) => (
-            <KpiCard key={card.label} {...card} />
-          ))}
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <DashboardLayout
+      onRefresh={refetch}
+      isRefreshing={isLoading}
+      lastUpdate={new Date()}
+      currentWorkspace={currentWorkspaceId}
+      onWorkspaceChange={handleWorkspaceChange}
+    >
+      {/* Date Range Filter with Quick Filters */}
+      <div className="mb-6">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+          <div className="flex-1">
+            <DateRangePicker
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              onClearFilter={handleClearFilter}
+              minDays={1}
+              maxDays={90}
+            />
           </div>
-        ) : error ? (
-          <div className="glass rounded-xl p-6 border border-destructive/50 text-center">
-            <p className="text-destructive">Erro ao carregar leads: {error}</p>
-            <Button onClick={refetch} className="mt-4">Tentar novamente</Button>
+          
+          {/* Quick Filters */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('today')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('today') && "border-primary bg-primary/10"
+              )}
+            >
+              Hoje
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('last7days')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('last7days') && "border-primary bg-primary/10"
+              )}
+            >
+              Últimos 7 Dias
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('last30days')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('last30days') && "border-primary bg-primary/10"
+              )}
+            >
+              Últimos 30 Dias
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('thisMonth')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('thisMonth') && "border-primary bg-primary/10"
+              )}
+            >
+              Este Mês
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('lastMonth')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('lastMonth') && "border-primary bg-primary/10"
+              )}
+            >
+              Mês Passado
+            </Button>
           </div>
-        ) : (
-          <DragDropContext onDragEnd={onDragEnd}>
+        </div>
+      </div>
+
+      {/* Title and Description */}
+      <div className="mb-6">
+        <h1 className="text-4xl font-bold mb-2">Qualificação de Leads</h1>
+        <p className="text-muted-foreground">
+          Gerencie o funil de qualificação com drag & drop
+        </p>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        {kpiCards.map((card) => (
+          <PremiumKpiCard key={card.label} {...card} />
+        ))}
+      </div>
+
+      {/* Kanban Board */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="glass rounded-xl p-6 border border-destructive/50 text-center">
+          <p className="text-destructive">Erro ao carregar leads: {error}</p>
+          <Button onClick={refetch} className="mt-4">Tentar novamente</Button>
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {Object.values(columns).map((column) => (
               <div key={column.id} className="space-y-3">
@@ -148,18 +319,9 @@ const Qualificacao = () => {
               </div>
             ))}
           </div>
-          </DragDropContext>
-        )}
-      </main>
-
-      <footer className="container mx-auto px-6 py-6 mt-12">
-        <div className="glass rounded-2xl p-6 text-center border border-border/50">
-          <p className="text-sm text-muted-foreground">
-            Zion App &copy; 2025 - Sistema de Qualificação Inteligente
-          </p>
-        </div>
-      </footer>
-    </div>
+        </DragDropContext>
+      )}
+    </DashboardLayout>
   );
 };
 

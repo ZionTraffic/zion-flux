@@ -21,7 +21,7 @@ export interface KanbanColumn {
   leads: LeadKanban[];
 }
 
-export function useLeadsKanban(workspaceId: string) {
+export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: Date) {
   const [columns, setColumns] = useState<Record<LeadStage, KanbanColumn>>({
     recebidos: { id: 'recebidos', title: 'Recebidos', leads: [] },
     qualificacao: { id: 'qualificacao', title: 'Em Qualificação', leads: [] },
@@ -39,11 +39,22 @@ export function useLeadsKanban(workspaceId: string) {
     setError(null);
 
     try {
-      const { data: leads, error: leadsError } = await supabase
+      let query = supabase
         .from('leads')
         .select('id, nome, telefone, produto, canal_origem, stage, entered_at')
-        .eq('workspace_id', workspaceId)
-        .order('entered_at', { ascending: false });
+        .eq('workspace_id', workspaceId);
+
+      // Apply date filters if provided
+      if (startDate) {
+        query = query.gte('entered_at', startDate.toISOString());
+      }
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte('entered_at', endOfDay.toISOString());
+      }
+
+      const { data: leads, error: leadsError } = await query.order('entered_at', { ascending: false });
 
       if (leadsError) throw leadsError;
 
@@ -125,7 +136,7 @@ export function useLeadsKanban(workspaceId: string) {
 
   useEffect(() => {
     fetchLeads();
-  }, [workspaceId]);
+  }, [workspaceId, startDate, endDate]);
 
   // Calculate KPIs
   const totalLeads = Object.values(columns).reduce((acc, col) => acc + col.leads.length, 0);
