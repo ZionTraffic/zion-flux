@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard, Trash2 } from "lucide-react";
+import { Users, Plug, Settings, CreditCard, Trash2, UserPlus } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useUserRole } from "@/hooks/useUserRole";
+import { AddMemberModal } from "@/components/workspace/AddMemberModal";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -67,7 +69,19 @@ const Configuracoes = () => {
 
           <TabsContent value="users" className="space-y-4">
             <Card className="p-6 glass border border-border/50">
-              <h3 className="text-lg font-semibold mb-4">Usuários e Permissões</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
+                {isOwner && (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => setIsAddMemberModalOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Adicionar Usuário
+                  </Button>
+                )}
+              </div>
               <div className="space-y-4">
                 {membersLoading ? (
                   <div className="text-center py-4 text-muted-foreground">
@@ -83,12 +97,12 @@ const Configuracoes = () => {
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                           <span className="font-semibold text-sm">
-                            {member.user_id.substring(0, 2).toUpperCase()}
+                            {member.user_name?.substring(0, 2).toUpperCase() || 'U'}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium">{member.user_email || 'Usuário'}</p>
-                          <p className="text-sm text-muted-foreground">{member.user_id}</p>
+                          <p className="font-medium">{member.user_name}</p>
+                          <p className="text-sm text-muted-foreground">{member.user_email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -124,17 +138,14 @@ const Configuracoes = () => {
                     </div>
                   ))
                 )}
-                {isOwner && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => addMember('', 'member')}
-                  >
-                    + Adicionar Novo Usuário
-                  </Button>
-                )}
               </div>
             </Card>
+            
+            <AddMemberModal
+              open={isAddMemberModalOpen}
+              onOpenChange={setIsAddMemberModalOpen}
+              onAddMember={addMember}
+            />
           </TabsContent>
 
           <TabsContent value="integrations" className="space-y-4">

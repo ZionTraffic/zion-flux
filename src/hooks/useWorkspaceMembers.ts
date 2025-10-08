@@ -6,8 +6,8 @@ import { toast } from '@/hooks/use-toast';
 export interface WorkspaceMember {
   user_id: string;
   role: string;
-  user_email?: string;
-  user_name?: string;
+  user_email: string;
+  user_name: string;
 }
 
 export function useWorkspaceMembers() {
@@ -25,9 +25,9 @@ export function useWorkspaceMembers() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('membros_workspace')
-        .select('user_id, role')
-        .eq('workspace_id', currentWorkspaceId);
+        .rpc('get_workspace_members_with_details', {
+          p_workspace_id: currentWorkspaceId
+        });
 
       if (error) throw error;
 
@@ -80,21 +80,35 @@ export function useWorkspaceMembers() {
     if (!currentWorkspaceId) return;
 
     try {
-      // First, we need to get the user ID from the email
-      // Note: In a real implementation, you'd need a way to find users by email
-      // This might require an edge function or admin API
-      
-      toast({
-        title: 'Funcionalidade em desenvolvimento',
-        description: 'A adição de membros será implementada em breve.',
+      const { data, error } = await supabase.functions.invoke('add-workspace-member', {
+        body: {
+          email,
+          workspace_id: currentWorkspaceId,
+          role
+        }
       });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: 'Membro adicionado',
+        description: 'O membro foi adicionado ao workspace com sucesso.',
+      });
+
+      await fetchMembers();
     } catch (error) {
       console.error('Error adding member:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível adicionar o membro.';
       toast({
         title: 'Erro ao adicionar membro',
-        description: 'Não foi possível adicionar o membro.',
+        description: errorMessage,
         variant: 'destructive',
       });
+      throw error;
     }
   };
 

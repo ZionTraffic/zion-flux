@@ -173,7 +173,6 @@ export type Database = {
       }
       historico_conversas: {
         Row: {
-          channel: string
           created_at: string
           ended_at: string | null
           id: number
@@ -182,24 +181,24 @@ export type Database = {
           phone: string
           source: string
           started_at: string
+          tag: string
           updated_at: string
           workspace_id: string
         }
         Insert: {
-          channel?: string
-          created_at?: string
+          created_at: string
           ended_at?: string | null
           id?: number
           lead_name?: string | null
           messages: Json
           phone: string
           source?: string
-          started_at?: string
-          updated_at?: string
+          started_at: string
+          tag?: string
+          updated_at: string
           workspace_id: string
         }
         Update: {
-          channel?: string
           created_at?: string
           ended_at?: string | null
           id?: number
@@ -208,6 +207,7 @@ export type Database = {
           phone?: string
           source?: string
           started_at?: string
+          tag?: string
           updated_at?: string
           workspace_id?: string
         }
@@ -436,6 +436,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: {
           workspace_id: string
+        }[]
+      }
+      get_workspace_members_with_details: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          role: string
+          user_email: string
+          user_id: string
+          user_name: string
         }[]
       }
       has_role: {
