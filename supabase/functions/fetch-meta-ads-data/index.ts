@@ -30,6 +30,24 @@ interface ProcessedData {
   campaign?: string;
 }
 
+// Helper function to classify campaign by funnel stage
+function classifyFunnelStage(campaignName: string): 'topo' | 'meio' | 'fundo' {
+  const nameLower = campaignName.toLowerCase();
+  
+  // Topo de Funil - Reconhecimento/Awareness
+  if (nameLower.includes('topo') || nameLower.includes('reconhecimento')) {
+    return 'topo';
+  }
+  
+  // Meio de Funil - Consideração
+  if (nameLower.includes('meio')) {
+    return 'meio';
+  }
+  
+  // Fundo de Funil - Conversão (padrão)
+  return 'fundo';
+}
+
 // Helper function to fetch data from a specific Meta Ad Account
 async function fetchAccountData(
   accountId: string,
@@ -282,6 +300,7 @@ serve(async (req) => {
       impressions: data.impressions,
       clicks: data.clicks,
       spend: data.spend,
+      funnelStage: classifyFunnelStage(name),
     }));
 
     const result = {

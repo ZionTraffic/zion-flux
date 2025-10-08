@@ -277,9 +277,22 @@ const Trafego = () => {
   console.log('📊 Bar chart data count:', barChartData.length);
   console.log('📊 First 3 bar chart items:', barChartData.slice(0, 3));
 
-  const donutChartData = campaigns.slice(0, 3).map((c) => ({
-    name: c.name,
+  const funnelColors = {
+    topo: '#00c6ff',    // Azul - Topo de Funil
+    meio: '#10b981',    // Verde - Meio de Funil
+    fundo: '#a855f7',   // Roxo - Fundo de Funil
+  };
+
+  const funnelLabels = {
+    topo: 'TOPO',
+    meio: 'MEIO',
+    fundo: 'FUNDO',
+  };
+
+  const donutChartData = campaigns.slice(0, 5).map((c) => ({
+    name: `${c.name} (${funnelLabels[c.funnelStage]})`,
     value: c.spend,
+    color: funnelColors[c.funnelStage],
   }));
 
   const lineChartData = daily.map((d) => ({

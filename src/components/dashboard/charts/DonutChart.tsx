@@ -2,7 +2,7 @@ import { BaseChart } from './BaseChart';
 import { EChartsOption } from 'echarts';
 
 interface DonutChartProps {
-  data: { name: string; value: number }[];
+  data: { name: string; value: number; color?: string }[];
   title?: string;
 }
 
@@ -82,7 +82,7 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         data: data.map((item) => ({
           ...item,
           itemStyle: {
-            color: colorMap[item.name] || '#9ca3af',
+            color: item.color || colorMap[item.name] || '#9ca3af',
           },
         })),
         animationType: 'scale',

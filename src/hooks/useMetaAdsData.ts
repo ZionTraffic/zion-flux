@@ -27,6 +27,7 @@ export interface MetaCampaign {
   impressions: number;
   clicks: number;
   spend: number;
+  funnelStage: 'topo' | 'meio' | 'fundo';
 }
 
 export function useMetaAdsData(
