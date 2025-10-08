@@ -30,6 +30,49 @@ interface ProcessedData {
   campaign?: string;
 }
 
+// Helper function to fetch data from a specific Meta Ad Account
+async function fetchAccountData(
+  accountId: string,
+  token: string,
+  since: string,
+  until: string
+) {
+  const endpoint = `https://graph.facebook.com/v21.0/${accountId}/insights`;
+  
+  // Daily data
+  const dailyParams = new URLSearchParams({
+    fields: 'date_start,date_stop,impressions,clicks,spend,cpc,ctr,actions,campaign_name,account_name',
+    time_range: JSON.stringify({ since, until }),
+    time_increment: '1',
+    level: 'account',
+    access_token: token,
+  });
+  
+  console.log(`📊 Fetching daily data for account: ${accountId}`);
+  const dailyResponse = await fetch(`${endpoint}?${dailyParams}`);
+  const dailyData = await dailyResponse.json();
+  
+  // Campaign data
+  const campaignParams = new URLSearchParams({
+    fields: 'campaign_name,impressions,clicks,spend',
+    time_range: JSON.stringify({ since, until }),
+    level: 'campaign',
+    access_token: token,
+  });
+  
+  console.log(`📈 Fetching campaign data for account: ${accountId}`);
+  const campaignResponse = await fetch(`${endpoint}?${campaignParams}`);
+  const campaignData = await campaignResponse.json();
+  
+  return {
+    accountId,
+    dailyData,
+    campaignData,
+    dailyStatus: dailyResponse.status,
+    campaignStatus: campaignResponse.status,
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -43,6 +86,7 @@ serve(async (req) => {
 
     const META_ACCESS_TOKEN = Deno.env.get("META_ACCESS_TOKEN");
     const META_AD_ACCOUNT_ID = Deno.env.get("META_AD_ACCOUNT_ID");
+    const META_AD_ACCOUNT_ID_2 = Deno.env.get("META_AD_ACCOUNT_ID_2");
 
     console.log("Meta Ads request:", { 
       days, 
@@ -86,75 +130,65 @@ serve(async (req) => {
 
     console.log("Date range:", { since, until });
 
-    // Meta Marketing API endpoint (v21.0)
-    const endpoint = `https://graph.facebook.com/v21.0/${META_AD_ACCOUNT_ID}/insights`;
-    const params = new URLSearchParams({
-      fields: 'date_start,date_stop,impressions,clicks,spend,cpc,ctr,actions,campaign_name,account_name',
-      time_range: JSON.stringify({ since, until }),
-      time_increment: '1',
-      level: 'account',
-      access_token: META_ACCESS_TOKEN,
-    });
+    // Prepare accounts to fetch
+    const accountsToFetch = [META_AD_ACCOUNT_ID];
+    if (META_AD_ACCOUNT_ID_2) {
+      console.log("🔄 Second account detected:", META_AD_ACCOUNT_ID_2);
+      accountsToFetch.push(META_AD_ACCOUNT_ID_2);
+    }
 
-    console.log("Calling Meta API for daily data:", endpoint);
+    console.log(`📥 Fetching data from ${accountsToFetch.length} account(s)`);
 
-    // First API call: Account-level daily data
-    const response = await fetch(`${endpoint}?${params}`);
-    const data = await response.json();
+    // Fetch data from all accounts in parallel
+    const accountResults = await Promise.all(
+      accountsToFetch.map(accountId => 
+        fetchAccountData(accountId, META_ACCESS_TOKEN, since, until)
+      )
+    );
 
-    console.log("Meta API daily response status:", response.status);
+    // Combine all insights from both accounts
+    let allDailyInsights: MetaInsight[] = [];
+    let allCampaignInsights: MetaInsight[] = [];
 
-    if (data.error) {
-      console.error("Meta API error:", data.error);
-      
-      // Handle specific error cases
-      if (data.error.code === 190) {
-        return new Response(
-          JSON.stringify({ 
-            error: "TOKEN_EXPIRED",
-            message: "Token de acesso expirado. Renove a conexão." 
-          }), 
-          { 
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+    accountResults.forEach((result, index) => {
+      console.log(`✅ Account ${index + 1} (${result.accountId}):`, {
+        dailyStatus: result.dailyStatus,
+        campaignStatus: result.campaignStatus,
+        dailyRecords: result.dailyData.data?.length || 0,
+        campaignRecords: result.campaignData.data?.length || 0,
+      });
+
+      // Check for errors in daily data
+      if (result.dailyData.error) {
+        console.error(`❌ Account ${result.accountId} daily error:`, result.dailyData.error);
+        
+        if (result.dailyData.error.code === 190) {
+          throw new Error("TOKEN_EXPIRED");
+        }
+        throw new Error(`API_ERROR: ${result.dailyData.error.message}`);
       }
 
-      return new Response(
-        JSON.stringify({ 
-          error: "API_ERROR",
-          message: data.error.message 
-        }), 
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+      // Aggregate daily insights
+      if (result.dailyData.data) {
+        allDailyInsights = allDailyInsights.concat(result.dailyData.data);
+      }
 
-    // Second API call: Campaign-level aggregated data
-    const campaignParams = new URLSearchParams({
-      fields: 'campaign_name,impressions,clicks,spend',
-      time_range: JSON.stringify({ since, until }),
-      level: 'campaign',
-      access_token: META_ACCESS_TOKEN,
+      // Aggregate campaign insights
+      if (result.campaignData.data) {
+        allCampaignInsights = allCampaignInsights.concat(result.campaignData.data);
+      } else if (result.campaignData.error) {
+        console.error(`⚠️ Account ${result.accountId} campaign error (continuing):`, result.campaignData.error);
+      }
     });
 
-    console.log("Calling Meta API for campaign data:", endpoint);
-    const campaignResponse = await fetch(`${endpoint}?${campaignParams}`);
-    const campaignData = await campaignResponse.json();
+    console.log(`📊 Total insights aggregated:`, {
+      dailyInsights: allDailyInsights.length,
+      campaignInsights: allCampaignInsights.length,
+    });
 
-    console.log("Meta API campaign response status:", campaignResponse.status);
-
-    if (campaignData.error) {
-      console.error("Meta API campaign error:", campaignData.error);
-      // Campaign data is optional, so we continue even if it fails
-    }
-
-    // Process the data
-    const insights: MetaInsight[] = data.data || [];
-    console.log(`Processing ${insights.length} insights`);
+    // Process the aggregated data
+    const insights: MetaInsight[] = allDailyInsights;
+    console.log(`Processing ${insights.length} daily insights from all accounts`);
 
     // Group data by date
     const dailyMap = new Map<string, ProcessedData>();
@@ -219,9 +253,9 @@ serve(async (req) => {
       day.ctr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0;
     });
 
-    // Process campaign data from second API call
-    const campaignInsights: MetaInsight[] = campaignData.data || [];
-    console.log(`Processing ${campaignInsights.length} campaign insights`);
+    // Process campaign data from all accounts
+    const campaignInsights: MetaInsight[] = allCampaignInsights;
+    console.log(`Processing ${campaignInsights.length} campaign insights from all accounts`);
 
     // Aggregate campaigns by name
     const campaignMap = new Map<string, { impressions: number; clicks: number; spend: number }>();
