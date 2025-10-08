@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 
+// FunnelPremium - 3 Stages Version
+
 export interface FunnelStage {
   id: string;
   label: string;
