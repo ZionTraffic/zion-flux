@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { BarChart } from "@/components/dashboard/charts/BarChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
-import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
+import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -280,7 +280,7 @@ const Qualificacao = () => {
           />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <FunnelPremium 
+          <FunnelPremium5Stages 
             stages={charts.funnelData} 
             coinsCount={16} 
             showCoins={true} 

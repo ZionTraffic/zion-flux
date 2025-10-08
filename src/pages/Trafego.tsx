@@ -466,8 +466,6 @@ const Trafego = () => {
               { id: 'impressions', label: 'Impressões', value: totals?.impressions || 0 },
               { id: 'clicks', label: 'Cliques', value: totals?.clicks || 0 },
               { id: 'conversations', label: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
-              { id: 'leads', label: 'Leads Gerados', value: 0 },
-              { id: 'conversions', label: 'Conversões', value: 0 },
             ]}
             coinsCount={16}
             showCoins={true}
