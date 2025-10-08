@@ -7,6 +7,7 @@ interface WorkspaceContextType {
   currentWorkspaceId: string | null;
   setCurrentWorkspaceId: (id: string) => Promise<void>;
   isLoading: boolean;
+  userRole: string | null;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -14,6 +15,7 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,13 +34,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (stored) {
           const { data } = await supabase
             .from('membros_workspace')
-            .select('workspace_id')
+            .select('workspace_id, role')
             .eq('user_id', user.id)
             .eq('workspace_id', stored)
             .maybeSingle();
           
           if (data) {
             setCurrentWorkspaceIdState(stored);
+            setUserRole(data.role || null);
             setIsLoading(false);
             return;
           }
@@ -47,13 +50,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         // If no valid stored workspace, fetch user's first workspace
         const { data } = await supabase
           .from('membros_workspace')
-          .select('workspace_id')
+          .select('workspace_id, role')
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle();
         
         if (data) {
           setCurrentWorkspaceIdState(data.workspace_id);
+          setUserRole(data.role || null);
           localStorage.setItem('currentWorkspaceId', data.workspace_id);
         }
       } catch (error) {
@@ -93,16 +97,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Validate user has access to this workspace
+      // Validate user has access to this workspace and get their role
       const { data } = await supabase
         .from('membros_workspace')
-        .select('workspace_id')
+        .select('workspace_id, role')
         .eq('user_id', user.id)
         .eq('workspace_id', id)
         .maybeSingle();
       
       if (data) {
         setCurrentWorkspaceIdState(id);
+        setUserRole(data.role || null);
         localStorage.setItem('currentWorkspaceId', id);
       } else {
         toast({
@@ -130,7 +135,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <WorkspaceContext.Provider value={{ currentWorkspaceId, setCurrentWorkspaceId, isLoading }}>
+    <WorkspaceContext.Provider value={{ currentWorkspaceId, setCurrentWorkspaceId, isLoading, userRole }}>
       {children}
     </WorkspaceContext.Provider>
   );

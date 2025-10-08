@@ -8,10 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard } from "lucide-react";
+import { Users, Plug, Settings, CreditCard, Trash2 } from "lucide-react";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useUserRole } from "@/hooks/useUserRole";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
+  const { isOwner } = useUserRole();
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -58,21 +69,70 @@ const Configuracoes = () => {
             <Card className="p-6 glass border border-border/50">
               <h3 className="text-lg font-semibold mb-4">Usuários e Permissões</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="font-semibold">AD</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Admin User</p>
-                      <p className="text-sm text-muted-foreground">admin@zionapp.com</p>
-                    </div>
+                {membersLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Carregando membros...
                   </div>
-                  <Badge variant="outline">Admin</Badge>
-                </div>
-                <Button variant="outline" className="w-full">
-                  + Adicionar Novo Usuário
-                </Button>
+                ) : members.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Nenhum membro encontrado
+                  </div>
+                ) : (
+                  members.map((member) => (
+                    <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="font-semibold text-sm">
+                            {member.user_id.substring(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{member.user_email || 'Usuário'}</p>
+                          <p className="text-sm text-muted-foreground">{member.user_id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isOwner ? (
+                          <Select
+                            value={member.role}
+                            onValueChange={(newRole) => updateMemberRole(member.user_id, newRole)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline">{member.role}</Badge>
+                        )}
+                        {isOwner && member.role !== 'owner' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMember(member.user_id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+                {isOwner && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => addMember('', 'member')}
+                  >
+                    + Adicionar Novo Usuário
+                  </Button>
+                )}
               </div>
             </Card>
           </TabsContent>

@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -27,6 +28,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { canAccessAnalysis, canAccessSettings } = useUserRole();
 
   const handleLogout = async () => {
     try {
@@ -45,7 +47,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     }
   };
   
-  const menuItems = [
+  const allMenuItems = [
     {
       icon: Home,
       label: "Dashboard",
@@ -75,6 +77,14 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
       iconColor: "text-accent",
     },
   ];
+
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter(item => {
+    if (item.label === 'Análise') {
+      return canAccessAnalysis;
+    }
+    return true;
+  });
 
   const getActiveItem = () => {
     const path = location.pathname;
@@ -182,9 +192,11 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                 </TooltipContent>
               </Tooltip>
 
-              <div className="hidden sm:block">
-                <SettingsMenu />
-              </div>
+              {canAccessSettings && (
+                <div className="hidden sm:block">
+                  <SettingsMenu />
+                </div>
+              )}
 
               <Tooltip>
                 <TooltipTrigger asChild>

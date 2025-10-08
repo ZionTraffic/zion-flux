@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 import { useState } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface MenuItem {
   icon: LucideIcon;
@@ -38,6 +39,7 @@ export function MobileMenu({
   onWorkspaceChange,
 }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
+  const { canAccessSettings } = useUserRole();
 
   const handleItemClick = (label: string) => {
     onItemClick(label);
@@ -114,10 +116,12 @@ export function MobileMenu({
         <Separator className="my-6" />
 
         {/* Settings Menu */}
-        <div className="px-2">
-          <p className="text-xs text-muted-foreground mb-3 px-2 uppercase tracking-wider">Configurações</p>
-          <SettingsMenu />
-        </div>
+        {canAccessSettings && (
+          <div className="px-2">
+            <p className="text-xs text-muted-foreground mb-3 px-2 uppercase tracking-wider">Configurações</p>
+            <SettingsMenu />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
