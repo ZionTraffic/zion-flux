@@ -213,61 +213,6 @@ export type Database = {
         }
         Relationships: []
       }
-      historico_leads: {
-        Row: {
-          changed_at: string | null
-          changed_by: string | null
-          from_stage: string | null
-          id: number
-          lead_id: number
-          note: string | null
-          to_stage: string
-          workspace_id: string
-        }
-        Insert: {
-          changed_at?: string | null
-          changed_by?: string | null
-          from_stage?: string | null
-          id?: number
-          lead_id: number
-          note?: string | null
-          to_stage: string
-          workspace_id: string
-        }
-        Update: {
-          changed_at?: string | null
-          changed_by?: string | null
-          from_stage?: string | null
-          id?: number
-          lead_id?: number
-          note?: string | null
-          to_stage?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_status_history_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_status_history_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "kpi_overview_daily"
-            referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "lead_status_history_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leads: {
         Row: {
           canal_origem: string | null
@@ -426,6 +371,19 @@ export type Database = {
           leads_followup: number | null
           leads_qualificados: number | null
           leads_recebidos: number | null
+          workspace_id: string | null
+        }
+        Relationships: []
+      }
+      v_qualificacao: {
+        Row: {
+          entered_at: string | null
+          id: number | null
+          lead_name: string | null
+          phone: string | null
+          source: string | null
+          stage: string | null
+          tag: string | null
           workspace_id: string | null
         }
         Relationships: []

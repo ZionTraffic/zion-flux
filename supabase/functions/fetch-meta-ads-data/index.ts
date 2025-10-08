@@ -66,7 +66,6 @@ async function fetchAccountData(
     access_token: token,
   });
   
-  console.log(`📊 Fetching daily data for account: ${accountId}`);
   const dailyResponse = await fetch(`${endpoint}?${dailyParams}`);
   const dailyData = await dailyResponse.json();
   
@@ -77,8 +76,6 @@ async function fetchAccountData(
     level: 'campaign',
     access_token: token,
   });
-  
-  console.log(`📈 Fetching campaign data for account: ${accountId}`);
   const campaignResponse = await fetch(`${endpoint}?${campaignParams}`);
   const campaignData = await campaignResponse.json();
   
@@ -146,16 +143,11 @@ serve(async (req) => {
       until = endDate.toISOString().slice(0, 10);
     }
 
-    console.log("Date range:", { since, until });
-
     // Prepare accounts to fetch
     const accountsToFetch = [META_AD_ACCOUNT_ID];
     if (META_AD_ACCOUNT_ID_2) {
-      console.log("🔄 Second account detected:", META_AD_ACCOUNT_ID_2);
       accountsToFetch.push(META_AD_ACCOUNT_ID_2);
     }
-
-    console.log(`📥 Fetching data from ${accountsToFetch.length} account(s)`);
 
     // Fetch data from all accounts in parallel
     const accountResults = await Promise.all(
@@ -169,13 +161,6 @@ serve(async (req) => {
     let allCampaignInsights: MetaInsight[] = [];
 
     accountResults.forEach((result, index) => {
-      console.log(`✅ Account ${index + 1} (${result.accountId}):`, {
-        dailyStatus: result.dailyStatus,
-        campaignStatus: result.campaignStatus,
-        dailyRecords: result.dailyData.data?.length || 0,
-        campaignRecords: result.campaignData.data?.length || 0,
-      });
-
       // Check for errors in daily data
       if (result.dailyData.error) {
         console.error(`❌ Account ${result.accountId} daily error:`, result.dailyData.error);
@@ -199,14 +184,8 @@ serve(async (req) => {
       }
     });
 
-    console.log(`📊 Total insights aggregated:`, {
-      dailyInsights: allDailyInsights.length,
-      campaignInsights: allCampaignInsights.length,
-    });
-
     // Process the aggregated data
     const insights: MetaInsight[] = allDailyInsights;
-    console.log(`Processing ${insights.length} daily insights from all accounts`);
 
     // Group data by date
     const dailyMap = new Map<string, ProcessedData>();
@@ -273,7 +252,6 @@ serve(async (req) => {
 
     // Process campaign data from all accounts
     const campaignInsights: MetaInsight[] = allCampaignInsights;
-    console.log(`Processing ${campaignInsights.length} campaign insights from all accounts`);
 
     // Aggregate campaigns by name
     const campaignMap = new Map<string, { impressions: number; clicks: number; spend: number }>();
@@ -308,14 +286,6 @@ serve(async (req) => {
       daily,
       campaigns,
     };
-
-    console.log("Returning processed data:", {
-      totalImpressions: totals.impressions,
-      totalClicks: totals.clicks,
-      totalConversasIniciadas: totals.conversas_iniciadas,
-      dailyCount: daily.length,
-      campaignsCount: campaigns.length,
-    });
 
     return new Response(
       JSON.stringify(result),
