@@ -183,26 +183,38 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
     .map(([day, value]) => ({ day, value }))
     .sort((a, b) => a.day.localeCompare(b.day));
 
-  // Funnel data - must be exactly 3 stages as a tuple
+  // Funnel data - must be exactly 5 stages as a tuple
   const funnelData: [
+    { id: string; label: string; value: number },
+    { id: string; label: string; value: number },
     { id: string; label: string; value: number },
     { id: string; label: string; value: number },
     { id: string; label: string; value: number }
   ] = [
     { 
       id: 'stage-1', 
-      label: 'Recebidos', 
+      label: 'Novo Lead', 
       value: columns.recebidos.leads.length 
     },
     { 
       id: 'stage-2', 
       label: 'Em Qualificação', 
-      value: columns.qualificacao.leads.length + columns.followup.leads.length
+      value: columns.qualificacao.leads.length
     },
     { 
       id: 'stage-3', 
       label: 'Qualificados', 
       value: qualifiedLeads 
+    },
+    { 
+      id: 'stage-4', 
+      label: 'Desqualificados', 
+      value: columns.descartados.leads.length
+    },
+    { 
+      id: 'stage-5', 
+      label: 'Follow-up Concluído', 
+      value: columns.followup.leads.length
     }
   ];
 

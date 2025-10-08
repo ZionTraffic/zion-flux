@@ -8,7 +8,7 @@ export interface FunnelStage {
 }
 
 export interface FunnelPremiumProps {
-  stages: [FunnelStage, FunnelStage, FunnelStage];
+  stages: [FunnelStage, FunnelStage, FunnelStage, FunnelStage, FunnelStage];
   className?: string;
   coinsCount?: number;
   showCoins?: boolean;
@@ -22,9 +22,10 @@ interface BowlProps {
   topWidth: number;
   bottomWidth: number;
   height: number;
+  gradientId?: string;
 }
 
-function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
+function Bowl({ x, y, topWidth, bottomWidth, height, gradientId = 'bowlGradient3D' }: BowlProps) {
   const sideOffset = (topWidth - bottomWidth) / 2;
   
   // Path com curvatura 3D mais pronunciada
@@ -46,7 +47,7 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
       {/* Corpo do bowl com gradiente 3D */}
       <path 
         d={bodyPath} 
-        fill="url(#bowlGradient3D)" 
+        fill={`url(#${gradientId})`}
         stroke="rgba(0,0,0,0.4)" 
         strokeWidth="2"
         filter="url(#glow)"
@@ -83,36 +84,43 @@ export function FunnelPremium({
 }: FunnelPremiumProps) {
   // Dimensões do viewBox
   const W = 600;
-  const H = 450;
+  const H = 600;
 
-  // Proporções ajustadas para viewBox 600x450
-  const topW = 480;  // Largura do topo (80% de 600) - mais largo
-  const midW = 360;  // Largura do meio (60% de 600) - mais largo
-  const botW = 280;  // Largura da base (47% de 600) - mais largo
+  // Proporções fixas para 5 estágios
+  const w1 = 480;  // Novo Lead
+  const w2 = 400;  // Em Qualificação
+  const w3 = 320;  // Qualificados
+  const w4 = 240;  // Desqualificados
+  const w5 = 180;  // Follow-up Concluído
+  const botW = 140; // Base final
 
-  const stageH = 90; // Altura de cada estágio - menos alto
-  const gap = 25;     // Espaço entre estágios - menor gap
+  const stageH = 70; // Altura de cada estágio
+  const gap = 18;     // Espaço entre estágios
 
   // Posições Y
-  const y1 = 60;
+  const y1 = 50;
   const y2 = y1 + stageH + gap;
   const y3 = y2 + stageH + gap;
+  const y4 = y3 + stageH + gap;
+  const y5 = y4 + stageH + gap;
 
   // Posições X (centralizar cada estágio)
-  const x1 = (W - topW) / 2;
-  const x2 = (W - midW) / 2;
-  const x3 = (W - botW) / 2;
+  const x1 = (W - w1) / 2;
+  const x2 = (W - w2) / 2;
+  const x3 = (W - w3) / 2;
+  const x4 = (W - w4) / 2;
+  const x5 = (W - w5) / 2;
 
   // Memoize coin positions to prevent flickering on re-renders
   const coins = useMemo(() => 
     Array.from({ length: coinsCount }).map((_, i) => ({
       key: `coin-${i}`,
-      cx: x3 + botW / 2 + (Math.random() * 90 - 45),
+      cx: x5 + botW / 2 + (Math.random() * 60 - 30),
       size: 14 + Math.random() * 6,
       delay: i * 0.15 + Math.random() * 0.6,
       rotate: Math.random() * 360,
     })), 
-    [coinsCount, x3, botW]
+    [coinsCount, x5, botW]
   );
 
   return (
@@ -126,13 +134,22 @@ export function FunnelPremium({
         className="overflow-visible"
       >
         <defs>
-          {/* Gradiente 3D com 5 stops (efeito profundidade real) */}
+          {/* Gradiente 3D Azul com 5 stops (efeito profundidade real) */}
           <linearGradient id="bowlGradient3D" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#87CEEB" stopOpacity="1"/> {/* Azul claro topo */}
             <stop offset="25%" stopColor="#60C5F5" stopOpacity="1"/> {/* Azul médio-claro */}
             <stop offset="50%" stopColor="#3A9FD8" stopOpacity="1"/> {/* Azul médio */}
             <stop offset="75%" stopColor="#1E7BB8" stopOpacity="1"/> {/* Azul médio-escuro */}
             <stop offset="100%" stopColor="#0A5A8A" stopOpacity="1"/> {/* Azul escuro base */}
+          </linearGradient>
+
+          {/* Gradiente 3D Vermelho para Desqualificados */}
+          <linearGradient id="bowlGradientRed" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FF6B6B" stopOpacity="1"/> {/* Vermelho claro topo */}
+            <stop offset="25%" stopColor="#EE5A6F" stopOpacity="1"/> {/* Vermelho médio-claro */}
+            <stop offset="50%" stopColor="#DC4C64" stopOpacity="1"/> {/* Vermelho médio */}
+            <stop offset="75%" stopColor="#C93D58" stopOpacity="1"/> {/* Vermelho médio-escuro */}
+            <stop offset="100%" stopColor="#A8304E" stopOpacity="1"/> {/* Vermelho escuro base */}
           </linearGradient>
 
           {/* Gradiente para o topo do bowl */}
@@ -177,27 +194,26 @@ export function FunnelPremium({
 
           {/* ClipPath para moedas saindo da base */}
           <clipPath id="funnelOutput">
-            <rect x={x3} y={y3 + stageH - 10} width={botW} height="200" />
+            <rect x={x5} y={y5 + stageH - 10} width={botW} height="200" />
           </clipPath>
         </defs>
 
-        {/* Estágio 1 (Topo) */}
-        <Bowl x={x1} y={y1} topWidth={topW} bottomWidth={midW} height={stageH} />
-        {/* Sombra inferior do bowl 1 */}
+        {/* Estágio 1 - Novo Lead */}
+        <Bowl x={x1} y={y1} topWidth={w1} bottomWidth={w2} height={stageH} />
         <ellipse 
           cx={W / 2} 
           cy={y1 + stageH} 
-          rx={midW / 2} 
-          ry="6" 
+          rx={w2 / 2} 
+          ry="5" 
           fill="rgba(0,0,0,0.4)"
           filter="blur(4px)"
         />
         <text
           x={W / 2}
-          y={y1 + stageH / 2 - 12}
+          y={y1 + stageH / 2 - 8}
           textAnchor="middle"
           fill="white"
-          fontSize="19"
+          fontSize="16"
           fontWeight="600"
           opacity="0.92"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
@@ -206,33 +222,32 @@ export function FunnelPremium({
         </text>
         <text
           x={W / 2}
-          y={y1 + stageH / 2 + 20}
+          y={y1 + stageH / 2 + 12}
           textAnchor="middle"
           fill="white"
-          fontSize="24"
+          fontSize="22"
           fontWeight="700"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
         >
           {formatValue(stages[0].value)}
         </text>
 
-        {/* Estágio 2 (Meio) */}
-        <Bowl x={x2} y={y2} topWidth={midW} bottomWidth={botW} height={stageH} />
-        {/* Sombra inferior do bowl 2 */}
+        {/* Estágio 2 - Em Qualificação */}
+        <Bowl x={x2} y={y2} topWidth={w2} bottomWidth={w3} height={stageH} />
         <ellipse 
           cx={W / 2} 
           cy={y2 + stageH} 
-          rx={botW / 2} 
+          rx={w3 / 2} 
           ry="5" 
           fill="rgba(0,0,0,0.4)"
           filter="blur(4px)"
         />
         <text
           x={W / 2}
-          y={y2 + stageH / 2 - 12}
+          y={y2 + stageH / 2 - 8}
           textAnchor="middle"
           fill="white"
-          fontSize="17"
+          fontSize="16"
           fontWeight="600"
           opacity="0.92"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
@@ -241,7 +256,7 @@ export function FunnelPremium({
         </text>
         <text
           x={W / 2}
-          y={y2 + stageH / 2 + 20}
+          y={y2 + stageH / 2 + 12}
           textAnchor="middle"
           fill="white"
           fontSize="22"
@@ -251,23 +266,22 @@ export function FunnelPremium({
           {formatValue(stages[1].value)}
         </text>
 
-        {/* Estágio 3 (Base) */}
-        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} />
-        {/* Sombra inferior do bowl 3 */}
+        {/* Estágio 3 - Qualificados */}
+        <Bowl x={x3} y={y3} topWidth={w3} bottomWidth={w4} height={stageH} />
         <ellipse 
           cx={W / 2} 
           cy={y3 + stageH} 
-          rx={(botW * 0.85) / 2} 
-          ry="4" 
+          rx={w4 / 2} 
+          ry="5" 
           fill="rgba(0,0,0,0.4)"
           filter="blur(4px)"
         />
         <text
           x={W / 2}
-          y={y3 + stageH / 2 - 12}
+          y={y3 + stageH / 2 - 8}
           textAnchor="middle"
           fill="white"
-          fontSize="17"
+          fontSize="16"
           fontWeight="600"
           opacity="0.92"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
@@ -276,7 +290,7 @@ export function FunnelPremium({
         </text>
         <text
           x={W / 2}
-          y={y3 + stageH / 2 + 20}
+          y={y3 + stageH / 2 + 12}
           textAnchor="middle"
           fill="white"
           fontSize="22"
@@ -286,15 +300,83 @@ export function FunnelPremium({
           {formatValue(stages[2].value)}
         </text>
 
+        {/* Estágio 4 - Desqualificados (VERMELHO) */}
+        <Bowl x={x4} y={y4} topWidth={w4} bottomWidth={w5} height={stageH} gradientId="bowlGradientRed" />
+        <ellipse 
+          cx={W / 2} 
+          cy={y4 + stageH} 
+          rx={w5 / 2} 
+          ry="5" 
+          fill="rgba(168,48,78,0.4)"
+          filter="blur(4px)"
+        />
+        <text
+          x={W / 2}
+          y={y4 + stageH / 2 - 8}
+          textAnchor="middle"
+          fill="white"
+          fontSize="16"
+          fontWeight="600"
+          opacity="0.92"
+          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+        >
+          {stages[3].label}
+        </text>
+        <text
+          x={W / 2}
+          y={y4 + stageH / 2 + 12}
+          textAnchor="middle"
+          fill="white"
+          fontSize="22"
+          fontWeight="700"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
+        >
+          {formatValue(stages[3].value)}
+        </text>
+
+        {/* Estágio 5 - Follow-up Concluído */}
+        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} />
+        <ellipse 
+          cx={W / 2} 
+          cy={y5 + stageH} 
+          rx={botW / 2} 
+          ry="4" 
+          fill="rgba(0,0,0,0.4)"
+          filter="blur(4px)"
+        />
+        <text
+          x={W / 2}
+          y={y5 + stageH / 2 - 8}
+          textAnchor="middle"
+          fill="white"
+          fontSize="16"
+          fontWeight="600"
+          opacity="0.92"
+          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+        >
+          {stages[4].label}
+        </text>
+        <text
+          x={W / 2}
+          y={y5 + stageH / 2 + 12}
+          textAnchor="middle"
+          fill="white"
+          fontSize="22"
+          fontWeight="700"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
+        >
+          {formatValue(stages[4].value)}
+        </text>
+
         {/* Moedas animadas saindo da base */}
         {showCoins && (
           <g clipPath="url(#funnelOutput)">
             {coins.map((coin) => (
               <motion.g
                 key={coin.key}
-                initial={{ opacity: 0, y: y3 + stageH - 10 }}
+                initial={{ opacity: 0, y: y5 + stageH - 10 }}
                 animate={{
-                  y: [y3 + stageH - 10, y3 + stageH + 70, y3 + stageH + 140, y3 + stageH + 200],
+                  y: [y5 + stageH - 10, y5 + stageH + 70, y5 + stageH + 140, y5 + stageH + 200],
                   opacity: [0, 1, 1, 0],
                   rotate: [0, coin.rotate, coin.rotate * 2],
                   x: [0, 0, 0, 0],
