@@ -277,23 +277,29 @@ const Trafego = () => {
   console.log('📊 Bar chart data count:', barChartData.length);
   console.log('📊 First 3 bar chart items:', barChartData.slice(0, 3));
 
-  const funnelColors = {
-    topo: '#00c6ff',    // Azul - Topo de Funil
-    meio: '#10b981',    // Verde - Meio de Funil
-    fundo: '#a855f7',   // Roxo - Fundo de Funil
-  };
+  // Agregar investimento por estágio de funil
+  const spendByFunnel = campaigns.reduce((acc, campaign) => {
+    acc[campaign.funnelStage] = (acc[campaign.funnelStage] || 0) + campaign.spend;
+    return acc;
+  }, {} as Record<string, number>);
 
-  const funnelLabels = {
-    topo: 'TOPO',
-    meio: 'MEIO',
-    fundo: 'FUNDO',
-  };
-
-  const donutChartData = campaigns.slice(0, 5).map((c) => ({
-    name: `${c.name} (${funnelLabels[c.funnelStage]})`,
-    value: c.spend,
-    color: funnelColors[c.funnelStage],
-  }));
+  const donutChartData = [
+    {
+      name: 'Topo de Funil',
+      value: spendByFunnel.topo || 0,
+      color: '#00c6ff',
+    },
+    {
+      name: 'Meio de Funil',
+      value: spendByFunnel.meio || 0,
+      color: '#10b981',
+    },
+    {
+      name: 'Fundo de Funil',
+      value: spendByFunnel.fundo || 0,
+      color: '#a855f7',
+    },
+  ].filter(item => item.value > 0);
 
   const lineChartData = daily.map((d) => ({
     day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
