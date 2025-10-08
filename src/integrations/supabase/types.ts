@@ -173,7 +173,7 @@ export type Database = {
       }
       historico_conversas: {
         Row: {
-          created_at: string
+          created_at: string | null
           ended_at: string | null
           id: number
           lead_name: string | null
@@ -182,11 +182,11 @@ export type Database = {
           source: string
           started_at: string
           tag: string
-          updated_at: string
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
-          created_at: string
+          created_at?: string | null
           ended_at?: string | null
           id?: number
           lead_name?: string | null
@@ -195,11 +195,11 @@ export type Database = {
           source?: string
           started_at: string
           tag?: string
-          updated_at: string
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           ended_at?: string | null
           id?: number
           lead_name?: string | null
@@ -208,7 +208,7 @@ export type Database = {
           source?: string
           started_at?: string
           tag?: string
-          updated_at?: string
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: []

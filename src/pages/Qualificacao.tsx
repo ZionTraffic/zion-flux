@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useLeadsKanban, LeadStage } from "@/hooks/useLeadsKanban";
+import { useLeadsFromConversations, LeadStage } from "@/hooks/useLeadsFromConversations";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useState } from "react";
@@ -29,7 +29,7 @@ const Qualificacao = () => {
     return { from, to };
   });
 
-  const { columns, isLoading, error, moveLead, refetch, kpis, charts } = useLeadsKanban(
+  const { columns, isLoading, error, moveLead, refetch, kpis, charts } = useLeadsFromConversations(
     currentWorkspaceId,
     dateRange?.from,
     dateRange?.to
@@ -126,7 +126,7 @@ const Qualificacao = () => {
     const fromStage = source.droppableId as LeadStage;
     const toStage = destination.droppableId as LeadStage;
 
-    moveLead(leadId, fromStage, toStage, source.index, destination.index);
+    moveLead(leadId, fromStage, toStage);
   };
 
   const kpiCards = [
@@ -281,7 +281,7 @@ const Qualificacao = () => {
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <FunnelPremium5Stages 
-            stages={charts.funnelData} 
+            stages={charts.funnelData as [any, any, any, any, any]} 
             coinsCount={16} 
             showCoins={true} 
           />
@@ -301,14 +301,21 @@ const Qualificacao = () => {
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {Object.values(columns).map((column) => (
-              <div key={column.id} className="space-y-3">
-                <div className="glass rounded-xl p-3 border border-border/50">
-                  <h3 className="font-semibold text-sm mb-1">{column.title}</h3>
-                  <p className="text-xs text-muted-foreground">{column.leads.length} leads</p>
-                </div>
+            {columns.map((column) => {
+              const columnTitle = 
+                column.stage === 'recebidos' ? 'Recebidos' :
+                column.stage === 'qualificacao' ? 'Em Qualificação' :
+                column.stage === 'qualificados' ? 'Qualificados' :
+                column.stage === 'descartados' ? 'Descartados' : 'Follow-up';
+              
+              return (
+                <div key={column.stage} className="space-y-3">
+                  <div className="glass rounded-xl p-3 border border-border/50">
+                    <h3 className="font-semibold text-sm mb-1">{columnTitle}</h3>
+                    <p className="text-xs text-muted-foreground">{column.leads.length} leads</p>
+                  </div>
 
-                <Droppable droppableId={column.id}>
+                  <Droppable droppableId={column.stage}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -355,7 +362,8 @@ const Qualificacao = () => {
                   )}
                 </Droppable>
               </div>
-            ))}
+            );
+            })}
           </div>
         </DragDropContext>
       )}
