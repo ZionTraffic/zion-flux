@@ -214,9 +214,19 @@ export const useLeadsFromConversations = (
   ];
 
   const charts = {
-    dailyLeads: Object.entries(dailyLeads).map(([day, value]) => ({ day, value })),
+    dailyLeads: Object.entries(dailyLeads)
+      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .map(([day, value]) => ({ 
+        day: day.split('-').reverse().join('-'),
+        value 
+      })),
     stageDistribution,
-    dailyQualified: Object.entries(dailyQualified).map(([day, value]) => ({ day, value })),
+    dailyQualified: Object.entries(dailyQualified)
+      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .map(([day, value]) => ({ 
+        day: day.split('-').reverse().join('-'),
+        value 
+      })),
     funnelData,
   };
 
