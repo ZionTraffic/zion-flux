@@ -311,14 +311,14 @@ export function FunnelPremium5Stages({
           {formatValue(stages[2].value)}
         </text>
 
-        {/* Estágio 4 - Desqualificados (VERMELHO) */}
-        <Bowl x={x4} y={y4} topWidth={w4} bottomWidth={w5} height={stageH} gradientId="bowlGradientRed" />
+        {/* Estágio 4 - Follow-up (AMARELO) */}
+        <Bowl x={x4} y={y4} topWidth={w4} bottomWidth={w5} height={stageH} gradientId="bowlGradientYellow" />
         <ellipse 
           cx={W / 2} 
           cy={y4 + stageH} 
           rx={w5 / 2} 
           ry="5" 
-          fill="rgba(168,48,78,0.4)"
+          fill="rgba(161,98,7,0.4)"
           filter="blur(4px)"
         />
         <text
@@ -345,14 +345,14 @@ export function FunnelPremium5Stages({
           {formatValue(stages[3].value)}
         </text>
 
-        {/* Estágio 5 - Follow-up Concluído */}
-        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientYellow" />
+        {/* Estágio 5 - Desqualificados (VERMELHO) */}
+        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientRed" />
         <ellipse 
           cx={W / 2} 
           cy={y5 + stageH} 
           rx={botW / 2} 
           ry="4" 
-          fill="rgba(161,98,7,0.4)"
+          fill="rgba(168,48,78,0.4)"
           filter="blur(4px)"
         />
         <text
