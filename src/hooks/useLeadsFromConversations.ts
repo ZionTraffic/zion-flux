@@ -192,7 +192,7 @@ export const useLeadsFromConversations = (
     name: col.stage === 'recebidos' ? 'Recebidos' :
           col.stage === 'qualificacao' ? 'Qualificando' :
           col.stage === 'qualificados' ? 'Qualificados' :
-          col.stage === 'descartados' ? 'Descartados' : 'Follow-up',
+          col.stage === 'descartados' ? 'Desqualificados' : 'Follow-up',
     value: col.leads.length,
   }));
 
@@ -210,7 +210,7 @@ export const useLeadsFromConversations = (
     { id: 'qualificacao', label: 'Qualificando', value: columns.find(c => c.stage === 'qualificacao')?.leads.length || 0 },
     { id: 'qualificados', label: 'Qualificados', value: columns.find(c => c.stage === 'qualificados')?.leads.length || 0 },
     { id: 'followup', label: 'Follow-up', value: columns.find(c => c.stage === 'followup')?.leads.length || 0 },
-    { id: 'descartados', label: 'Descartados', value: columns.find(c => c.stage === 'descartados')?.leads.length || 0 },
+    { id: 'descartados', label: 'Desqualificados', value: columns.find(c => c.stage === 'descartados')?.leads.length || 0 },
   ];
 
   const charts = {
