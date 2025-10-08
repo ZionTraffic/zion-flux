@@ -64,6 +64,12 @@ export const useLeadsFromConversations = (
   const fetchLeads = useCallback(async () => {
     if (!workspaceId) return;
     
+    console.log('🔍 Fetching leads with filters:', { 
+      workspaceId, 
+      startDate: startDate?.toISOString(), 
+      endDate: endDate?.toISOString() 
+    });
+    
     setIsLoading(true);
     setError(null);
 
@@ -84,6 +90,8 @@ export const useLeadsFromConversations = (
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
+
+      console.log('📊 Fetched leads:', data?.length);
 
       const leadsByStage: Record<LeadStage, LeadFromConversation[]> = {
         recebidos: [],
@@ -206,7 +214,7 @@ export const useLeadsFromConversations = (
     }, {} as Record<string, number>);
 
   const funnelData = [
-    { id: 'recebidos', label: 'Recebidos', value: columns.find(c => c.stage === 'recebidos')?.leads.length || 0 },
+    { id: 'recebidos', label: 'Recebidos', value: allLeads.length },
     { id: 'qualificacao', label: 'Qualificando', value: columns.find(c => c.stage === 'qualificacao')?.leads.length || 0 },
     { id: 'qualificados', label: 'Qualificados', value: columns.find(c => c.stage === 'qualificados')?.leads.length || 0 },
     { id: 'followup', label: 'Follow-up', value: columns.find(c => c.stage === 'followup')?.leads.length || 0 },
