@@ -12,6 +12,10 @@ import { type DateRange } from "react-day-picker";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { BarChart } from "@/components/dashboard/charts/BarChart";
+import { DonutChart } from "@/components/dashboard/charts/DonutChart";
+import { LineChart } from "@/components/dashboard/charts/LineChart";
+import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -25,7 +29,7 @@ const Qualificacao = () => {
     return { from, to };
   });
 
-  const { columns, isLoading, error, moveLead, refetch, kpis } = useLeadsKanban(
+  const { columns, isLoading, error, moveLead, refetch, kpis, charts } = useLeadsKanban(
     currentWorkspaceId,
     dateRange?.from,
     dateRange?.to
@@ -248,6 +252,40 @@ const Qualificacao = () => {
         {kpiCards.map((card) => (
           <PremiumKpiCard key={card.label} {...card} />
         ))}
+      </div>
+
+      {/* Charts Grid - Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+          <BarChart 
+            data={charts?.dailyLeads || []} 
+            title="Leads Recebidos (Por Dia)" 
+            valueType="number" 
+          />
+        </div>
+        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+          <DonutChart 
+            data={charts?.stageDistribution || []} 
+            title="Distribuição por Estágio" 
+          />
+        </div>
+      </div>
+
+      {/* Charts Grid - Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+          <LineChart 
+            data={charts?.dailyQualified || []} 
+            title="Leads Qualificados (Evolução)" 
+          />
+        </div>
+        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+          <FunnelPremium 
+            stages={charts.funnelData} 
+            coinsCount={16} 
+            showCoins={true} 
+          />
+        </div>
       </div>
 
       {/* Kanban Board */}
