@@ -154,6 +154,15 @@ export function FunnelPremium5Stages({
             <stop offset="100%" stopColor="#A8304E" stopOpacity="1"/> {/* Vermelho escuro base */}
           </linearGradient>
 
+          {/* Gradiente amarelo para Follow-up */}
+          <linearGradient id="bowlGradientYellow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FDE047" stopOpacity="1"/> {/* Amarelo claro topo */}
+            <stop offset="25%" stopColor="#FACC15" stopOpacity="1"/>
+            <stop offset="50%" stopColor="#EAB308" stopOpacity="1"/>
+            <stop offset="75%" stopColor="#CA8A04" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#A16207" stopOpacity="1"/> {/* Amarelo escuro base */}
+          </linearGradient>
+
           {/* Gradiente para o topo do bowl */}
           <radialGradient id="topHighlight" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4"/>
@@ -337,13 +346,13 @@ export function FunnelPremium5Stages({
         </text>
 
         {/* Estágio 5 - Follow-up Concluído */}
-        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} />
+        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientYellow" />
         <ellipse 
           cx={W / 2} 
           cy={y5 + stageH} 
           rx={botW / 2} 
           ry="4" 
-          fill="rgba(0,0,0,0.4)"
+          fill="rgba(161,98,7,0.4)"
           filter="blur(4px)"
         />
         <text

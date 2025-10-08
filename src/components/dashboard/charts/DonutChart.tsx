@@ -7,7 +7,13 @@ interface DonutChartProps {
 }
 
 export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) => {
-  const colors = ['#00c6ff', '#10b981', '#fbbf24', '#ec4899', '#a855f7'];
+  const colorMap: { [key: string]: string } = {
+    'Recebidos': '#00c6ff',      // Azul claro
+    'Qualificando': '#10b981',   // Verde
+    'Qualificados': '#a855f7',   // Roxo
+    'Follow-up': '#fbbf24',      // Amarelo
+    'Desqualificados': '#ef4444' // Vermelho
+  };
 
   const option: EChartsOption = {
     title: {
@@ -73,10 +79,10 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         labelLine: {
           show: false,
         },
-        data: data.map((item, index) => ({
+        data: data.map((item) => ({
           ...item,
           itemStyle: {
-            color: colors[index % colors.length],
+            color: colorMap[item.name] || '#9ca3af',
           },
         })),
         animationType: 'scale',
