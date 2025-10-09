@@ -121,18 +121,33 @@ export const useLeadsFromConversations = (
           
           if (!date || isNaN(date.getTime())) return false;
           
-          // Normalize date to start of day (00:00:00) for fair comparison
-          const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          // Normalize date to start of day in UTC
+          const normalizedDate = new Date(Date.UTC(
+            date.getUTCFullYear(), 
+            date.getUTCMonth(), 
+            date.getUTCDate(), 
+            0, 0, 0, 0
+          ));
           
-          // Normalize startDate to start of day
+          // Normalize startDate to start of day in UTC
           if (startDate) {
-            const normalizedStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            const normalizedStart = new Date(Date.UTC(
+              startDate.getUTCFullYear(), 
+              startDate.getUTCMonth(), 
+              startDate.getUTCDate(), 
+              0, 0, 0, 0
+            ));
             if (normalizedDate < normalizedStart) return false;
           }
           
-          // endDate already comes adjusted with 23:59:59, so compare with full day
+          // Normalize endDate to end of day in UTC
           if (endDate) {
-            const normalizedEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+            const normalizedEnd = new Date(Date.UTC(
+              endDate.getUTCFullYear(), 
+              endDate.getUTCMonth(), 
+              endDate.getUTCDate(), 
+              23, 59, 59, 999
+            ));
             if (normalizedDate > normalizedEnd) return false;
           }
           
