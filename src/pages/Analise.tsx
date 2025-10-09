@@ -164,8 +164,7 @@ const Conversas = () => {
                         </div>
                         <div className="flex gap-2">
                           <Badge className={statusColors[conversation.status]}>
-                            {conversation.status === "qualified" ? "Qualificado" : 
-                             conversation.status === "follow-up" ? "Follow-up" : "Descartado"}
+                            {conversation.tag || conversation.status}
                           </Badge>
                           <Badge className={sentimentColors[conversation.sentiment]}>
                             {conversation.sentiment === "positive" ? "Positivo" : 
