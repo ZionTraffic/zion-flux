@@ -167,8 +167,13 @@ const Conversas = () => {
                             {conversation.tag || conversation.status}
                           </Badge>
                           <Badge className={sentimentColors[conversation.sentiment]}>
-                            {conversation.sentiment === "positive" ? "Positivo" : 
-                             conversation.sentiment === "neutral" ? "Neutro" : "Negativo"}
+                            {conversation.sentiment === "positive" ? "😊 Positivo" : 
+                             conversation.sentiment === "neutral" ? "😐 Neutro" : "😞 Negativo"}
+                            {conversation.sentimentIntensity && (
+                              <span className="ml-1 text-xs opacity-70">
+                                ({conversation.sentimentIntensity})
+                              </span>
+                            )}
                           </Badge>
                         </div>
                       </div>

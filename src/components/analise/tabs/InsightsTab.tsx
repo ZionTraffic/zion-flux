@@ -83,6 +83,70 @@ export const InsightsTab = ({
         </Card>
       </div>
 
+      {/* Análise de Sentimento Detalhada */}
+      <Card className="p-6 glass border border-border/50 bg-gradient-to-br from-blue-500/10 to-blue-600/5">
+        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-blue-400" />
+          Análise de Sentimento
+        </h3>
+        
+        <div className="space-y-4">
+          {/* Score Visual */}
+          {conversation.sentimentScore !== undefined && (
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Score de Sentimento</span>
+                <span className="font-bold text-lg">
+                  {conversation.sentimentScore > 0 ? '+' : ''}{conversation.sentimentScore}
+                </span>
+              </div>
+              <Progress 
+                value={(conversation.sentimentScore + 100) / 2} 
+                className="h-3" 
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>-100 (Negativo)</span>
+                <span>0 (Neutro)</span>
+                <span>+100 (Positivo)</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Distribuição de Feedback */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+              <div className="text-3xl font-bold text-emerald-400">
+                {positives.length}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">Pontos Positivos</div>
+            </div>
+            <div className="text-center p-4 rounded-lg border border-red-500/20 bg-red-500/5">
+              <div className="text-3xl font-bold text-red-400">
+                {negatives.length}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">Pontos Negativos</div>
+            </div>
+          </div>
+          
+          {/* Intensidade/Confiança */}
+          {conversation.sentimentIntensity && (
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-background/50">
+              <span className="text-sm font-medium">Confiança da Análise</span>
+              <Badge 
+                variant={
+                  conversation.sentimentIntensity === 'alta' ? 'default' : 
+                  conversation.sentimentIntensity === 'média' ? 'secondary' : 
+                  'outline'
+                }
+                className="capitalize"
+              >
+                {conversation.sentimentIntensity}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* Pontos Fortes */}
       {positives.length > 0 && (
         <Card className="p-6 glass border border-emerald-500/30 bg-emerald-500/5">
