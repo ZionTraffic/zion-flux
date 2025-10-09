@@ -180,7 +180,7 @@ export type Database = {
           messages: Json
           phone: string
           source: string
-          started_at: string
+          started_at: string | null
           tag: string
           updated_at: string | null
           workspace_id: string
@@ -193,7 +193,7 @@ export type Database = {
           messages: Json
           phone: string
           source?: string
-          started_at: string
+          started_at?: string | null
           tag?: string
           updated_at?: string | null
           workspace_id: string
@@ -206,7 +206,7 @@ export type Database = {
           messages?: Json
           phone?: string
           source?: string
-          started_at?: string
+          started_at?: string | null
           tag?: string
           updated_at?: string | null
           workspace_id?: string
