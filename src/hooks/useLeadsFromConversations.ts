@@ -122,23 +122,42 @@ export const useLeadsFromConversations = (
         const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
         const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
         
+        console.log('🔍 Filtro de datas ativo:', { startStr, endStr, totalConversas: filteredData.length });
+        
         filteredData = filteredData.filter((conv) => {
-          const dateStr = conv.created_at || conv.started_at;
-          if (!dateStr) return false;
+          const dateField = conv.created_at || conv.started_at;
+          if (!dateField) return false;
           
-          // Extract just the date part (YYYY-MM-DD)
+          // Normalizar data independente do tipo que o Supabase retorna
           let convDate: string;
-          if (typeof dateStr === 'string') {
-            convDate = dateStr.split('T')[0];
-          } else {
-            convDate = dateStr;
+          
+          // Tentar converter para string YYYY-MM-DD
+          try {
+            if (typeof dateField === 'string') {
+              // Se for string, extrair apenas YYYY-MM-DD
+              convDate = dateField.split('T')[0];
+            } else {
+              // Se for qualquer outro tipo, tentar converter para Date e depois para string
+              const parsed = new Date(dateField);
+              if (isNaN(parsed.getTime())) return false;
+              convDate = parsed.toISOString().split('T')[0];
+            }
+          } catch (error) {
+            console.error('Erro ao processar data:', dateField, error);
+            return false;
           }
           
+          // Comparação de strings YYYY-MM-DD
           if (startStr && convDate < startStr) return false;
           if (endStr && convDate > endStr) return false;
           
           return true;
         });
+        
+        console.log('✅ Conversas após filtro de data:', filteredData.length);
+        console.log('📊 Desqualificados após filtro:', 
+          filteredData.filter(c => c.tag?.toLowerCase().includes('desqualificado')).length
+        );
       }
 
       console.log('📊 Fetched leads:', data?.length, '| After date filter:', filteredData.length);
