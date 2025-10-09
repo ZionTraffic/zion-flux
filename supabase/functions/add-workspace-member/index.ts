@@ -76,6 +76,15 @@ serve(async (req) => {
       throw new Error('Only owners and admins can add members');
     }
 
+    // Enforce role hierarchy - prevent privilege escalation
+    if (role === 'owner' && requesterMembership.role !== 'owner') {
+      throw new Error('Only workspace owners can add other owners');
+    }
+
+    if (role === 'admin' && requesterMembership.role !== 'owner') {
+      throw new Error('Only workspace owners can add admins');
+    }
+
     // Find user by email using service role
     const { data: targetUser, error: userError } = await supabaseClient.auth.admin.listUsers();
 
