@@ -121,11 +121,19 @@ export const useLeadsFromConversations = (
           
           if (!date || isNaN(date.getTime())) return false;
           
-          if (startDate && date < startDate) return false;
+          // Normalize date to start of day (00:00:00) for fair comparison
+          const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          
+          // Normalize startDate to start of day
+          if (startDate) {
+            const normalizedStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            if (normalizedDate < normalizedStart) return false;
+          }
+          
+          // endDate already comes adjusted with 23:59:59, so compare with full day
           if (endDate) {
-            const endOfDay = new Date(endDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            if (date > endOfDay) return false;
+            const normalizedEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+            if (normalizedDate > normalizedEnd) return false;
           }
           
           return true;
