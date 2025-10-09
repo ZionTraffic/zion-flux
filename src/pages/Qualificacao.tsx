@@ -35,27 +35,6 @@ const Qualificacao = () => {
     dateRange?.to
   );
 
-  // 🔍 DEBUG TEMPORÁRIO - Verificar dados do funil
-  console.log("🔍 DEBUG - Dados completos do hook:", {
-    columns: columns.map(col => ({ 
-      stage: col.stage, 
-      leadsCount: col.leads.length
-    })),
-    kpis,
-    charts: {
-      funnelData: charts.funnelData,
-      dailyLeads: charts.dailyLeads?.length || 0,
-      stageDistribution: charts.stageDistribution
-    }
-  });
-
-  console.log("📊 DEBUG - Coluna de Descartados:", {
-    stage: 'descartados',
-    count: columns.find(col => col.stage === 'descartados')?.leads.length || 0,
-    data: columns.find(col => col.stage === 'descartados')
-  });
-
-  console.log("🎯 DEBUG - FunnelData completo:", charts.funnelData);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);

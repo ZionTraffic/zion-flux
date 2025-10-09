@@ -119,46 +119,23 @@ export const useLeadsFromConversations = (
       let filteredData = data || [];
       
       if (startDate || endDate) {
+        const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
+        const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
+        
         filteredData = filteredData.filter((conv) => {
-          // Use created_at if available, otherwise use started_at
           const dateStr = conv.created_at || conv.started_at;
           if (!dateStr) return false;
           
-          const date = conv.created_at 
-            ? new Date(conv.created_at) 
-            : parseStartedAt(conv.started_at);
-          
-          if (!date || isNaN(date.getTime())) return false;
-          
-          // Normalize date to start of day in UTC
-          const normalizedDate = new Date(Date.UTC(
-            date.getUTCFullYear(), 
-            date.getUTCMonth(), 
-            date.getUTCDate(), 
-            0, 0, 0, 0
-          ));
-          
-          // Normalize startDate to start of day in UTC
-          if (startDate) {
-            const normalizedStart = new Date(Date.UTC(
-              startDate.getUTCFullYear(), 
-              startDate.getUTCMonth(), 
-              startDate.getUTCDate(), 
-              0, 0, 0, 0
-            ));
-            if (normalizedDate < normalizedStart) return false;
+          // Extract just the date part (YYYY-MM-DD)
+          let convDate: string;
+          if (typeof dateStr === 'string') {
+            convDate = dateStr.split('T')[0];
+          } else {
+            convDate = dateStr;
           }
           
-          // Normalize endDate to end of day in UTC
-          if (endDate) {
-            const normalizedEnd = new Date(Date.UTC(
-              endDate.getUTCFullYear(), 
-              endDate.getUTCMonth(), 
-              endDate.getUTCDate(), 
-              23, 59, 59, 999
-            ));
-            if (normalizedDate > normalizedEnd) return false;
-          }
+          if (startStr && convDate < startStr) return false;
+          if (endStr && convDate > endStr) return false;
           
           return true;
         });
