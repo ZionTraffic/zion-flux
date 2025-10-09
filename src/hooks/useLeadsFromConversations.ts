@@ -30,12 +30,12 @@ const mapTagToStage = (tag: string | null): LeadStage => {
   // T2 - Qualificando
   if (normalizedTag.includes('t2') || normalizedTag.includes('qualificando')) return 'qualificacao';
   
+  // T5 - Desqualificados (DEVE VIR ANTES DE "QUALIFICADO")
+  if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
+  
   // T3 + T4 - Qualificados (soma de ambos)
   if (normalizedTag.includes('t3') || normalizedTag.includes('qualificado')) return 'qualificados';
   if (normalizedTag.includes('t4') || normalizedTag.includes('agendamento')) return 'qualificados';
-  
-  // T5 - Desqualificados
-  if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
   
   // Follow-up Concluído
   if (normalizedTag.includes('follow up') || normalizedTag.includes('follow-up')) return 'followup';
@@ -122,8 +122,6 @@ export const useLeadsFromConversations = (
         const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
         const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
         
-        console.log('🔍 Filtro de datas ativo:', { startStr, endStr, totalConversas: filteredData.length });
-        
         filteredData = filteredData.filter((conv) => {
           const dateField = conv.created_at || conv.started_at;
           if (!dateField) return false;
@@ -153,11 +151,6 @@ export const useLeadsFromConversations = (
           
           return true;
         });
-        
-        console.log('✅ Conversas após filtro de data:', filteredData.length);
-        console.log('📊 Desqualificados após filtro:', 
-          filteredData.filter(c => c.tag?.toLowerCase().includes('desqualificado')).length
-        );
       }
 
       console.log('📊 Fetched leads:', data?.length, '| After date filter:', filteredData.length);
