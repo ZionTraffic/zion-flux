@@ -61,6 +61,26 @@ export const useLeadsFromConversations = (
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper to parse dates from started_at (text field)
+  const parseStartedAt = (startedAt: string): Date | null => {
+    if (!startedAt) return null;
+    
+    // Try ISO format first (YYYY-MM-DD or full ISO)
+    if (startedAt.includes('-') && /^\d{4}-/.test(startedAt)) {
+      return new Date(startedAt);
+    }
+    
+    // Try Brazilian format (DD/MM/YYYY)
+    if (startedAt.includes('/')) {
+      const [day, month, year] = startedAt.split('/');
+      if (day && month && year) {
+        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      }
+    }
+    
+    return null;
+  };
+
   const fetchLeads = useCallback(async () => {
     if (!workspaceId) return;
     
@@ -74,24 +94,47 @@ export const useLeadsFromConversations = (
     setError(null);
 
     try {
+      // Fetch all conversations without date filtering in SQL
+      // We'll filter in JS to handle both created_at and started_at
       let query = supabase
         .from('historico_conversas')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
-      if (startDate) {
-        query = query.gte('created_at', startDate.toISOString().split('T')[0]);
-      }
-      if (endDate) {
-        query = query.lte('created_at', endDate.toISOString().split('T')[0]);
-      }
-
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
-      console.log('📊 Fetched leads:', data?.length);
+      // Filter by date in JavaScript to handle both created_at and started_at
+      let filteredData = data || [];
+      
+      if (startDate || endDate) {
+        filteredData = filteredData.filter((conv) => {
+          // Use created_at if available, otherwise use started_at
+          const dateStr = conv.created_at || conv.started_at;
+          if (!dateStr) return false;
+          
+          const date = conv.created_at 
+            ? new Date(conv.created_at) 
+            : parseStartedAt(conv.started_at);
+          
+          if (!date || isNaN(date.getTime())) return false;
+          
+          if (startDate && date < startDate) return false;
+          if (endDate) {
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (date > endOfDay) return false;
+          }
+          
+          return true;
+        });
+      }
+
+      console.log('📊 Fetched leads:', data?.length, '| After date filter:', filteredData.length);
+
+      if (fetchError) throw fetchError;
 
       const leadsByStage: Record<LeadStage, LeadFromConversation[]> = {
         recebidos: [],
@@ -101,8 +144,18 @@ export const useLeadsFromConversations = (
         followup: [],
       };
 
-      data?.forEach((conversation) => {
+      filteredData.forEach((conversation) => {
         const stage = mapTagToStage(conversation.tag);
+        
+        // Use created_at if available, otherwise parse started_at
+        let enteredAt = new Date().toISOString();
+        if (conversation.created_at) {
+          enteredAt = conversation.created_at;
+        } else if (conversation.started_at) {
+          const parsedDate = parseStartedAt(conversation.started_at);
+          enteredAt = parsedDate ? parsedDate.toISOString() : new Date().toISOString();
+        }
+        
         const lead: LeadFromConversation = {
           id: conversation.id,
           nome: conversation.lead_name || 'Sem nome',
@@ -110,7 +163,7 @@ export const useLeadsFromConversations = (
           produto: '',
           canal_origem: conversation.source || 'nicochat',
           stage,
-          entered_at: conversation.created_at || conversation.started_at || new Date().toISOString(),
+          entered_at: enteredAt,
         };
         leadsByStage[stage].push(lead);
       });
