@@ -2,11 +2,18 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 
+interface Message {
+  role: string;
+  content: string;
+  timestamp?: string;
+}
+
 export interface ConversationData {
   id: number;
   leadName: string;
   phone: string;
   product?: string;
+  email?: string;
   status: "qualified" | "follow-up" | "discarded";
   sentiment: "positive" | "neutral" | "negative";
   summary: string;
@@ -16,6 +23,10 @@ export interface ConversationData {
   positives: string[];
   negatives: string[];
   suggestions: string[];
+  adSuggestions: string[];
+  stageAfter: string | null;
+  qualified: boolean;
+  messages: Message[];
 }
 
 export interface ConversationsStats {
@@ -65,14 +76,17 @@ export function useConversationsData(workspaceId: string) {
             positives,
             negatives,
             ai_suggestions,
+            ad_suggestions,
             started_at,
             ended_at,
             phone,
             lead_id,
+            stage_after,
             leads (
               nome,
               produto,
-              stage
+              stage,
+              email
             )
           `)
           .eq("workspace_id", workspaceId)
@@ -80,7 +94,26 @@ export function useConversationsData(workspaceId: string) {
 
         if (analysisError) throw analysisError;
 
-        const conversationsData: ConversationData[] = (analysisData || []).map((item: any) => {
+        // Fetch messages from historico_conversas for each conversation
+        const conversationsWithMessages = await Promise.all(
+          (analysisData || []).map(async (item) => {
+            const { data: messagesData } = await supabase
+              .from("historico_conversas")
+              .select("messages")
+              .eq("phone", item.phone)
+              .eq("workspace_id", workspaceId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            return {
+              ...item,
+              conversationMessages: messagesData?.messages || []
+            };
+          })
+        );
+
+        const conversationsData: ConversationData[] = conversationsWithMessages.map((item: any) => {
           const positives = item.positives || [];
           const negatives = item.negatives || [];
           const leadData = item.leads || {};
@@ -88,15 +121,21 @@ export function useConversationsData(workspaceId: string) {
           let status: "qualified" | "follow-up" | "discarded" = "discarded";
           if (item.qualified) {
             status = "qualified";
-          } else if (leadData.stage === "follow-up") {
+          } else if (item.stage_after === "followup" || leadData.stage === "follow-up") {
             status = "follow-up";
           }
+
+          // Parse messages from JSONB
+          const messages: Message[] = Array.isArray(item.conversationMessages) 
+            ? item.conversationMessages 
+            : [];
 
           return {
             id: item.id,
             leadName: leadData.nome || "Lead sem nome",
             phone: item.phone || "",
             product: leadData.produto,
+            email: leadData.email,
             status,
             sentiment: calculateSentiment(positives, negatives),
             summary: item.summary || "Sem resumo disponível",
@@ -106,6 +145,10 @@ export function useConversationsData(workspaceId: string) {
             positives,
             negatives,
             suggestions: item.ai_suggestions || [],
+            adSuggestions: item.ad_suggestions || [],
+            stageAfter: item.stage_after,
+            qualified: item.qualified || false,
+            messages,
           };
         });
 

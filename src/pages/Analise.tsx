@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Search, TrendingUp, Clock, Lightbulb, CheckCircle2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { DetailedAnalysisModal } from "@/components/analise/DetailedAnalysisModal";
+import { calculateQualityScore } from "@/utils/conversationMetrics";
 
 const Conversas = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -142,138 +142,67 @@ const Conversas = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {filteredConversations.map((conversation) => (
-                <Card key={conversation.id} className="p-6 glass border border-border/50 hover:shadow-lg transition-all">
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
-                        <p className="text-sm text-muted-foreground">{conversation.product || "Sem produto"}</p>
-                        <p className="text-xs text-muted-foreground">{conversation.phone}</p>
+              {filteredConversations.map((conversation) => {
+                const qualityScore = calculateQualityScore(conversation);
+                const scoreColor = qualityScore >= 80 ? 'text-emerald-400' : 
+                                 qualityScore >= 60 ? 'text-blue-400' : 
+                                 qualityScore >= 40 ? 'text-amber-400' : 'text-red-400';
+                
+                return (
+                  <Card key={conversation.id} className="p-6 glass border border-border/50 hover:shadow-lg transition-all">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
+                            <Badge variant="outline" className={scoreColor}>
+                              {qualityScore}% Score
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{conversation.product || "Sem produto"}</p>
+                          <p className="text-xs text-muted-foreground">{conversation.phone}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge className={statusColors[conversation.status]}>
+                            {conversation.status === "qualified" ? "Qualificado" : 
+                             conversation.status === "follow-up" ? "Follow-up" : "Descartado"}
+                          </Badge>
+                          <Badge className={sentimentColors[conversation.sentiment]}>
+                            {conversation.sentiment === "positive" ? "Positivo" : 
+                             conversation.sentiment === "neutral" ? "Neutro" : "Negativo"}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Badge className={statusColors[conversation.status]}>
-                          {conversation.status === "qualified" ? "Qualificado" : 
-                           conversation.status === "follow-up" ? "Follow-up" : "Descartado"}
-                        </Badge>
-                        <Badge className={sentimentColors[conversation.sentiment]}>
-                          {conversation.sentiment === "positive" ? "Positivo" : 
-                           conversation.sentiment === "neutral" ? "Neutro" : "Negativo"}
-                        </Badge>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{conversation.summary}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>{conversation.startedAt.toLocaleDateString("pt-BR")}</span>
+                          <span>•</span>
+                          <span>{formatDuration(conversation.duration)}</span>
+                          <span>•</span>
+                          <span>{conversation.messages?.length || 0} mensagens</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleViewDetails(conversation)}
+                        >
+                          Ver Detalhes
+                        </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{conversation.summary}</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        {conversation.startedAt.toLocaleDateString("pt-BR")} • {formatDuration(conversation.duration)}
-                      </p>
-                      <Button
-                        size="sm"
-                        onClick={() => handleViewDetails(conversation)}
-                      >
-                        Ver Detalhes
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )
         )}
       </main>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes da Conversa</DialogTitle>
-          </DialogHeader>
-          {selectedConversation && (
-            <ScrollArea className="max-h-[600px] pr-4">
-              <div className="space-y-6">
-                <div>
-                  <h4 className="font-semibold mb-2">Informações Básicas</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Lead</p>
-                      <p className="font-medium">{selectedConversation.leadName}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Produto</p>
-                      <p className="font-medium">{selectedConversation.product}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <Badge className={statusColors[selectedConversation.status]}>
-                        {selectedConversation.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sentimento</p>
-                      <Badge className={sentimentColors[selectedConversation.sentiment]}>
-                        {selectedConversation.sentiment}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Resumo</h4>
-                  <p className="text-sm text-muted-foreground">{selectedConversation.summary}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <Lightbulb className="h-5 w-5 text-yellow-400" />
-                    Insights da IA
-                  </h4>
-                  
-                  {selectedConversation.positives.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-green-400 mb-2 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Pontos Positivos
-                      </p>
-                      <ul className="space-y-1 ml-4">
-                        {selectedConversation.positives.map((positive: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground list-disc">{positive}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedConversation.negatives.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-amber-400 mb-2 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" />
-                        Melhorias Sugeridas
-                      </p>
-                      <ul className="space-y-1 ml-4">
-                        {selectedConversation.negatives.map((negative: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground list-disc">{negative}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedConversation.suggestions.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-blue-400 mb-2 flex items-center gap-2">
-                        <Lightbulb className="h-4 w-4" />
-                        Próximas Ações
-                      </p>
-                      <ul className="space-y-1 ml-4">
-                        {selectedConversation.suggestions.map((suggestion: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground list-disc">{suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
+      <DetailedAnalysisModal
+        conversation={selectedConversation}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
 
       <footer className="container mx-auto px-6 py-6 mt-12">
         <div className="glass rounded-2xl p-6 text-center border border-border/50">
