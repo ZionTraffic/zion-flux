@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type LeadStage = 'recebidos' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
+export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
 export interface LeadFromConversation {
   id: number;
@@ -20,28 +20,37 @@ export interface KanbanColumn {
 
 // Map tag to stage
 const mapTagToStage = (tag: string | null): LeadStage => {
-  if (!tag) return 'recebidos';
+  if (!tag) return 'novo_lead';
   
   const normalizedTag = tag.toLowerCase().trim();
   
-  if (normalizedTag.includes('t1') || normalizedTag.includes('novo lead')) return 'recebidos';
+  // T1 - Novo Lead
+  if (normalizedTag.includes('t1') || normalizedTag.includes('novo lead')) return 'novo_lead';
+  
+  // T2 - Qualificando
   if (normalizedTag.includes('t2') || normalizedTag.includes('qualificando')) return 'qualificacao';
+  
+  // T3 + T4 - Qualificados (soma de ambos)
   if (normalizedTag.includes('t3') || normalizedTag.includes('qualificado')) return 'qualificados';
   if (normalizedTag.includes('t4') || normalizedTag.includes('agendamento')) return 'qualificados';
-  if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
-  if (normalizedTag.includes('follow up')) return 'followup';
   
-  return 'recebidos'; // default
+  // T5 - Desqualificados
+  if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
+  
+  // Follow-up Concluído
+  if (normalizedTag.includes('follow up') || normalizedTag.includes('follow-up')) return 'followup';
+  
+  return 'novo_lead'; // default
 };
 
 // Map stage back to tag
 const mapStageToTag = (stage: LeadStage): string => {
   switch (stage) {
-    case 'recebidos': return 'T1 - Novo Lead';
+    case 'novo_lead': return 'T1 - Novo Lead';
     case 'qualificacao': return 'T2 - Qualificando';
     case 'qualificados': return 'T3 - Qualificado';
     case 'descartados': return 'T5 - Desqualificado';
-    case 'followup': return 'Follow Up (Concluído)';
+    case 'followup': return 'Follow-up Concluído';
     default: return 'T1 - Novo Lead';
   }
 };
@@ -52,7 +61,7 @@ export const useLeadsFromConversations = (
   endDate?: Date
 ) => {
   const [columns, setColumns] = useState<KanbanColumn[]>([
-    { stage: 'recebidos', leads: [] },
+    { stage: 'novo_lead', leads: [] },
     { stage: 'qualificacao', leads: [] },
     { stage: 'qualificados', leads: [] },
     { stage: 'descartados', leads: [] },
@@ -160,7 +169,7 @@ export const useLeadsFromConversations = (
       if (fetchError) throw fetchError;
 
       const leadsByStage: Record<LeadStage, LeadFromConversation[]> = {
-        recebidos: [],
+        novo_lead: [],
         qualificacao: [],
         qualificados: [],
         descartados: [],
@@ -192,7 +201,7 @@ export const useLeadsFromConversations = (
       });
 
       setColumns([
-        { stage: 'recebidos', leads: leadsByStage.recebidos },
+        { stage: 'novo_lead', leads: leadsByStage.novo_lead },
         { stage: 'qualificacao', leads: leadsByStage.qualificacao },
         { stage: 'qualificados', leads: leadsByStage.qualificados },
         { stage: 'descartados', leads: leadsByStage.descartados },
@@ -273,7 +282,7 @@ export const useLeadsFromConversations = (
   }, {} as Record<string, number>);
 
   const stageDistribution = columns.map((col) => ({
-    name: col.stage === 'recebidos' ? 'Recebidos' :
+    name: col.stage === 'novo_lead' ? 'Novo Lead' :
           col.stage === 'qualificacao' ? 'Qualificando' :
           col.stage === 'qualificados' ? 'Qualificados' :
           col.stage === 'descartados' ? 'Desqualificados' : 'Follow-up',
@@ -290,7 +299,7 @@ export const useLeadsFromConversations = (
     }, {} as Record<string, number>);
 
   const funnelData = [
-    { id: 'recebidos', label: 'Recebidos', value: allLeads.length },
+    { id: 'novo_lead', label: 'Novo Lead', value: columns.find(c => c.stage === 'novo_lead')?.leads.length || 0 },
     { id: 'qualificacao', label: 'Qualificando', value: columns.find(c => c.stage === 'qualificacao')?.leads.length || 0 },
     { id: 'qualificados', label: 'Qualificados', value: columns.find(c => c.stage === 'qualificados')?.leads.length || 0 },
     { id: 'followup', label: 'Follow-up', value: columns.find(c => c.stage === 'followup')?.leads.length || 0 },

@@ -261,7 +261,7 @@ const Qualificacao = () => {
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <BarChart 
             data={charts?.dailyLeads || []} 
-            title="Leads Recebidos (Por Dia)" 
+            title="Novos Leads (Por Dia)" 
             valueType="number" 
           />
         </div>
