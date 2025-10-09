@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
+/**
+ * SECURITY NOTE: Client-side role checks are for UX purposes only.
+ * All security enforcement happens server-side through RLS policies.
+ * These checks determine UI visibility but cannot be relied upon for authorization.
+ */
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
 interface UseUserRoleReturn {

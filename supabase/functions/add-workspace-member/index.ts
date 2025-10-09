@@ -47,7 +47,7 @@ serve(async (req) => {
 
     const { email, workspace_id, role }: AddMemberRequest = await req.json();
 
-    console.log('Add member request:', { email, workspace_id, role, requestedBy: user.id });
+    console.log('Add member request received');
 
     // Validate input
     if (!email || !workspace_id || !role) {
@@ -90,7 +90,7 @@ serve(async (req) => {
       throw new Error('User not found. The user must have an account before being added to a workspace.');
     }
 
-    console.log('Found user:', { id: foundUser.id, email: foundUser.email });
+    console.log('User found and validated');
 
     // Check if user is already a member
     const { data: existingMember } = await supabaseClient
@@ -114,11 +114,11 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('Error inserting member:', insertError);
+      console.error('Error inserting member');
       throw new Error('Failed to add member to workspace');
     }
 
-    console.log('Successfully added member:', { userId: foundUser.id, workspace_id, role });
+    console.log('Member added successfully');
 
     return new Response(
       JSON.stringify({ 
