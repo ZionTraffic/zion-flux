@@ -168,7 +168,25 @@ export function useConversationsData(workspaceId: string) {
 
         // 3. Mapear para ConversationData
         const mappedConversations: ConversationData[] = enrichedConversations
-          .filter(item => item.conversation.phone) // Filtrar conversas sem telefone
+          .filter(item => {
+            // Verificar se tem telefone
+            if (!item.conversation.phone) return false;
+            
+            // Verificar se messages existe e tem conteúdo
+            const messages = item.conversation.messages;
+            
+            // Se messages for um array válido com tamanho > 0
+            if (Array.isArray(messages) && messages.length > 0) {
+              return true;
+            }
+            
+            // Se messages for um objeto JSONB válido com conteúdo
+            if (messages && typeof messages === 'object' && Object.keys(messages).length > 0) {
+              return true;
+            }
+            
+            return false; // Filtrar conversas sem mensagens
+          })
           .map(({ conversation, analysis, lead }) => {
             // Mensagens já vêm direto de historico_conversas.messages
             const messages: Message[] = Array.isArray(conversation.messages) 
