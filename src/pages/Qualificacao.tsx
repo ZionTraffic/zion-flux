@@ -56,6 +56,8 @@ const Qualificacao = () => {
     
     switch(type) {
       case 'today':
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'last7days':
         from.setDate(to.getDate() - 7);
