@@ -8,6 +8,7 @@ interface AnalysisHeaderProps {
   phone: string;
   email?: string;
   status: string;
+  tag?: string;
   startedAt?: Date;
   endedAt?: Date;
   isActive: boolean;
@@ -18,6 +19,7 @@ export const AnalysisHeader = ({
   phone,
   email,
   status,
+  tag,
   startedAt,
   endedAt,
   isActive
@@ -48,8 +50,8 @@ export const AnalysisHeader = ({
         </div>
         <div className="flex gap-2">
           <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.discarded}>
-            {status === "qualified" ? "Qualificado" : 
-             status === "follow-up" ? "Follow-up" : "Descartado"}
+            {tag || (status === "qualified" ? "Qualificado" : 
+             status === "follow-up" ? "Follow-up" : "Descartado")}
           </Badge>
           <Badge variant={isActive ? "default" : "secondary"}>
             {isActive ? "🟢 Ativo" : "⚫ Finalizado"}
@@ -61,13 +63,13 @@ export const AnalysisHeader = ({
         {startedAt && (
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            <span>Iniciou: {format(startedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+            <span>Iniciou: {format(startedAt, "dd/MM/yyyy", { locale: ptBR })}</span>
           </div>
         )}
         {endedAt && (
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            <span>Encerrou: {format(endedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+            <span>Encerrou: {format(endedAt, "dd/MM/yyyy", { locale: ptBR })}</span>
           </div>
         )}
       </div>

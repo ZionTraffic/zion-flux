@@ -15,6 +15,7 @@ export interface ConversationData {
   product?: string;
   email?: string;
   status: "qualified" | "follow-up" | "discarded";
+  tag?: string;
   sentiment: "positive" | "neutral" | "negative";
   summary: string;
   startedAt: Date;
@@ -203,6 +204,7 @@ export function useConversationsData(workspaceId: string) {
               product: lead?.produto,
               email: lead?.email,
               status: mapTagToStatus(conversation.tag, analysis?.qualified),
+              tag: conversation.tag,
               sentiment: analysis 
                 ? calculateSentiment(positives, negatives)
                 : analyzeSentimentFromMessages(messages),

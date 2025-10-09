@@ -45,6 +45,7 @@ export const DetailedAnalysisModal = ({
           phone={conversation.phone}
           email={conversation.email}
           status={conversation.status}
+          tag={conversation.tag}
           startedAt={conversation.startedAt}
           endedAt={conversation.endedAt}
           isActive={isActive}
