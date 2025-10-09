@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-export type LeadStage = 'recebidos' | 'qualificacao' | 'qualificados' | 'followup' | 'descartados';
+export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
 export interface LeadKanban {
   id: number;
@@ -23,11 +23,11 @@ export interface KanbanColumn {
 
 export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: Date) {
   const [columns, setColumns] = useState<Record<LeadStage, KanbanColumn>>({
-    recebidos: { id: 'recebidos', title: 'Recebidos', leads: [] },
-    qualificacao: { id: 'qualificacao', title: 'Em Qualificação', leads: [] },
+    novo_lead: { id: 'novo_lead', title: 'Novo Lead', leads: [] },
+    qualificacao: { id: 'qualificacao', title: 'Qualificando', leads: [] },
     qualificados: { id: 'qualificados', title: 'Qualificados', leads: [] },
+    descartados: { id: 'descartados', title: 'Desqualificados', leads: [] },
     followup: { id: 'followup', title: 'Follow-up', leads: [] },
-    descartados: { id: 'descartados', title: 'Descartados', leads: [] },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +60,11 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
 
       // Group leads by stage
       const grouped: Record<LeadStage, LeadKanban[]> = {
-        recebidos: [],
+        novo_lead: [],
         qualificacao: [],
         qualificados: [],
-        followup: [],
         descartados: [],
+        followup: [],
       };
 
       leads?.forEach((lead) => {
@@ -75,11 +75,11 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
       });
 
       setColumns({
-        recebidos: { id: 'recebidos', title: 'Recebidos', leads: grouped.recebidos },
-        qualificacao: { id: 'qualificacao', title: 'Em Qualificação', leads: grouped.qualificacao },
+        novo_lead: { id: 'novo_lead', title: 'Novo Lead', leads: grouped.novo_lead },
+        qualificacao: { id: 'qualificacao', title: 'Qualificando', leads: grouped.qualificacao },
         qualificados: { id: 'qualificados', title: 'Qualificados', leads: grouped.qualificados },
+        descartados: { id: 'descartados', title: 'Desqualificados', leads: grouped.descartados },
         followup: { id: 'followup', title: 'Follow-up', leads: grouped.followup },
-        descartados: { id: 'descartados', title: 'Descartados', leads: grouped.descartados },
       });
     } catch (err: any) {
       setError(err.message);
@@ -159,11 +159,11 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
   // Stage distribution
   const stageDistributionMap = new Map<string, number>();
   const stageLabels: Record<LeadStage, string> = {
-    'recebidos': 'Recebidos',
-    'qualificacao': 'Em Qualificação',
+    'novo_lead': 'Novo Lead',
+    'qualificacao': 'Qualificando',
     'qualificados': 'Qualificados',
-    'followup': 'Follow-up',
-    'descartados': 'Descartados'
+    'descartados': 'Desqualificados',
+    'followup': 'Follow-up'
   };
   allLeads.forEach(lead => {
     const label = stageLabels[lead.stage] || lead.stage;
@@ -194,11 +194,11 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
     { 
       id: 'stage-1', 
       label: 'Novo Lead', 
-      value: columns.recebidos.leads.length 
+      value: columns.novo_lead.leads.length 
     },
     { 
       id: 'stage-2', 
-      label: 'Em Qualificação', 
+      label: 'Qualificando', 
       value: columns.qualificacao.leads.length
     },
     { 
@@ -213,7 +213,7 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
     },
     { 
       id: 'stage-5', 
-      label: 'Follow-up Concluído', 
+      label: 'Follow-up', 
       value: columns.followup.leads.length
     }
   ];

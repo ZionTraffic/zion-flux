@@ -213,6 +213,58 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_leads: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_stage: string | null
+          id: number
+          lead_id: number
+          to_stage: string
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: string | null
+          id?: never
+          lead_id: number
+          to_stage: string
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: string | null
+          id?: never
+          lead_id?: number
+          to_stage?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_overview_daily"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "historico_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           canal_origem: string | null
