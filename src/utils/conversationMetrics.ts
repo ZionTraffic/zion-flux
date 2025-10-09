@@ -13,6 +13,7 @@ interface ConversationData {
   messages?: Message[];
   ai_suggestions?: string[];
   summary?: string;
+  tag?: string;
 }
 
 export const calculateEngagement = (conversation: ConversationData): number => {
@@ -101,9 +102,19 @@ export const identifyRiskFactors = (conversation: ConversationData): string[] =>
     risks.push("Baixo engajamento na conversa");
   }
   
-  // Check if not qualified
-  if (!conversation.qualified) {
-    risks.push("Lead não qualificado");
+  // Check status based on tag
+  if (conversation.tag) {
+    const tagLower = conversation.tag.toLowerCase();
+    
+    if (tagLower.includes('t5') || tagLower.includes('desqualificado')) {
+      // Não adicionar como risco, já está desqualificado
+    } else if (tagLower.includes('t1') || tagLower.includes('novo')) {
+      risks.push("Lead ainda não iniciou qualificação");
+    } else if (tagLower.includes('t2') || tagLower.includes('qualificando')) {
+      risks.push("Lead em processo de qualificação - acompanhar");
+    } else if (tagLower.includes('follow')) {
+      risks.push("Cliente não está respondendo aos follow-ups");
+    }
   }
   
   // Check for short conversation
@@ -144,14 +155,74 @@ export const generateActivityTimeline = (conversation: ConversationData) => {
     });
   }
   
-  // Qualified status
-  if (conversation.qualified) {
-    activities.push({
-      time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
-      label: 'Lead qualificado com sucesso',
-      type: 'success',
-      icon: 'CheckCircle2'
-    });
+  // Análise do status do lead baseado na TAG
+  if (conversation.tag) {
+    const tagLower = conversation.tag.toLowerCase();
+    
+    // Novo Lead (T1)
+    if (tagLower.includes('t1') || tagLower.includes('novo')) {
+      activities.push({
+        time: conversation.started_at ? new Date(conversation.started_at) : new Date(),
+        label: 'Novo lead - Primeira mensagem recebida',
+        type: 'info',
+        icon: 'UserPlus'
+      });
+    }
+    
+    // Qualificando (T2)
+    else if (tagLower.includes('t2') || tagLower.includes('qualificando')) {
+      activities.push({
+        time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
+        label: 'Lead em qualificação - Respondeu nome e seguindo fluxo',
+        type: 'info',
+        icon: 'Clock'
+      });
+    }
+    
+    // Qualificado (T3/T4)
+    else if (tagLower.includes('t3') || tagLower.includes('t4') || tagLower.includes('qualificado')) {
+      activities.push({
+        time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
+        label: 'Lead qualificado - Atendeu todos os requisitos',
+        type: 'success',
+        icon: 'CheckCircle2'
+      });
+    }
+    
+    // Desqualificado (T5)
+    else if (tagLower.includes('t5') || tagLower.includes('desqualificado')) {
+      let reason = 'Não atendeu requisitos de qualificação';
+      
+      // Tentar identificar o motivo pelos negativos
+      if (conversation.negatives && conversation.negatives.length > 0) {
+        const negativesText = conversation.negatives.join(' ').toLowerCase();
+        
+        if (negativesText.includes('faturamento') || negativesText.includes('30 mil')) {
+          reason = 'Desqualificado - Faturamento abaixo de R$ 30 mil';
+        } else if (negativesText.includes('distância') || negativesText.includes('30km') || negativesText.includes('montes claros')) {
+          reason = 'Desqualificado - Fora do raio de 30km de Montes Claros';
+        } else if (negativesText.includes('empresa') || negativesText.includes('cnpj')) {
+          reason = 'Desqualificado - Não possui empresa';
+        }
+      }
+      
+      activities.push({
+        time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
+        label: reason,
+        type: 'error',
+        icon: 'XCircle'
+      });
+    }
+    
+    // Follow-up Concluído
+    else if (tagLower.includes('follow') || tagLower.includes('follow-up concluido')) {
+      activities.push({
+        time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
+        label: 'Follow-up concluído - Cliente não respondeu',
+        type: 'warning',
+        icon: 'AlertCircle'
+      });
+    }
   }
   
   // Summary generated
