@@ -244,22 +244,13 @@ const Trafego = () => {
       delay: 0,
     },
     {
-      id: 'cliques',
-      label: 'Cliques',
-      value: totals?.clicks.toLocaleString('pt-BR') || '0',
-      icon: '🖱️',
-      variant: 'blue' as const,
-      trend: totals ? calculateTrend(daily, 'clicks') : { value: 0, isPositive: true },
-      delay: 0.1,
-    },
-    {
       id: 'investimento',
       label: 'Investimento',
       value: `R$ ${totals?.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}`,
       icon: '💰',
       variant: 'amber' as const,
       trend: totals ? calculateTrend(daily, 'spend') : { value: 0, isPositive: true },
-      delay: 0.2,
+      delay: 0.1,
     },
     {
       id: 'cpc',
@@ -268,7 +259,7 @@ const Trafego = () => {
       icon: '📊',
       variant: 'gray' as const,
       trend: totals ? calculateTrend(daily, 'cpc', false) : { value: 0, isPositive: true },
-      delay: 0.3,
+      delay: 0.2,
     },
     {
       id: 'cpc_conversa',
@@ -288,7 +279,7 @@ const Trafego = () => {
             false
           ) 
         : { value: 0, isPositive: true },
-      delay: 0.35,
+      delay: 0.3,
     },
     {
       id: 'ctr',
@@ -348,7 +339,7 @@ const Trafego = () => {
 
   const lineChartData = daily.map((d) => ({
     day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.clicks,
+    value: d.conversas_iniciadas,
   }));
 
   const funnelData = [
@@ -522,7 +513,7 @@ const Trafego = () => {
       {/* Charts Grid - Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <LineChart data={lineChartData} title="Evolução de Cliques" />
+          <LineChart data={lineChartData} title="Evolução de Conversas Iniciadas" />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <FunnelPremium
