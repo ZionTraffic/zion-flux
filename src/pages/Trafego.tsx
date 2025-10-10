@@ -207,6 +207,31 @@ const Trafego = () => {
     };
   };
 
+  // Helper function to calculate trend for custom metrics (calculated from daily data)
+  const calculateCustomTrend = (
+    dailyData: typeof daily,
+    calculateValue: (d: typeof daily[0]) => number,
+    higherIsBetter: boolean = false
+  ): { value: number; isPositive: boolean } => {
+    if (dailyData.length < 2) return { value: 0, isPositive: true };
+
+    const values = dailyData.map(calculateValue);
+    const midPoint = Math.floor(values.length / 2);
+    const firstHalf = values.slice(0, midPoint);
+    const secondHalf = values.slice(midPoint);
+
+    const avgFirst = firstHalf.reduce((sum, v) => sum + v, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((sum, v) => sum + v, 0) / secondHalf.length;
+
+    const percentChange = avgFirst === 0 ? 0 : ((avgSecond - avgFirst) / avgFirst) * 100;
+    const isPositive = higherIsBetter ? percentChange > 0 : percentChange < 0;
+
+    return {
+      value: Math.abs(percentChange),
+      isPositive,
+    };
+  };
+
   // KPI Cards Data - Real Meta Ads data
   const kpiCards = [
     {
@@ -244,6 +269,26 @@ const Trafego = () => {
       variant: 'gray' as const,
       trend: totals ? calculateTrend(daily, 'cpc', false) : { value: 0, isPositive: true },
       delay: 0.3,
+    },
+    {
+      id: 'cpc_conversa',
+      label: 'Custo por Conversa',
+      value: (() => {
+        const cpcConversa = totals?.conversas_iniciadas > 0 
+          ? totals.spend / totals.conversas_iniciadas 
+          : 0;
+        return `R$ ${cpcConversa.toFixed(2)}`;
+      })(),
+      icon: '💬💰',
+      variant: 'blue' as const,
+      trend: totals 
+        ? calculateCustomTrend(
+            daily, 
+            (d) => d.conversas_iniciadas > 0 ? d.spend / d.conversas_iniciadas : 0,
+            false
+          ) 
+        : { value: 0, isPositive: true },
+      delay: 0.35,
     },
     {
       id: 'ctr',
