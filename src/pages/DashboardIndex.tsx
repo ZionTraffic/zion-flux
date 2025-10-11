@@ -19,7 +19,7 @@ const DashboardIndex = () => {
   const diagnostics = useSupabaseDiagnostics();
   const {
     businessHealth,
-    moneyMetrics,
+    qualificationMetrics,
     alerts,
     funnelData,
     topCampaigns,
@@ -103,32 +103,32 @@ const DashboardIndex = () => {
         {/* 1. Business Health - Hero Section */}
         <BusinessHealthCard 
           health={businessHealth}
-          metrics={moneyMetrics}
+          metrics={qualificationMetrics}
         />
 
-        {/* 2. Money Metrics - 3 Cards */}
+        {/* 2. Qualification Metrics - 3 Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <MoneyKpiCard
             label="Investido"
-            value={`R$ ${moneyMetrics.invested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            value={`R$ ${qualificationMetrics.invested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
             icon="💰"
-            trend={{ value: moneyMetrics.investedTrend, isPositive: true }}
+            trend={{ value: qualificationMetrics.investedTrend, isPositive: true }}
             variant="blue"
             delay={0}
           />
           <MoneyKpiCard
-            label="Retorno Estimado"
-            value={`R$ ${moneyMetrics.estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            icon="💎"
-            trend={{ value: moneyMetrics.returnTrend, isPositive: true }}
+            label="Leads Qualificados"
+            value={qualificationMetrics.qualifiedLeads.toLocaleString('pt-BR')}
+            icon="🎯"
+            trend={{ value: qualificationMetrics.qualifiedTrend, isPositive: true }}
             variant="emerald"
             delay={0.05}
           />
           <MoneyKpiCard
-            label="ROI"
-            value={`${moneyMetrics.roi.toFixed(0)}%`}
-            icon="📈"
-            trend={{ value: moneyMetrics.roiTrend, isPositive: true }}
+            label="CPL (Custo por Lead)"
+            value={`R$ ${qualificationMetrics.cpl.toFixed(2)}`}
+            icon="💵"
+            trend={{ value: Math.abs(qualificationMetrics.cplTrend), isPositive: qualificationMetrics.cplTrend < 0 }}
             variant="purple"
             delay={0.1}
           />

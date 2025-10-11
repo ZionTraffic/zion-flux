@@ -16,13 +16,14 @@ export interface Alert {
   action?: string;
 }
 
-export interface MoneyMetrics {
+export interface QualificationMetrics {
   invested: number;
-  estimatedReturn: number;
-  roi: number;
+  qualifiedLeads: number;
+  cpl: number;
+  qualificationRate: number;
   investedTrend: number;
-  returnTrend: number;
-  roiTrend: number;
+  qualifiedTrend: number;
+  cplTrend: number;
 }
 
 export interface FunnelStage {
@@ -43,38 +44,47 @@ export function useExecutiveDashboard(
   const leads = useLeadsFromConversations(workspaceId, startDate, endDate);
   const conversations = useConversationsData(workspaceId);
 
-  // Ticket médio estimado - pode ser configurável no futuro
-  const TICKET_MEDIO = 800; // R$ 800 por lead qualificado
-
-  // Calcular métricas de dinheiro
-  const moneyMetrics: MoneyMetrics = useMemo(() => {
+  // Calcular métricas de qualificação
+  const qualificationMetrics: QualificationMetrics = useMemo(() => {
     const invested = metaAds.totals?.spend || 0;
-    const estimatedReturn = (leads.kpis?.qualifiedLeads || 0) * TICKET_MEDIO;
-    const roi = invested > 0 ? ((estimatedReturn - invested) / invested) * 100 : 0;
+    const qualifiedLeads = leads.kpis?.qualifiedLeads || 0;
+    const totalLeads = leads.kpis?.totalLeads || 0;
+    
+    // CPL = Custo por Lead Qualificado
+    const cpl = qualifiedLeads > 0 ? invested / qualifiedLeads : 0;
+    
+    // Taxa de Qualificação
+    const qualificationRate = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
 
     return {
       invested,
-      estimatedReturn,
-      roi,
+      qualifiedLeads,
+      cpl,
+      qualificationRate,
       investedTrend: 15, // Mock - calcular com dados históricos
-      returnTrend: 23,
-      roiTrend: 8,
+      qualifiedTrend: 23,
+      cplTrend: -8, // Negativo = melhoria (custo diminuiu)
     };
   }, [metaAds.totals, leads.kpis]);
 
-  // Determinar saúde do negócio
+  // Determinar saúde do negócio baseado em qualificação
   const businessHealth: BusinessHealth = useMemo(() => {
-    const roi = moneyMetrics.roi;
-    const qualificationRate = leads.kpis?.qualificationRate || 0;
+    const cpl = qualificationMetrics.cpl;
+    const qualificationRate = qualificationMetrics.qualificationRate;
 
-    if (roi > 200 && qualificationRate > 30) {
+    // Meta: CPL < R$ 50 e Taxa > 30%
+    if (cpl < 50 && cpl > 0 && qualificationRate > 30) {
       return { status: 'healthy', score: 95 };
-    } else if (roi > 100 && qualificationRate > 15) {
+    } 
+    // Atenção: CPL R$ 50-100 ou Taxa 15-30%
+    else if (cpl < 100 && qualificationRate > 15) {
       return { status: 'warning', score: 65 };
-    } else {
+    } 
+    // Crítico: CPL > R$ 100 ou Taxa < 15%
+    else {
       return { status: 'critical', score: 30 };
     }
-  }, [moneyMetrics.roi, leads.kpis]);
+  }, [qualificationMetrics.cpl, qualificationMetrics.qualificationRate]);
 
   // Gerar alertas inteligentes
   const alerts: Alert[] = useMemo(() => {
@@ -96,7 +106,7 @@ export function useExecutiveDashboard(
     }
 
     // Alerta de qualificação baixa
-    const qualificationRate = leads.kpis?.qualificationRate || 0;
+    const qualificationRate = qualificationMetrics.qualificationRate;
     if (qualificationRate < 25) {
       alertsList.push({
         id: 'low-qualification',
@@ -107,14 +117,15 @@ export function useExecutiveDashboard(
       });
     }
 
-    // Oportunidade - ROI alto
-    if (moneyMetrics.roi > 300) {
+    // Alerta de CPL alto
+    const cpl = qualificationMetrics.cpl;
+    if (cpl > 80) {
       alertsList.push({
-        id: 'high-roi',
-        type: 'opportunity',
-        title: 'ROI excepcional detectado',
-        description: `ROI de ${moneyMetrics.roi.toFixed(0)}%. Considere aumentar investimento.`,
-        action: 'Escalar Investimento',
+        id: 'high-cpl',
+        type: 'critical',
+        title: 'Custo por lead qualificado elevado',
+        description: `R$ ${cpl.toFixed(2)} por lead qualificado. Meta: < R$ 50.`,
+        action: 'Otimizar Tráfego',
       });
     }
 
@@ -131,16 +142,15 @@ export function useExecutiveDashboard(
     }
 
     return alertsList.slice(0, 4); // Limitar a 4 alertas
-  }, [metaAds.totals, leads.kpis, conversations.stats, moneyMetrics.roi]);
+  }, [metaAds.totals, qualificationMetrics, conversations.stats]);
 
-  // Dados do funil completo
+  // Dados do funil de qualificação (5 estágios)
   const funnelData: FunnelStage[] = useMemo(() => {
     const impressions = metaAds.totals?.impressions || 0;
     const clicks = metaAds.totals?.clicks || 0;
     const conversas = metaAds.totals?.conversas_iniciadas || 0;
     const totalLeads = leads.kpis?.totalLeads || 0;
     const qualifiedLeads = leads.kpis?.qualifiedLeads || 0;
-    const estimatedSales = Math.round(qualifiedLeads * 0.15); // 15% conversão estimada
 
     return [
       {
@@ -157,72 +167,76 @@ export function useExecutiveDashboard(
         isBottleneck: clicks > 0 && (conversas / clicks) * 100 < 45,
       },
       {
-        name: 'Conversas',
+        name: 'Conversas Iniciadas',
         value: conversas,
         conversionRate: conversas > 0 ? (totalLeads / conversas) * 100 : 0,
         benchmark: 70,
       },
       {
-        name: 'Leads',
+        name: 'Leads Recebidos',
         value: totalLeads,
         conversionRate: totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0,
         benchmark: 30,
         isBottleneck: totalLeads > 0 && (qualifiedLeads / totalLeads) * 100 < 20,
       },
       {
-        name: 'Qualificados',
+        name: 'Leads Qualificados',
         value: qualifiedLeads,
-        conversionRate: 15, // Estimado
-        benchmark: 15,
-      },
-      {
-        name: 'Vendas',
-        value: estimatedSales,
       },
     ];
   }, [metaAds.totals, leads.kpis]);
 
-  // Top campanhas - usando estimativa baseada em clicks
+  // Top campanhas por CPL (menor custo por lead qualificado)
   const topCampaigns = useMemo(() => {
     const conversasEstimadas = metaAds.totals?.conversas_iniciadas || 0;
     const clicksTotal = metaAds.totals?.clicks || 1;
     const conversaoRate = clicksTotal > 0 ? conversasEstimadas / clicksTotal : 0.5;
+    const qualificationRate = qualificationMetrics.qualificationRate || 30;
 
     return (metaAds.campaigns || [])
       .map(campaign => {
         const estimatedConversas = campaign.clicks * conversaoRate;
+        const estimatedLeadsQualificados = estimatedConversas * (qualificationRate / 100);
+        const cpl = estimatedLeadsQualificados > 0 
+          ? campaign.spend / estimatedLeadsQualificados 
+          : 999999;
+
         return {
           ...campaign,
-          roi: campaign.spend > 0 
-            ? ((estimatedConversas * TICKET_MEDIO * 0.25 - campaign.spend) / campaign.spend) * 100 
-            : 0,
+          cpl,
+          leadsQualificados: Math.round(estimatedLeadsQualificados),
         };
       })
-      .sort((a, b) => b.roi - a.roi)
+      .sort((a, b) => a.cpl - b.cpl) // Menor CPL primeiro
       .slice(0, 3);
-  }, [metaAds.campaigns, metaAds.totals]);
+  }, [metaAds.campaigns, metaAds.totals, qualificationMetrics.qualificationRate]);
 
   const worstCampaign = useMemo(() => {
     const conversasEstimadas = metaAds.totals?.conversas_iniciadas || 0;
     const clicksTotal = metaAds.totals?.clicks || 1;
     const conversaoRate = clicksTotal > 0 ? conversasEstimadas / clicksTotal : 0.5;
+    const qualificationRate = qualificationMetrics.qualificationRate || 30;
 
     return (metaAds.campaigns || [])
       .map(campaign => {
         const estimatedConversas = campaign.clicks * conversaoRate;
+        const estimatedLeadsQualificados = estimatedConversas * (qualificationRate / 100);
+        const cpl = estimatedLeadsQualificados > 0 
+          ? campaign.spend / estimatedLeadsQualificados 
+          : 999999;
+
         return {
           ...campaign,
-          roi: campaign.spend > 0 
-            ? ((estimatedConversas * TICKET_MEDIO * 0.25 - campaign.spend) / campaign.spend) * 100 
-            : 0,
+          cpl,
+          leadsQualificados: Math.round(estimatedLeadsQualificados),
         };
       })
-      .sort((a, b) => a.roi - b.roi)[0];
-  }, [metaAds.campaigns, metaAds.totals]);
+      .sort((a, b) => b.cpl - a.cpl)[0]; // Pior CPL
+  }, [metaAds.campaigns, metaAds.totals, qualificationMetrics.qualificationRate]);
 
   return {
     businessHealth,
-    moneyMetrics,
+    qualificationMetrics,
     alerts,
     funnelData,
     topCampaigns,

@@ -4,7 +4,8 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 interface Campaign {
   name: string;
   spend: number;
-  roi: number;
+  cpl: number;
+  leadsQualificados: number;
 }
 
 interface TopCampaignsTableProps {
@@ -27,14 +28,12 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
           🏆 Top 3 Campanhas
         </h3>
         <p className="text-xs text-muted-foreground">
-          Melhor performance por ROI
+          Melhor custo-benefício por CPL
         </p>
       </div>
 
       <div className="space-y-3">
         {campaigns.map((campaign, index) => {
-          const estimatedReturn = campaign.spend * (campaign.roi / 100 + 1);
-          
           return (
             <motion.div
               key={campaign.name}
@@ -57,16 +56,16 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Retorno Est.</p>
+                      <p className="text-muted-foreground">Leads Qualif.</p>
                       <p className="font-medium text-foreground">
-                        R$ {estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {campaign.leadsQualificados}
                       </p>
                     </div>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-emerald-400" />
                     <span className="text-sm font-bold text-emerald-400">
-                      ROI: {campaign.roi.toFixed(0)}%
+                      CPL: R$ {campaign.cpl.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -75,7 +74,7 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
           );
         })}
 
-        {worstCampaign && worstCampaign.roi < 100 && (
+        {worstCampaign && worstCampaign.cpl > 100 && (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -91,7 +90,7 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
                 <div className="flex items-center gap-2">
                   <TrendingDown className="h-4 w-4 text-destructive" />
                   <span className="text-sm font-bold text-destructive">
-                    ROI: {worstCampaign.roi.toFixed(0)}%
+                    CPL: R$ {worstCampaign.cpl.toFixed(2)}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

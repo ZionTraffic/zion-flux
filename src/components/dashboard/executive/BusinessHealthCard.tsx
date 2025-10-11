@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { TrendingUp } from "lucide-react";
-import { BusinessHealth, MoneyMetrics } from "@/hooks/useExecutiveDashboard";
+import { BusinessHealth, QualificationMetrics } from "@/hooks/useExecutiveDashboard";
 
 interface BusinessHealthCardProps {
   health: BusinessHealth;
-  metrics: MoneyMetrics;
+  metrics: QualificationMetrics;
 }
 
 export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps) => {
@@ -65,17 +65,19 @@ export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps)
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">ROI</p>
+          <p className="text-sm text-muted-foreground">CPL (Custo por Lead)</p>
           <div className="flex items-baseline gap-2">
             <p className="text-3xl font-bold text-foreground">
-              {metrics.roi.toFixed(0)}%
+              R$ {metrics.cpl.toFixed(2)}
             </p>
-            <div className="flex items-center gap-1 text-emerald-400 text-sm">
-              <TrendingUp className="h-4 w-4" />
-              <span>{metrics.roiTrend}%</span>
+            <div className={`flex items-center gap-1 text-sm ${
+              metrics.cplTrend < 0 ? 'text-emerald-400' : 'text-destructive'
+            }`}>
+              <TrendingUp className={`h-4 w-4 ${metrics.cplTrend < 0 ? 'rotate-180' : ''}`} />
+              <span>{Math.abs(metrics.cplTrend)}%</span>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Meta: 250%</p>
+          <p className="text-xs text-muted-foreground">Meta: {'<'} R$ 50</p>
         </div>
 
         <div className="space-y-2">
@@ -90,13 +92,13 @@ export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps)
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Retorno Estimado</p>
+          <p className="text-sm text-muted-foreground">Leads Qualificados</p>
           <p className="text-2xl font-bold text-foreground">
-            R$ {metrics.estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            {metrics.qualifiedLeads.toLocaleString('pt-BR')}
           </p>
           <div className="flex items-center gap-1 text-emerald-400 text-xs">
             <TrendingUp className="h-3 w-3" />
-            <span>{metrics.returnTrend}% vs período anterior</span>
+            <span>{metrics.qualifiedTrend}% vs período anterior</span>
           </div>
         </div>
       </div>
