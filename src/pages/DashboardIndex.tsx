@@ -1,24 +1,34 @@
-import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
-import { PremiumKpiCard } from "@/components/dashboard/cards/PremiumKpiCard";
-import { BarChart } from "@/components/dashboard/charts/BarChart";
-import { DonutChart } from "@/components/dashboard/charts/DonutChart";
-import { LineChart } from "@/components/dashboard/charts/LineChart";
-import { FunnelChart } from "@/components/dashboard/charts/FunnelChart";
-import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { Header } from "@/components/ui/Header";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
-import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
+import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
+import { BusinessHealthCard } from "@/components/dashboard/executive/BusinessHealthCard";
+import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
+import { SmartAlertsCard } from "@/components/dashboard/executive/SmartAlertsCard";
+import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
+import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
+import { ActionCard } from "@/components/dashboard/executive/ActionCard";
 
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
-  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
-  const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
+  const {
+    businessHealth,
+    moneyMetrics,
+    alerts,
+    funnelData,
+    topCampaigns,
+    worstCampaign,
+    isLoading,
+    metaAds,
+    leads,
+    conversations,
+  } = useExecutiveDashboard(currentWorkspaceId || '');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -68,141 +78,134 @@ const DashboardIndex = () => {
   }
 
   // Carregando dados do dashboard
-  if (loading || !totals) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-center">
           <div className="text-4xl mb-4">⚡</div>
-          <p className="text-muted-foreground">Carregando dados...</p>
+          <p className="text-muted-foreground">Carregando dashboard executivo...</p>
         </div>
       </div>
     );
   }
 
-  // Verificar se há dados para exibir
-  const showNoDataWarning = testResult && !testResult.dataDisplayed;
-
-  // KPI Cards Data
-  const kpiCards = [
-    {
-      id: 'leads',
-      label: 'Leads Recebidos',
-      value: totals.leads_recebidos.toLocaleString('pt-BR'),
-      icon: '⚡',
-      variant: 'emerald' as const,
-      trend: { value: 12.5, isPositive: true },
-      delay: 0,
-    },
-    {
-      id: 'qualified',
-      label: 'Qualificados',
-      value: totals.leads_qualificados.toLocaleString('pt-BR'),
-      icon: '✓',
-      variant: 'blue' as const,
-      trend: { value: 8.3, isPositive: true },
-      delay: 0.1,
-    },
-    {
-      id: 'followup',
-      label: 'Follow-up',
-      value: totals.leads_followup.toLocaleString('pt-BR'),
-      icon: '↻',
-      variant: 'amber' as const,
-      trend: { value: 5.1, isPositive: false },
-      delay: 0.2,
-    },
-    {
-      id: 'discarded',
-      label: 'Descartados',
-      value: totals.leads_descartados.toLocaleString('pt-BR'),
-      icon: '✕',
-      variant: 'gray' as const,
-      trend: { value: 2.8, isPositive: false },
-      delay: 0.3,
-    },
-  ];
-
-  // Chart Data
-  const barChartData = daily.map((d) => ({
-    day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.leads_recebidos,
-  }));
-
-  const donutChartData = [
-    { name: 'Qualificados', value: totals.leads_qualificados },
-    { name: 'Follow-up', value: totals.leads_followup },
-    { name: 'Descartados', value: totals.leads_descartados },
-  ];
-
-  const lineChartData = daily.map((d) => ({
-    day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.leads_qualificados,
-  }));
-
-  const funnelData = [
-    { name: 'Visitas', value: totals.leads_recebidos },
-    { name: 'Leads', value: totals.leads_qualificados },
-    { name: 'Conversões', value: Math.floor(totals.leads_qualificados * 0.3) },
-  ];
-
   return (
-    <DashboardLayout
-      onRefresh={refetch}
-      isRefreshing={loading}
-      lastUpdate={lastUpdate}
-      currentWorkspace={currentWorkspaceId}
-      onWorkspaceChange={handleWorkspaceChange}
-    >
-      {/* No Data Warning */}
-      {showNoDataWarning && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <span className="text-2xl">⚠️</span>
-          <div className="flex-1">
-            <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">
-              Nenhum dado encontrado para este período
-            </h3>
-            <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
-              Exibindo dados simulados.
-            </p>
+    <div className="min-h-screen">
+      <Header 
+        onRefresh={() => window.location.reload()}
+        isRefreshing={isLoading}
+        lastUpdate={new Date()}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
+      />
+
+      <main className="container mx-auto px-6 py-8 space-y-8">
+        {/* 1. Business Health - Hero Section */}
+        <BusinessHealthCard 
+          health={businessHealth}
+          metrics={moneyMetrics}
+        />
+
+        {/* 2. Money Metrics - 3 Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MoneyKpiCard
+            label="Investido"
+            value={`R$ ${moneyMetrics.invested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            icon="💰"
+            trend={{ value: moneyMetrics.investedTrend, isPositive: true }}
+            variant="blue"
+            delay={0}
+          />
+          <MoneyKpiCard
+            label="Retorno Estimado"
+            value={`R$ ${moneyMetrics.estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            icon="💎"
+            trend={{ value: moneyMetrics.returnTrend, isPositive: true }}
+            variant="emerald"
+            delay={0.05}
+          />
+          <MoneyKpiCard
+            label="ROI"
+            value={`${moneyMetrics.roi.toFixed(0)}%`}
+            icon="📈"
+            trend={{ value: moneyMetrics.roiTrend, isPositive: true }}
+            variant="purple"
+            delay={0.1}
+          />
+        </div>
+
+        {/* 3. Smart Alerts */}
+        <SmartAlertsCard alerts={alerts} />
+
+        {/* 4. Main Content - 2 Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - 2/3 width */}
+          <div className="lg:col-span-2">
+            <CompleteFunnelChart data={funnelData} />
+          </div>
+
+          {/* Right Column - 1/3 width */}
+          <div className="space-y-6">
+            <TopCampaignsTable 
+              campaigns={topCampaigns}
+              worstCampaign={worstCampaign}
+            />
           </div>
         </div>
-      )}
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {kpiCards.map((card) => (
-          <PremiumKpiCard
-            key={card.id}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-            variant={card.variant}
-            trend={card.trend}
-            delay={card.delay}
+        {/* 5. Action Cards - Quick Navigation */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ActionCard
+            title="Tráfego"
+            icon="📊"
+            metrics={[
+              { label: 'Investimento', value: `R$ ${(metaAds?.spend || 0).toLocaleString('pt-BR')}` },
+              { label: 'Conversas', value: (metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR') },
+              { label: 'CPC', value: `R$ ${(metaAds?.cpc || 0).toFixed(2)}` },
+            ]}
+            alert={metaAds && metaAds.cpc > 5 ? 'CPC Alto' : undefined}
+            linkTo="/trafego"
+            variant="trafego"
+            delay={0}
           />
-        ))}
-      </div>
+          <ActionCard
+            title="Qualificação"
+            icon="🎯"
+            metrics={[
+              { label: 'Total de Leads', value: (leads?.totalLeads || 0).toLocaleString('pt-BR') },
+              { label: 'Qualificados', value: (leads?.qualifiedLeads || 0).toLocaleString('pt-BR') },
+              { label: 'Taxa', value: `${(leads?.qualificationRate || 0).toFixed(1)}%` },
+            ]}
+            alert={leads && leads.qualificationRate < 25 ? 'Taxa Baixa' : undefined}
+            linkTo="/qualificacao"
+            variant="qualificacao"
+            delay={0.05}
+          />
+          <ActionCard
+            title="Conversas"
+            icon="💬"
+            metrics={[
+              { label: 'Total', value: (conversations?.totalConversations || 0).toLocaleString('pt-BR') },
+              { label: 'Taxa Conversão', value: `${(conversations?.conversionRate || 0).toFixed(1)}%` },
+              { label: 'Tempo Médio', value: `${Math.round((conversations?.averageDuration || 0) / 60)}min` },
+            ]}
+            alert={conversations && conversations.conversionRate < 20 ? 'Conv. Baixa' : undefined}
+            linkTo="/analise"
+            variant="analise"
+            delay={0.1}
+          />
+        </div>
+      </main>
 
-      {/* Charts Grid - Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <BarChart data={barChartData} title="Leads Recebidos (Últimos Dias)" />
+      {/* Footer */}
+      <footer className="container mx-auto px-6 py-6 mt-12">
+        <div className="glass rounded-2xl p-6 text-center border border-border/50">
+          <p className="text-sm text-muted-foreground">
+            Zion App &copy; 2025 - Dashboard Executivo
+          </p>
         </div>
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <DonutChart data={donutChartData} title="Distribuição de Leads" />
-        </div>
-      </div>
-
-      {/* Charts Grid - Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <LineChart data={lineChartData} title="Evolução de Qualificados" />
-        </div>
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <FunnelChart data={funnelData} title="Funil de Conversão" />
-        </div>
-      </div>
-    </DashboardLayout>
+      </footer>
+    </div>
   );
 };
 

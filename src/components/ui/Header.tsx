@@ -56,6 +56,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
       iconColor: "text-primary",
     },
     {
+      icon: Layers,
+      label: "Leads",
+      href: "/leads",
+      gradient: "radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(16,185,129,0.06) 50%, rgba(5,150,105,0) 100%)",
+      iconColor: "text-emerald-400",
+    },
+    {
       icon: TrendingUp,
       label: "Tráfego",
       href: "/trafego",

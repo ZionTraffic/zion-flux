@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { NoAccess } from "@/components/workspace/NoAccess";
 import DashboardIndex from "./pages/DashboardIndex";
+import Leads from "./pages/Leads";
 import Trafego from "./pages/Trafego";
 import Qualificacao from "./pages/Qualificacao";
 import Analise from "./pages/Analise";
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
+            <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
