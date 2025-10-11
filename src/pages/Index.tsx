@@ -1,22 +1,34 @@
 import { Header } from "@/components/ui/Header";
-import { KpiCard } from "@/components/ui/KpiCard";
-import { AnalyticsChart } from "@/components/charts/AnalyticsChart";
-import { DataTable } from "@/components/tables/DataTable";
-import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
-import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
+import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
+import { BusinessHealthCard } from "@/components/dashboard/executive/BusinessHealthCard";
+import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
+import { SmartAlertsCard } from "@/components/dashboard/executive/SmartAlertsCard";
+import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
+import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
+import { ActionCard } from "@/components/dashboard/executive/ActionCard";
 
 const Index = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
-  const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
-  const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
+  const {
+    businessHealth,
+    moneyMetrics,
+    alerts,
+    funnelData,
+    topCampaigns,
+    worstCampaign,
+    isLoading,
+    metaAds,
+    leads,
+    conversations,
+  } = useExecutiveDashboard(currentWorkspaceId || '');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -56,21 +68,6 @@ const Index = () => {
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-semibold text-destructive">Erro de Conexão</h2>
             <p className="text-sm text-muted-foreground">{diagnostics.details}</p>
-            {diagnostics.errorType === "rpc" && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Verifique se a função RPC 'kpi_totais_periodo' existe no seu banco Supabase.
-              </p>
-            )}
-            {diagnostics.errorType === "tables" && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Verifique se as tabelas necessárias existem e você tem permissões de acesso.
-              </p>
-            )}
-            {diagnostics.errorType === "connection" && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Verifique sua conexão de internet e as configurações do Supabase.
-              </p>
-            )}
             <Button
               onClick={() => window.location.reload()}
               variant="default"
@@ -85,150 +82,130 @@ const Index = () => {
   }
 
   // Carregando dados do dashboard
-  if (loading || !totals) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-center">
           <div className="text-4xl mb-4">⚡</div>
-          <p className="text-muted-foreground">Carregando dados...</p>
-          {testing && (
-            <p className="text-sm text-muted-foreground mt-2">Executando testes de conexão...</p>
-          )}
+          <p className="text-muted-foreground">Carregando dashboard executivo...</p>
         </div>
       </div>
     );
   }
 
-  // Verificar se há dados para exibir
-  const showNoDataWarning = testResult && !testResult.dataDisplayed;
-
-  const kpiCards = [
-    {
-      id: 'leads',
-      label: 'Leads Recebidos',
-      value: totals.leads_recebidos.toLocaleString('pt-BR'),
-      icon: '⚡',
-      gradient: 'rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)',
-      trend: { value: 12.5, isPositive: true },
-      delay: 0,
-    },
-    {
-      id: 'qualified',
-      label: 'Qualificados',
-      value: totals.leads_qualificados.toLocaleString('pt-BR'),
-      icon: '✓',
-      gradient: 'rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)',
-      trend: { value: 8.3, isPositive: true },
-      delay: 0.05,
-    },
-    {
-      id: 'followup',
-      label: 'Follow-up',
-      value: totals.leads_followup.toLocaleString('pt-BR'),
-      icon: '↻',
-      gradient: 'rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05)',
-      trend: { value: 5.1, isPositive: false },
-      delay: 0.1,
-    },
-    {
-      id: 'discarded',
-      label: 'Descartados',
-      value: totals.leads_descartados.toLocaleString('pt-BR'),
-      icon: '✕',
-      gradient: 'rgba(71, 85, 105, 0.1), rgba(71, 85, 105, 0.05)',
-      trend: { value: 2.8, isPositive: false },
-      delay: 0.15,
-    },
-    {
-      id: 'investment',
-      label: 'Investimento',
-      value: `R$ ${totals.investimento.toLocaleString('pt-BR')}`,
-      icon: 'R$',
-      gradient: 'rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)',
-      trend: { value: 15.2, isPositive: true },
-      delay: 0.2,
-    },
-    {
-      id: 'cpl',
-      label: 'CPL Médio',
-      value: `R$ ${totals.cpl.toFixed(2)}`,
-      icon: '◎',
-      gradient: 'rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.05)',
-      trend: { value: 3.5, isPositive: false },
-      delay: 0.25,
-    },
-  ];
-
   return (
     <div className="min-h-screen">
       <Header 
-        onRefresh={refetch} 
-        isRefreshing={loading} 
-        lastUpdate={lastUpdate}
+        onRefresh={() => window.location.reload()}
+        isRefreshing={isLoading}
+        lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
         onWorkspaceChange={handleWorkspaceChange}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
-        {/* No Data Warning */}
-        {showNoDataWarning && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-start gap-3">
-            <span className="text-2xl">⚠️</span>
-            <div className="flex-1">
-              <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">
-                Nenhum dado encontrado para este período
-              </h3>
-              <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
-                Exibindo dados simulados. Verifique se há dados no banco de dados para o workspace{' '}
-                <code className="bg-yellow-500/20 px-1 rounded text-xs">{currentWorkspaceId}</code>
-              </p>
-              {testResult && (
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-background/30 rounded p-2">
-                    <p className="font-medium mb-1">Função kpi_totais_periodo:</p>
-                    <p>Encontrada: {testResult.functionExists ? '✅ Sim' : '❌ Não'}</p>
-                    <p>Tempo: {testResult.rpcTest.responseTime.toFixed(2)}ms</p>
-                    <p>Linhas: {testResult.rpcTest.rowCount}</p>
-                  </div>
-                  <div className="bg-background/30 rounded p-2">
-                    <p className="font-medium mb-1">View kpi_overview_daily:</p>
-                    <p>Status: {testResult.viewTest.success ? '✅ OK' : '❌ Erro'}</p>
-                    <p>Tempo: {testResult.viewTest.responseTime.toFixed(2)}ms</p>
-                    <p>Linhas: {testResult.viewTest.rowCount}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* 1. Business Health - Hero Section */}
+        <BusinessHealthCard 
+          health={businessHealth}
+          metrics={moneyMetrics}
+        />
 
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {kpiCards.map((card) => (
-            <KpiCard
-              key={card.id}
-              label={card.label}
-              value={card.value}
-              icon={card.icon}
-              gradient={card.gradient}
-              trend={card.trend}
-              delay={card.delay}
-            />
-          ))}
+        {/* 2. Money Metrics - 3 Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MoneyKpiCard
+            label="Investido"
+            value={`R$ ${moneyMetrics.invested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            icon="💰"
+            trend={{ value: moneyMetrics.investedTrend, isPositive: true }}
+            variant="blue"
+            delay={0}
+          />
+          <MoneyKpiCard
+            label="Retorno Estimado"
+            value={`R$ ${moneyMetrics.estimatedReturn.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            icon="💎"
+            trend={{ value: moneyMetrics.returnTrend, isPositive: true }}
+            variant="emerald"
+            delay={0.05}
+          />
+          <MoneyKpiCard
+            label="ROI"
+            value={`${moneyMetrics.roi.toFixed(0)}%`}
+            icon="📈"
+            trend={{ value: moneyMetrics.roiTrend, isPositive: true }}
+            variant="purple"
+            delay={0.1}
+          />
         </div>
 
-        {/* Analytics Chart */}
-        <AnalyticsChart data={daily} />
+        {/* 3. Smart Alerts */}
+        <SmartAlertsCard alerts={alerts} />
 
-        {/* Data Table */}
-        <DataTable workspaceId={currentWorkspaceId || ''} />
+        {/* 4. Main Content - 2 Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - 2/3 width */}
+          <div className="lg:col-span-2">
+            <CompleteFunnelChart data={funnelData} />
+          </div>
+
+          {/* Right Column - 1/3 width */}
+          <div className="space-y-6">
+            <TopCampaignsTable 
+              campaigns={topCampaigns}
+              worstCampaign={worstCampaign}
+            />
+          </div>
+        </div>
+
+        {/* 5. Action Cards - Quick Navigation */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ActionCard
+            title="Tráfego"
+            icon="📊"
+            metrics={[
+              { label: 'Investimento', value: `R$ ${(metaAds?.spend || 0).toLocaleString('pt-BR')}` },
+              { label: 'Conversas', value: (metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR') },
+              { label: 'CPC', value: `R$ ${(metaAds?.cpc || 0).toFixed(2)}` },
+            ]}
+            alert={metaAds && metaAds.cpc > 5 ? 'CPC Alto' : undefined}
+            linkTo="/trafego"
+            variant="trafego"
+            delay={0}
+          />
+          <ActionCard
+            title="Qualificação"
+            icon="🎯"
+            metrics={[
+              { label: 'Total de Leads', value: (leads?.totalLeads || 0).toLocaleString('pt-BR') },
+              { label: 'Qualificados', value: (leads?.qualifiedLeads || 0).toLocaleString('pt-BR') },
+              { label: 'Taxa', value: `${(leads?.qualificationRate || 0).toFixed(1)}%` },
+            ]}
+            alert={leads && leads.qualificationRate < 25 ? 'Taxa Baixa' : undefined}
+            linkTo="/qualificacao"
+            variant="qualificacao"
+            delay={0.05}
+          />
+          <ActionCard
+            title="Conversas"
+            icon="💬"
+            metrics={[
+              { label: 'Total', value: (conversations?.totalConversations || 0).toLocaleString('pt-BR') },
+              { label: 'Taxa Conversão', value: `${(conversations?.conversionRate || 0).toFixed(1)}%` },
+              { label: 'Tempo Médio', value: `${Math.round((conversations?.averageDuration || 0) / 60)}min` },
+            ]}
+            alert={conversations && conversations.conversionRate < 20 ? 'Conv. Baixa' : undefined}
+            linkTo="/analise"
+            variant="analise"
+            delay={0.1}
+          />
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="container mx-auto px-6 py-6 mt-12">
         <div className="glass rounded-2xl p-6 text-center border border-border/50">
           <p className="text-sm text-muted-foreground">
-            Zion App &copy; 2025 - Premium Analytics Dashboard
+            Zion App &copy; 2025 - Dashboard Executivo
           </p>
         </div>
       </footer>
