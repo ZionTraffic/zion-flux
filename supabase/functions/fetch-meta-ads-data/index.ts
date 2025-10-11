@@ -134,20 +134,96 @@ serve(async (req) => {
       );
     }
 
-    // Calculate date range
+    // Calculate date range with validation
     let since: string;
     let until: string;
+    
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
     if (reqStartDate && reqEndDate) {
-      // Use provided dates
+      // Validate date format
+      if (!dateRegex.test(reqStartDate) || !dateRegex.test(reqEndDate)) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'INVALID_INPUT',
+            message: 'Invalid date format. Use YYYY-MM-DD' 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Validate dates are valid
+      const startDate = new Date(reqStartDate);
+      const endDate = new Date(reqEndDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'INVALID_INPUT',
+            message: 'Invalid date values' 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Validate end >= start
+      if (endDate < startDate) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'INVALID_INPUT',
+            message: 'End date must be after start date' 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Limit to 90 days max to prevent API quota exhaustion
+      const daysDiff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysDiff > 90) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'INVALID_INPUT',
+            message: 'Date range cannot exceed 90 days' 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       since = reqStartDate;
       until = reqEndDate;
     } else {
-      // Fallback to days
+      // Validate days parameter
       const daysToUse = days || 30;
+      const parsedDays = Number(daysToUse);
+      
+      if (isNaN(parsedDays) || parsedDays < 1 || parsedDays > 90) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'INVALID_INPUT',
+            message: 'Days parameter must be between 1 and 90' 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysToUse);
+      startDate.setDate(startDate.getDate() - parsedDays);
       since = startDate.toISOString().slice(0, 10);
       until = endDate.toISOString().slice(0, 10);
     }
