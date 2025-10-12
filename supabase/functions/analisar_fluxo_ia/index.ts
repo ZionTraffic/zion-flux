@@ -12,6 +12,21 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verifica autenticação: aceita JWT ou internal secret
+  const authHeader = req.headers.get('authorization');
+  const internalSecret = req.headers.get('x-internal-secret');
+  const expectedInternalSecret = Deno.env.get('INTERNAL_TRIGGER_SECRET');
+  
+  const isAuthenticated = authHeader?.startsWith('Bearer ') || 
+    (internalSecret && expectedInternalSecret && internalSecret === expectedInternalSecret);
+  
+  if (!isAuthenticated) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
