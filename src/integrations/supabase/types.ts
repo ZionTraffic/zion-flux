@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      analise_fluxos: {
+        Row: {
+          conversa_id: number
+          created_at: string
+          id: number
+          issues: string[] | null
+          score_coerencia: number | null
+          score_fluxo: number | null
+          score_humanizacao: number | null
+          suggestions: string[] | null
+          summary: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conversa_id: number
+          created_at?: string
+          id?: number
+          issues?: string[] | null
+          score_coerencia?: number | null
+          score_fluxo?: number | null
+          score_humanizacao?: number | null
+          suggestions?: string[] | null
+          summary?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conversa_id?: number
+          created_at?: string
+          id?: number
+          issues?: string[] | null
+          score_coerencia?: number | null
+          score_fluxo?: number | null
+          score_humanizacao?: number | null
+          suggestions?: string[] | null
+          summary?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_fluxos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "historico_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_fluxos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "v_qualificacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analise_ia: {
         Row: {
           ad_suggestions: string[] | null
@@ -426,6 +480,39 @@ export type Database = {
           workspace_id: string | null
         }
         Relationships: []
+      }
+      v_analise_fluxos: {
+        Row: {
+          conversa_id: number | null
+          created_at: string | null
+          id: number | null
+          issues: string[] | null
+          lead_name: string | null
+          phone: string | null
+          score_coerencia: number | null
+          score_fluxo: number | null
+          score_humanizacao: number | null
+          suggestions: string[] | null
+          summary: string | null
+          tag: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_fluxos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "historico_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_fluxos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "v_qualificacao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_qualificacao: {
         Row: {
