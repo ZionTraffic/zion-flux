@@ -4,12 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { z } from 'zod';
 
 interface AddMemberModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddMember: (email: string, role: string) => Promise<void>;
 }
+
+const addMemberSchema = z.object({
+  email: z.string()
+    .trim()
+    .email('Email inválido')
+    .max(255, 'Email muito longo'),
+  role: z.enum(['owner', 'admin', 'member', 'viewer'], {
+    errorMap: () => ({ message: 'Por favor, selecione uma função válida' })
+  })
+});
 
 export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberModalProps) {
   const [email, setEmail] = useState('');
@@ -21,26 +32,21 @@ export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberMod
     e.preventDefault();
     setError(null);
 
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Por favor, insira um email válido');
-      return;
-    }
-
-    if (!role) {
-      setError('Por favor, selecione uma função');
-      return;
-    }
-
-    setIsLoading(true);
+    // Validate with zod schema
     try {
-      await onAddMember(email, role);
+      const validated = addMemberSchema.parse({ email: email.trim(), role });
+      
+      setIsLoading(true);
+      await onAddMember(validated.email, validated.role);
       // Reset form
       setEmail('');
       setRole('member');
       onOpenChange(false);
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Erro ao adicionar membro');
     } finally {
       setIsLoading(false);
