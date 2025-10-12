@@ -1,1 +1,10 @@
 project_id = "wrebkgazdlyjenbpexnc"
+
+[functions.add-workspace-member]
+verify_jwt = true
+
+[functions.fetch-meta-ads-data]
+verify_jwt = true
+
+[functions.analisar_fluxo_ia]
+verify_jwt = true
