@@ -49,14 +49,13 @@ export const QualifiedLeadsChart = ({ data, title }: QualifiedLeadsChartProps) =
       type: 'category',
       data: data.map(item => item.day),
       axisLine: {
-        lineStyle: {
-          color: '#374151',
-        },
+        show: false,
+      },
+      axisTick: {
+        show: false,
       },
       axisLabel: {
-        color: '#9ca3af',
-        fontSize: 11,
-        rotate: 45,
+        show: false,
       },
     },
     yAxis: {

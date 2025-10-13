@@ -319,14 +319,34 @@ export const useLeadsFromConversations = (
     value: col.leads.length,
   }));
 
-  const dailyQualified = columns
-    .filter((col) => col.stage === 'qualificados')
-    .flatMap((col) => col.leads)
-    .reduce((acc, lead) => {
+  const dailyQualified = (() => {
+    // Primeiro criar objeto com todos os dias do período filtrado inicializados com 0
+    const result: Record<string, number> = {};
+    const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const end = endDate || new Date();
+    let currentDate = new Date(start);
+    
+    while (currentDate <= end) {
+      const dayStr = currentDate.toISOString().split('T')[0];
+      result[dayStr] = 0;
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Preencher apenas com leads qualificados dentro do período
+    const qualifiedLeads = columns
+      .filter((col) => col.stage === 'qualificados')
+      .flatMap((col) => col.leads);
+      
+    qualifiedLeads.forEach(lead => {
       const day = lead.reference_date.split('T')[0];
-      acc[day] = (acc[day] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+      // Só adicionar se o dia já está no resultado (dentro do período filtrado)
+      if (result.hasOwnProperty(day)) {
+        result[day] = result[day] + 1;
+      }
+    });
+    
+    return result;
+  })();
 
   const funnelData = [
     { id: 'novo_lead', label: 'Novo Lead', value: columns.find(c => c.stage === 'novo_lead')?.leads.length || 0 },
