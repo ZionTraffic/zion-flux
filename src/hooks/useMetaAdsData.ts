@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 export interface MetaAdsTotals {
   impressions: number;
@@ -53,7 +54,7 @@ export function useMetaAdsData(
       setLoading(true);
       setError(null);
 
-      console.log("Fetching Meta Ads data for workspace:", workspaceId);
+      logger.info('Fetching Meta Ads data');
 
       // Prepare request body based on whether dates or days are provided
       const requestBody = startDate && endDate
@@ -63,8 +64,6 @@ export function useMetaAdsData(
           }
         : { days };
 
-      console.log("Request body:", requestBody);
-
       const { data, error: functionError } = await supabase.functions.invoke(
         'fetch-meta-ads-data',
         {
@@ -73,12 +72,12 @@ export function useMetaAdsData(
       );
 
       if (functionError) {
-        console.error("Function error:", functionError);
+        logger.error('Meta Ads function error', functionError);
         throw functionError;
       }
 
       if (data?.error) {
-        console.error("API error:", data.error, data.message);
+        logger.error('Meta Ads API error', data.error);
         setError(data.error);
         
         // Set empty data on error
@@ -97,8 +96,6 @@ export function useMetaAdsData(
         return;
       }
 
-      console.log("Meta Ads data received:", data);
-
       setTotals(data.totals || {
         impressions: 0,
         clicks: 0,
@@ -113,7 +110,7 @@ export function useMetaAdsData(
       setLastUpdate(new Date());
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching Meta Ads data:', err);
+      logger.error('Error fetching Meta Ads data', err);
       setError('FETCH_ERROR');
       setTotals({
         impressions: 0,

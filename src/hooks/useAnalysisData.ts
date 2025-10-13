@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalyzeConversation } from './useAnalyzeConversation';
+import { logger } from '@/utils/logger';
 
 interface AnalysisData {
   id: number;
@@ -24,7 +25,7 @@ export function useAnalysisData(conversationId: number, workspaceId: string, mes
       setIsLoading(true);
       setError(null);
 
-      console.log('🔍 Buscando análise existente para conversa:', conversationId);
+      logger.info('Buscando análise existente');
 
       const { data, error: fetchError } = await supabase
         .from('analise_fluxos')
@@ -35,19 +36,18 @@ export function useAnalysisData(conversationId: number, workspaceId: string, mes
         .limit(1);
 
       if (fetchError) {
-        console.error('❌ Erro ao buscar análise:', fetchError);
+        logger.error('Erro ao buscar análise', fetchError);
         throw fetchError;
       }
 
       if (data && data.length > 0) {
-        console.log('✅ Análise existente encontrada:', data[0]);
         setAnalysis(data[0]);
         setIsLoading(false);
         return;
       }
 
       // Se não existe análise, criar uma nova automaticamente
-      console.log('📝 Nenhuma análise encontrada. Criando nova análise...');
+      logger.info('Criando nova análise');
       
       await analyzeConversation(conversationId, messages, workspaceId);
 
@@ -61,18 +61,17 @@ export function useAnalysisData(conversationId: number, workspaceId: string, mes
         .limit(1);
 
       if (newFetchError) {
-        console.error('❌ Erro ao buscar nova análise:', newFetchError);
+        logger.error('Erro ao buscar nova análise', newFetchError);
         throw newFetchError;
       }
 
       if (newData && newData.length > 0) {
-        console.log('✅ Nova análise carregada:', newData[0]);
         setAnalysis(newData[0]);
       }
 
       setIsLoading(false);
     } catch (err) {
-      console.error('❌ Erro ao carregar análise:', err);
+      logger.error('Erro ao carregar análise', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar análise');
       setIsLoading(false);
     }

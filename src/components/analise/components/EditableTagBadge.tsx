@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Pencil, Loader2 } from 'lucide-react';
-import { useIsMasterUser } from '@/hooks/useIsMasterUser';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useUpdateConversationTag } from '@/hooks/useUpdateConversationTag';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +29,7 @@ const tagColors: Record<string, string> = {
 };
 
 export const EditableTagBadge = ({ conversationId, currentTag, onTagUpdated }: EditableTagBadgeProps) => {
-  const { isMaster, isLoading: isMasterLoading } = useIsMasterUser();
+  const { canAccessAnalysis, loading } = useUserRole();
   const { updateTag, isUpdating } = useUpdateConversationTag();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -49,7 +49,7 @@ export const EditableTagBadge = ({ conversationId, currentTag, onTagUpdated }: E
 
   const badgeClassName = tagColors[currentTag] || "bg-muted text-muted-foreground";
 
-  if (isMasterLoading) {
+  if (loading) {
     return (
       <Badge className={badgeClassName}>
         {currentTag}
@@ -57,7 +57,7 @@ export const EditableTagBadge = ({ conversationId, currentTag, onTagUpdated }: E
     );
   }
 
-  if (!isMaster) {
+  if (!canAccessAnalysis) {
     return (
       <Badge className={badgeClassName}>
         {currentTag}
