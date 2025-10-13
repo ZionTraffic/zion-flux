@@ -43,8 +43,7 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
         },
       },
       axisLabel: {
-        color: '#9ca3af',
-        fontSize: 11,
+        show: false, // Esconder labels do eixo X pois agora estão dentro das barras
       },
     },
     yAxis: {
@@ -80,6 +79,17 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
         name: 'Valor',
         type: 'bar',
         data: data.map(d => d.value),
+        label: {
+          show: true,
+          position: 'inside',
+          formatter: (params: any) => {
+            const dayLabel = data[params.dataIndex]?.day || '';
+            return dayLabel;
+          },
+          color: '#ffffff',
+          fontSize: 10,
+          fontWeight: 600,
+        },
         itemStyle: {
           borderRadius: [8, 8, 0, 0],
           color: {
