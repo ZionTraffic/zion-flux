@@ -307,16 +307,16 @@ export const useLeadsFromConversations = (
 
   const charts = {
     dailyLeads: Object.entries(dailyLeads)
-      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
       .map(([day, value]) => ({ 
-        day: day.split('-').reverse().join('-'),
+        day: day.split('-').reverse().join('/'),
         value 
       })),
     stageDistribution,
     dailyQualified: Object.entries(dailyQualified)
-      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
       .map(([day, value]) => ({ 
-        day: day.split('-').reverse().join('-'),
+        day: day.split('-').reverse().join('/'),
         value 
       })),
     funnelData,
