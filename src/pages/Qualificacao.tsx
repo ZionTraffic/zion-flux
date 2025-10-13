@@ -277,9 +277,10 @@ const Qualificacao = () => {
       {/* Charts Grid - Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <LineChart 
+          <BarChart 
             data={charts?.dailyQualified || []} 
             title="Leads Qualificados (Evolução)" 
+            valueType="number"
           />
         </div>
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
