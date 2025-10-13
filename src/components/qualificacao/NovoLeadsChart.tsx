@@ -31,10 +31,9 @@ export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
           <XAxis
             dataKey="day"
             stroke="#A0AEC0"
-            fontSize={10}
-            angle={-50}
-            dy={20}
-            tickMargin={10}
+            fontSize={11}
+            tickMargin={8}
+            height={40}
           />
 
           {/* 🔹 Eixo Y (quantidade) */}
