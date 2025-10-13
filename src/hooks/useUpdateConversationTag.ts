@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 const VALID_TAGS = [
   'T1 - NOVO LEAD',
@@ -40,7 +41,7 @@ export const useUpdateConversationTag = () => {
 
       return { success: true };
     } catch (error) {
-      console.error('Error updating tag:', error);
+      logger.error('Error updating tag', error);
       toast({
         title: "Erro",
         description: "Erro ao atualizar tag",

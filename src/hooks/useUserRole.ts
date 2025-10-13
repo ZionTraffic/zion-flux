@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { logger } from '@/utils/logger';
 
 /**
  * SECURITY NOTE: Client-side role checks are for UX purposes only.
@@ -50,13 +51,13 @@ export function useUserRole(): UseUserRoleReturn {
           .single();
 
         if (error) {
-          console.error('Error fetching user role:', error);
+          logger.error('Error fetching user role', error);
           setRole(null);
         } else {
           setRole(data?.role as UserRole || null);
         }
       } catch (error) {
-        console.error('Error in fetchUserRole:', error);
+        logger.error('Error in fetchUserRole', error);
         setRole(null);
       } finally {
         setLoading(false);

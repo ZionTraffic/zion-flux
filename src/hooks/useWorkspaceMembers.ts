@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 export interface WorkspaceMember {
   user_id: string;
@@ -33,7 +34,7 @@ export function useWorkspaceMembers() {
 
       setMembers(data || []);
     } catch (error) {
-      console.error('Error fetching workspace members:', error);
+      logger.error('Error fetching workspace members', error);
       toast({
         title: 'Erro ao carregar membros',
         description: 'Não foi possível carregar a lista de membros.',
@@ -67,7 +68,7 @@ export function useWorkspaceMembers() {
 
       await fetchMembers();
     } catch (error) {
-      console.error('Error updating member role:', error);
+      logger.error('Error updating member role', error);
       toast({
         title: 'Erro ao atualizar role',
         description: 'Não foi possível atualizar o role do usuário.',
@@ -101,7 +102,7 @@ export function useWorkspaceMembers() {
 
       await fetchMembers();
     } catch (error) {
-      console.error('Error adding member:', error);
+      logger.error('Error adding member', error);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível adicionar o membro.';
       toast({
         title: 'Erro ao adicionar membro',
@@ -131,7 +132,7 @@ export function useWorkspaceMembers() {
 
       await fetchMembers();
     } catch (error) {
-      console.error('Error removing member:', error);
+      logger.error('Error removing member', error);
       toast({
         title: 'Erro ao remover membro',
         description: 'Não foi possível remover o membro.',
