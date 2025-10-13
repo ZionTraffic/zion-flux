@@ -34,19 +34,40 @@ export function useAnalyzeConversation() {
         conversa_id: conversationId,
         total_mensagens: formattedMessages.length
       });
-      
-      const { data, error } = await supabase.functions.invoke('analisar_fluxo_ia', {
-        body: {
-          workspace_id: workspaceId,
-          conversa_id: conversationId,
-          mensagens: formattedMessages
-        }
-      });
 
-      if (error) {
-        console.error('❌ Erro ao analisar conversa:', error);
-        throw error;
+      // Obter o token de autenticação atual
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error('Usuário não autenticado');
       }
+
+      // Fazer chamada HTTP direta para a edge function
+      const response = await fetch(
+        'https://wrebkgazdlyjenbpexnc.supabase.co/functions/v1/analisar_fluxo_ia',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+          },
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            conversa_id: conversationId,
+            mensagens: formattedMessages
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erro HTTP:', response.status, errorText);
+        throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
 
       console.log('✅ Análise concluída:', data);
 
