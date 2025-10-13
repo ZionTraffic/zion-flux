@@ -1,13 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   Target,
   TrendingUp,
   AlertCircle,
   Lightbulb,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Brain,
+  Loader2
 } from "lucide-react";
 import { getQualityScoreColor, getQualityScoreLabel } from "@/utils/conversationMetrics";
 
@@ -15,12 +18,16 @@ interface InsightsTabProps {
   conversation: any;
   qualityScore: number;
   engagementScore: number;
+  onAnalyze?: () => void;
+  isAnalyzing?: boolean;
 }
 
-export const InsightsTab = ({
-  conversation,
+export const InsightsTab = ({ 
+  conversation, 
   qualityScore,
-  engagementScore
+  engagementScore,
+  onAnalyze,
+  isAnalyzing
 }: InsightsTabProps) => {
   const positives = conversation.positives || [];
   const negatives = conversation.negatives || [];
@@ -33,6 +40,42 @@ export const InsightsTab = ({
 
   return (
     <div className="space-y-6 p-6">
+      {/* Análise com IA */}
+      {onAnalyze && (
+        <Card className="p-6 glass border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-indigo-600/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-indigo-500/20">
+                <Brain className="h-6 w-6 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Análise com IA</h3>
+                <p className="text-sm text-muted-foreground">
+                  Utilize inteligência artificial para analisar esta conversa em profundidade
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={onAnalyze}
+              disabled={isAnalyzing}
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analisando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Analisar Conversa
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Quality Score Card */}
       <Card className="p-6 glass border border-border/50 bg-gradient-to-br from-purple-500/10 to-purple-600/5">
         <div className="flex items-center justify-between mb-4">
