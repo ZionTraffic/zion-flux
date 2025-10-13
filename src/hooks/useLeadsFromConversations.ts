@@ -182,9 +182,22 @@ export const useLeadsFromConversations = (
         }
         
         // Calcular reference_date com a mesma lógica do filtro
-        const referenceDate = (conversation.updated_at && conversation.updated_at !== conversation.created_at)
-          ? conversation.updated_at
-          : (conversation.created_at || conversation.started_at || new Date().toISOString());
+        // SEMPRE normalizar para formato YYYY-MM-DD (sem timestamp)
+        let referenceDate: string;
+        if (conversation.updated_at && conversation.updated_at !== conversation.created_at) {
+          // Lead foi editado, usar data de atualização
+          referenceDate = conversation.updated_at.split('T')[0];
+        } else if (conversation.created_at) {
+          // Lead novo, usar data de criação
+          referenceDate = conversation.created_at.split('T')[0];
+        } else if (conversation.started_at) {
+          // Fallback para started_at
+          const parsedDate = parseStartedAt(conversation.started_at);
+          referenceDate = parsedDate ? parsedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        } else {
+          // Fallback final
+          referenceDate = new Date().toISOString().split('T')[0];
+        }
         
         const lead: LeadFromConversation = {
           id: conversation.id,
