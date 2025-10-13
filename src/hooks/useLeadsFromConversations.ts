@@ -283,12 +283,30 @@ export const useLeadsFromConversations = (
     qualificationRate,
   };
 
-  // Chart data
-  const dailyLeads = allLeads.reduce((acc, lead) => {
-    const day = lead.reference_date.split('T')[0];
-    acc[day] = (acc[day] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Chart data - criar todos os dias do período selecionado
+  const dailyLeads = (() => {
+    const result: Record<string, number> = {};
+    
+    // Se temos filtro de data, criar todos os dias do período
+    if (startDate && endDate) {
+      const currentDate = new Date(startDate);
+      const end = new Date(endDate);
+      
+      while (currentDate <= end) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        result[dateStr] = 0; // Inicializar com 0
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+    
+    // Preencher com os leads que temos
+    allLeads.forEach(lead => {
+      const day = lead.reference_date.split('T')[0];
+      result[day] = (result[day] || 0) + 1;
+    });
+    
+    return result;
+  })();
 
   const stageDistribution = columns.map((col) => ({
     name: col.stage === 'novo_lead' ? 'Novo Lead' :
