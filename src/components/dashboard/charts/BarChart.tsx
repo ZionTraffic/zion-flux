@@ -82,13 +82,15 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
         label: {
           show: true,
           position: 'inside',
+          rotate: 90,
           formatter: (params: any) => {
             const dayLabel = data[params.dataIndex]?.day || '';
             return dayLabel;
           },
           color: '#ffffff',
-          fontSize: 10,
-          fontWeight: 600,
+          fontSize: 11,
+          fontWeight: 700,
+          fontFamily: 'Inter, system-ui, sans-serif',
         },
         itemStyle: {
           borderRadius: [8, 8, 0, 0],
