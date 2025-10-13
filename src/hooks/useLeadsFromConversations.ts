@@ -299,10 +299,13 @@ export const useLeadsFromConversations = (
       }
     }
     
-    // Preencher com os leads que temos
+    // Preencher com os leads que temos - APENAS os que estão dentro do período
     allLeads.forEach(lead => {
       const day = lead.reference_date.split('T')[0];
-      result[day] = (result[day] || 0) + 1;
+      // Só adicionar se o dia já está no resultado (dentro do período filtrado)
+      if (result.hasOwnProperty(day)) {
+        result[day] = result[day] + 1;
+      }
     });
     
     return result;
