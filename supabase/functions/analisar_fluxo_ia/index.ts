@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,11 +40,52 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY não configurada");
     }
 
-    const { workspace_id, conversa_id, mensagens } = await req.json();
+    // Input validation schema
+    const messageSchema = z.object({
+      role: z.string(),
+      content: z.string().max(2000),
+      timestamp: z.string().optional()
+    });
 
-    if (!mensagens || mensagens.length === 0) {
-      return new Response(JSON.stringify({ error: "Nenhuma mensagem enviada" }), { 
+    const requestSchema = z.object({
+      workspace_id: z.string().uuid(),
+      conversa_id: z.number().int().positive(),
+      mensagens: z.array(messageSchema).min(1).max(100)
+    });
+
+    // Parse and validate request body
+    const requestBody = await req.json();
+    const validationResult = requestSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
+      return new Response(JSON.stringify({ error: "Dados inválidos" }), { 
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { workspace_id, conversa_id, mensagens } = validationResult.data;
+
+    // Verify conversation belongs to workspace
+    const { data: conversation, error: convError } = await supabase
+      .from('historico_conversas')
+      .select('workspace_id')
+      .eq('id', conversa_id)
+      .single();
+
+    if (convError || !conversation) {
+      console.error('Conversation not found:', convError);
+      return new Response(JSON.stringify({ error: "Conversa não encontrada" }), { 
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (conversation.workspace_id !== workspace_id) {
+      console.error('Workspace mismatch');
+      return new Response(JSON.stringify({ error: "Acesso negado" }), { 
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
