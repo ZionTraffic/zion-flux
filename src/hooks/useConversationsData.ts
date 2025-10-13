@@ -198,7 +198,7 @@ export function useConversationsData(workspaceId: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchConversations() {
+    const fetchConversations = async () => {
       if (!workspaceId) return;
 
       try {
@@ -319,7 +319,7 @@ export function useConversationsData(workspaceId: string) {
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
     fetchConversations();
   }, [workspaceId]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useConversationsData } from "@/hooks/useConversationsData";
 import { Header } from "@/components/ui/Header";
@@ -10,13 +10,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Search, TrendingUp, Clock, Lightbulb, CheckCircle2 } from "lucide-react";
 import { DetailedAnalysisModal } from "@/components/analise/DetailedAnalysisModal";
 import { calculateQualityScore } from "@/utils/conversationMetrics";
+import { EditableTagBadge } from "@/components/analise/components/EditableTagBadge";
 
 const Conversas = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { conversations, stats, isLoading, error } = useConversationsData(currentWorkspaceId);
+  const { conversations: conversationsData, stats, isLoading, error } = useConversationsData(currentWorkspaceId);
+  const [conversations, setConversations] = useState(conversationsData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Sync conversations with data from hook
+  useEffect(() => {
+    setConversations(conversationsData);
+  }, [conversationsData]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -163,9 +170,18 @@ const Conversas = () => {
                           <p className="text-xs text-muted-foreground">{conversation.phone}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Badge className={statusColors[conversation.status]}>
-                            {conversation.tag || conversation.status}
-                          </Badge>
+                          <EditableTagBadge 
+                            conversationId={conversation.id}
+                            currentTag={conversation.tag || conversation.status}
+                            onTagUpdated={(newTag) => {
+                              setConversations(prev => 
+                                prev.map(c => c.id === conversation.id 
+                                  ? { ...c, tag: newTag } 
+                                  : c
+                                )
+                              );
+                            }}
+                          />
                           <Badge className={sentimentColors[conversation.sentiment]}>
                             {conversation.sentiment === "positive" ? "😊 Positivo" : 
                              conversation.sentiment === "neutral" ? "😐 Neutro" : "😞 Negativo"}

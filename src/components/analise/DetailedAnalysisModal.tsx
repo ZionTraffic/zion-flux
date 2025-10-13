@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalysisHeader } from "./components/AnalysisHeader";
@@ -24,31 +25,39 @@ export const DetailedAnalysisModal = ({
 }: DetailedAnalysisModalProps) => {
   if (!conversation) return null;
 
+  const [selectedConversation, setSelectedConversation] = useState(conversation);
+
+  const handleTagUpdated = (newTag: string) => {
+    setSelectedConversation({ ...selectedConversation, tag: newTag });
+  };
+
   // Calculate metrics
-  const engagementScore = calculateEngagement(conversation);
-  const qualityScore = calculateQualityScore(conversation);
-  const messageCount = conversation.messages?.length || 0;
-  const qualificationRate = conversation.qualified ? 100 : 0;
+  const engagementScore = calculateEngagement(selectedConversation);
+  const qualityScore = calculateQualityScore(selectedConversation);
+  const messageCount = selectedConversation.messages?.length || 0;
+  const qualificationRate = selectedConversation.qualified ? 100 : 0;
   
   // Generate insights
-  const activities = generateActivityTimeline(conversation);
-  const riskFactors = identifyRiskFactors(conversation);
-  const opportunities = conversation.positives || [];
+  const activities = generateActivityTimeline(selectedConversation);
+  const riskFactors = identifyRiskFactors(selectedConversation);
+  const opportunities = selectedConversation.positives || [];
 
-  const isActive = !conversation.endedAt;
+  const isActive = !selectedConversation.endedAt;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
         <AnalysisHeader
-          leadName={conversation.leadName}
-          phone={conversation.phone}
-          email={conversation.email}
-          status={conversation.status}
-          tag={conversation.tag}
-          startedAt={conversation.startedAt}
-          endedAt={conversation.endedAt}
+          leadName={selectedConversation.leadName}
+          phone={selectedConversation.phone}
+          email={selectedConversation.email}
+          status={selectedConversation.status}
+          tag={selectedConversation.tag}
+          startedAt={selectedConversation.startedAt}
+          endedAt={selectedConversation.endedAt}
           isActive={isActive}
+          conversationId={selectedConversation.id}
+          onTagUpdated={handleTagUpdated}
         />
 
         <Tabs defaultValue="visao-geral" className="flex-1 overflow-hidden">
@@ -63,7 +72,7 @@ export const DetailedAnalysisModal = ({
           <div className="overflow-y-auto max-h-[calc(90vh-200px)]">
             <TabsContent value="visao-geral" className="m-0">
               <VisaoGeralTab
-                conversation={conversation}
+                conversation={selectedConversation}
                 engagementScore={engagementScore}
                 qualityScore={qualityScore}
                 messageCount={messageCount}
@@ -75,12 +84,12 @@ export const DetailedAnalysisModal = ({
             </TabsContent>
 
             <TabsContent value="whatsapp" className="m-0">
-              <WhatsAppTab messages={conversation.messages || []} />
+              <WhatsAppTab messages={selectedConversation.messages || []} />
             </TabsContent>
 
             <TabsContent value="insights" className="m-0">
               <InsightsTab
-                conversation={conversation}
+                conversation={selectedConversation}
                 qualityScore={qualityScore}
                 engagementScore={engagementScore}
               />

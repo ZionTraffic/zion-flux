@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, Mail, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { EditableTagBadge } from "./EditableTagBadge";
 
 interface AnalysisHeaderProps {
   leadName: string;
@@ -12,6 +13,8 @@ interface AnalysisHeaderProps {
   startedAt?: Date;
   endedAt?: Date;
   isActive: boolean;
+  conversationId: number;
+  onTagUpdated?: (newTag: string) => void;
 }
 
 export const AnalysisHeader = ({
@@ -22,7 +25,9 @@ export const AnalysisHeader = ({
   tag,
   startedAt,
   endedAt,
-  isActive
+  isActive,
+  conversationId,
+  onTagUpdated
 }: AnalysisHeaderProps) => {
   const statusColors = {
     qualified: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
@@ -49,10 +54,11 @@ export const AnalysisHeader = ({
           </div>
         </div>
         <div className="flex gap-2">
-          <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.discarded}>
-            {tag || (status === "qualified" ? "Qualificado" : 
-             status === "follow-up" ? "Follow-up" : "Descartado")}
-          </Badge>
+          <EditableTagBadge 
+            conversationId={conversationId}
+            currentTag={tag || (status === "qualified" ? "T3 - QUALIFICADO" : status === "follow-up" ? "T4 - FOLLOW-UP" : "T5 - DESQUALIFICADO")}
+            onTagUpdated={onTagUpdated}
+          />
           <Badge variant={isActive ? "default" : "secondary"}>
             {isActive ? "🟢 Ativo" : "⚫ Finalizado"}
           </Badge>
