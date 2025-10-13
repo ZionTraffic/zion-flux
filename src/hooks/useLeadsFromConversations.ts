@@ -181,14 +181,11 @@ export const useLeadsFromConversations = (
           enteredAt = parsedDate ? parsedDate.toISOString() : new Date().toISOString();
         }
         
-        // Calcular reference_date com a mesma lógica do filtro
-        // SEMPRE normalizar para formato YYYY-MM-DD (sem timestamp)
+        // Calcular reference_date usando APENAS a data de ENTRADA
+        // NUNCA usar updated_at - queremos saber quando o lead ENTROU, não quando foi movido
         let referenceDate: string;
-        if (conversation.updated_at && conversation.updated_at !== conversation.created_at) {
-          // Lead foi editado, usar data de atualização
-          referenceDate = conversation.updated_at.split('T')[0];
-        } else if (conversation.created_at) {
-          // Lead novo, usar data de criação
+        if (conversation.created_at) {
+          // Usar data de criação (quando o lead ENTROU no sistema)
           referenceDate = conversation.created_at.split('T')[0];
         } else if (conversation.started_at) {
           // Fallback para started_at
