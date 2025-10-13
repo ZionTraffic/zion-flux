@@ -123,7 +123,10 @@ export const useLeadsFromConversations = (
         const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
         
         filteredData = filteredData.filter((conv) => {
-          const dateField = conv.created_at || conv.started_at;
+        // Priorizar updated_at se for diferente de created_at (lead foi editado)
+        const dateField = (conv.updated_at && conv.updated_at !== conv.created_at)
+          ? conv.updated_at
+          : (conv.created_at || conv.started_at);
           if (!dateField) return false;
           
           // Normalizar data independente do tipo que o Supabase retorna
