@@ -18,7 +18,7 @@ export const BaseChart = ({ option, height = '400px', className = '' }: BaseChar
       left: '3%',
       right: '4%',
       bottom: '3%',
-      top: '10%',
+      top: '60px',
       containLabel: true,
     },
     ...option,

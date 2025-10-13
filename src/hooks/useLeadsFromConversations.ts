@@ -11,6 +11,7 @@ export interface LeadFromConversation {
   canal_origem: string;
   stage: LeadStage;
   entered_at: string;
+  reference_date: string;
 }
 
 export interface KanbanColumn {
@@ -180,6 +181,11 @@ export const useLeadsFromConversations = (
           enteredAt = parsedDate ? parsedDate.toISOString() : new Date().toISOString();
         }
         
+        // Calcular reference_date com a mesma lógica do filtro
+        const referenceDate = (conversation.updated_at && conversation.updated_at !== conversation.created_at)
+          ? conversation.updated_at
+          : (conversation.created_at || conversation.started_at || new Date().toISOString());
+        
         const lead: LeadFromConversation = {
           id: conversation.id,
           nome: conversation.lead_name || 'Sem nome',
@@ -188,6 +194,7 @@ export const useLeadsFromConversations = (
           canal_origem: conversation.source || 'nicochat',
           stage,
           entered_at: enteredAt,
+          reference_date: referenceDate,
         };
         leadsByStage[stage].push(lead);
       });
@@ -268,7 +275,7 @@ export const useLeadsFromConversations = (
 
   // Chart data
   const dailyLeads = allLeads.reduce((acc, lead) => {
-    const day = lead.entered_at.split('T')[0];
+    const day = lead.reference_date.split('T')[0];
     acc[day] = (acc[day] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -285,7 +292,7 @@ export const useLeadsFromConversations = (
     .filter((col) => col.stage === 'qualificados')
     .flatMap((col) => col.leads)
     .reduce((acc, lead) => {
-      const day = lead.entered_at.split('T')[0];
+      const day = lead.reference_date.split('T')[0];
       acc[day] = (acc[day] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
