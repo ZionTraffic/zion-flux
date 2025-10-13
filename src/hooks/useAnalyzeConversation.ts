@@ -16,11 +16,30 @@ export function useAnalyzeConversation() {
     try {
       console.log('🚀 Iniciando análise da conversa:', conversationId);
       
+      // Formatar e validar mensagens
+      const formattedMessages = messages
+        .filter(msg => msg?.content)
+        .map(msg => ({
+          role: msg.role || 'user',
+          content: String(msg.content),
+          timestamp: msg.timestamp
+        }));
+
+      if (formattedMessages.length === 0) {
+        throw new Error('Nenhuma mensagem válida para analisar');
+      }
+
+      console.log('📤 Enviando para análise:', {
+        workspace_id: workspaceId,
+        conversa_id: conversationId,
+        total_mensagens: formattedMessages.length
+      });
+      
       const { data, error } = await supabase.functions.invoke('analisar_fluxo_ia', {
         body: {
           workspace_id: workspaceId,
           conversa_id: conversationId,
-          mensagens: messages
+          mensagens: formattedMessages
         }
       });
 

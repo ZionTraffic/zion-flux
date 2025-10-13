@@ -11,7 +11,6 @@ import {
   generateActivityTimeline,
   identifyRiskFactors
 } from "@/utils/conversationMetrics";
-import { useAnalyzeConversation } from "@/hooks/useAnalyzeConversation";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface DetailedAnalysisModalProps {
@@ -29,27 +28,9 @@ export const DetailedAnalysisModal = ({
 
   const [selectedConversation, setSelectedConversation] = useState(conversation);
   const { currentWorkspaceId } = useWorkspace();
-  const { analyzeConversation, isAnalyzing } = useAnalyzeConversation();
 
   const handleTagUpdated = (newTag: string) => {
     setSelectedConversation({ ...selectedConversation, tag: newTag });
-  };
-
-  const handleAnalyze = async () => {
-    if (!currentWorkspaceId || !selectedConversation) {
-      console.warn('⚠️ Workspace ou conversa não encontrados');
-      return;
-    }
-    
-    try {
-      await analyzeConversation(
-        selectedConversation.id,
-        selectedConversation.messages || [],
-        currentWorkspaceId
-      );
-    } catch (error) {
-      // Erro já tratado no hook
-    }
   };
 
   // Calculate metrics
@@ -110,11 +91,9 @@ export const DetailedAnalysisModal = ({
 
             <TabsContent value="insights" className="m-0">
               <InsightsTab
-                conversation={selectedConversation}
-                qualityScore={qualityScore}
-                engagementScore={engagementScore}
-                onAnalyze={handleAnalyze}
-                isAnalyzing={isAnalyzing}
+                conversationId={selectedConversation.id}
+                workspaceId={currentWorkspaceId || ''}
+                messages={selectedConversation.messages || []}
               />
             </TabsContent>
           </div>
