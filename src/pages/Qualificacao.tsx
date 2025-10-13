@@ -12,7 +12,7 @@ import { type DateRange } from "react-day-picker";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { BarChart } from "@/components/dashboard/charts/BarChart";
+import NovoLeadsChart from "@/components/qualificacao/NovoLeadsChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { QualifiedLeadsChart } from "@/components/dashboard/charts/QualifiedLeadsChart";
 import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
@@ -259,13 +259,7 @@ const Qualificacao = () => {
 
       {/* Charts Grid - Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <BarChart 
-            data={charts?.dailyLeads || []} 
-            title="Novos Leads (Por Dia)" 
-            valueType="number" 
-          />
-        </div>
+        <NovoLeadsChart data={charts?.dailyLeads || []} />
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <DonutChart 
             data={charts?.stageDistribution || []} 
