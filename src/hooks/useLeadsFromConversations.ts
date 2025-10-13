@@ -356,20 +356,39 @@ export const useLeadsFromConversations = (
     { id: 'descartados', label: 'Desqualificados', value: columns.find(c => c.stage === 'descartados')?.leads.length || 0 },
   ];
 
+  // Filter to show only current month data
+  const filterCurrentMonthOnly = (data: { day: string; value: number }[]) => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    return data.filter(item => {
+      const [day, month, year] = item.day.split('/').map(Number);
+      const itemDate = new Date(year, month - 1, day);
+      
+      return itemDate.getMonth() === currentMonth && 
+             itemDate.getFullYear() === currentYear;
+    });
+  };
+
   const charts = {
-    dailyLeads: Object.entries(dailyLeads)
-      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
-      .map(([day, value]) => ({ 
-        day: day.split('-').reverse().join('/'),
-        value 
-      })),
+    dailyLeads: filterCurrentMonthOnly(
+      Object.entries(dailyLeads)
+        .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
+        .map(([day, value]) => ({ 
+          day: day.split('-').reverse().join('/'),
+          value 
+        }))
+    ),
     stageDistribution,
-    dailyQualified: Object.entries(dailyQualified)
-      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
-      .map(([day, value]) => ({ 
-        day: day.split('-').reverse().join('/'),
-        value 
-      })),
+    dailyQualified: filterCurrentMonthOnly(
+      Object.entries(dailyQualified)
+        .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
+        .map(([day, value]) => ({ 
+          day: day.split('-').reverse().join('/'),
+          value 
+        }))
+    ),
     funnelData,
   };
 

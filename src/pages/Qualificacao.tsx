@@ -13,8 +13,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import NovoLeadsChart from "@/components/qualificacao/NovoLeadsChart";
+import LeadsQualificadosChart from "@/components/qualificacao/LeadsQualificadosChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
-import { QualifiedLeadsChart } from "@/components/dashboard/charts/QualifiedLeadsChart";
 import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
 
 const Qualificacao = () => {
@@ -270,12 +270,7 @@ const Qualificacao = () => {
 
       {/* Charts Grid - Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
-          <QualifiedLeadsChart 
-            data={charts?.dailyQualified || []} 
-            title="Leads Qualificados (Evolução)" 
-          />
-        </div>
+        <LeadsQualificadosChart data={charts?.dailyQualified || []} />
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <FunnelPremium5Stages 
             stages={charts.funnelData as [any, any, any, any, any]} 
