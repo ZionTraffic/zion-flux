@@ -67,13 +67,17 @@ const Trafego = () => {
     });
   };
 
-  const applyQuickFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+  const applyQuickFilter = (type: 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
     const to = new Date();
     const from = new Date();
     
     switch(type) {
       case 'today':
         // from e to são o mesmo dia (hoje)
+        break;
+      case 'yesterday':
+        from.setDate(to.getDate() - 1);
+        to.setDate(to.getDate() - 1);
         break;
       case 'last7days':
         from.setDate(to.getDate() - 7);
@@ -99,7 +103,7 @@ const Trafego = () => {
     });
   };
 
-  const isActiveFilter = (type: 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+  const isActiveFilter = (type: 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
     if (!dateRange?.from || !dateRange?.to) return false;
     
     const today = new Date();
@@ -111,6 +115,11 @@ const Trafego = () => {
     switch(type) {
       case 'today': {
         return isSameDay(dateRange.from, today) && isSameDay(dateRange.to, today);
+      }
+      case 'yesterday': {
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        return isSameDay(dateRange.from, yesterday) && isSameDay(dateRange.to, yesterday);
       }
       case 'last7days': {
         const from = new Date();
@@ -381,6 +390,18 @@ const Trafego = () => {
               )}
             >
               Hoje
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickFilter('yesterday')}
+              className={cn(
+                "glass-medium",
+                isActiveFilter('yesterday') && "border-primary bg-primary/10"
+              )}
+            >
+              Ontem
             </Button>
             
             <Button
