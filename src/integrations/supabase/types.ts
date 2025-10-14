@@ -550,6 +550,10 @@ export type Database = {
           recebidos: number
         }[]
       }
+      update_workspace_member_role: {
+        Args: { p_new_role: string; p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"

@@ -53,13 +53,20 @@ export function useWorkspaceMembers() {
     if (!currentWorkspaceId) return;
 
     try {
-      const { error } = await supabase
-        .from('membros_workspace')
-        .update({ role: newRole })
-        .eq('workspace_id', currentWorkspaceId)
-        .eq('user_id', userId);
+      const { data, error } = await supabase.rpc('update_workspace_member_role', {
+        p_workspace_id: currentWorkspaceId,
+        p_user_id: userId,
+        p_new_role: newRole
+      });
 
       if (error) throw error;
+
+      // Type assertion since we know the RPC returns jsonb with success/error fields
+      const result = data as { success: boolean; error?: string; message?: string };
+      
+      if (result && !result.success) {
+        throw new Error(result.error || 'Failed to update role');
+      }
 
       toast({
         title: 'Role atualizado',
@@ -69,9 +76,10 @@ export function useWorkspaceMembers() {
       await fetchMembers();
     } catch (error) {
       logger.error('Error updating member role', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível atualizar o role do usuário.';
       toast({
         title: 'Erro ao atualizar role',
-        description: 'Não foi possível atualizar o role do usuário.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

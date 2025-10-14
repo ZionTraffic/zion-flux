@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,9 +105,61 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'UNAUTHORIZED', message: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with user's JWT
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('User authentication failed:', userError);
+      return new Response(
+        JSON.stringify({ error: 'UNAUTHORIZED', message: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Parse request body
     const requestBody = await req.json();
-    const { days, startDate: reqStartDate, endDate: reqEndDate } = requestBody;
+    const { workspace_id, days, startDate: reqStartDate, endDate: reqEndDate } = requestBody;
+
+    // Validate workspace_id
+    if (!workspace_id) {
+      return new Response(
+        JSON.stringify({ error: 'INVALID_INPUT', message: 'workspace_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user has access to this workspace
+    const { data: membership, error: membershipError } = await supabaseClient
+      .from('membros_workspace')
+      .select('role')
+      .eq('workspace_id', workspace_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (membershipError || !membership) {
+      console.error('Workspace access denied:', { userId: user.id, workspaceId: workspace_id });
+      return new Response(
+        JSON.stringify({ error: 'FORBIDDEN', message: 'Access denied to workspace' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Workspace access verified:', { userId: user.id, workspaceId: workspace_id, role: membership.role });
 
     const META_ACCESS_TOKEN = Deno.env.get("META_ACCESS_TOKEN");
     const META_AD_ACCOUNT_ID = Deno.env.get("META_AD_ACCOUNT_ID");

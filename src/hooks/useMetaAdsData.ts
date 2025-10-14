@@ -59,10 +59,14 @@ export function useMetaAdsData(
       // Prepare request body based on whether dates or days are provided
       const requestBody = startDate && endDate
         ? {
+            workspace_id: workspaceId,
             startDate: startDate.toISOString().split('T')[0],
             endDate: endDate.toISOString().split('T')[0],
           }
-        : { days };
+        : { 
+            workspace_id: workspaceId,
+            days 
+          };
 
       const { data, error: functionError } = await supabase.functions.invoke(
         'fetch-meta-ads-data',
