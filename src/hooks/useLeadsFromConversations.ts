@@ -120,8 +120,13 @@ export const useLeadsFromConversations = (
       let filteredData = data || [];
       
       if (startDate || endDate) {
-        const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
-        const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
+        // Usar data local em vez de UTC para evitar problemas de timezone
+        const startStr = startDate 
+          ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}` 
+          : null;
+        const endStr = endDate 
+          ? `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}` 
+          : null;
         
         filteredData = filteredData.filter((conv) => {
         // Priorizar updated_at se for diferente de created_at (lead foi editado)
