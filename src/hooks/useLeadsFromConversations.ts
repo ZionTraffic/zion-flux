@@ -129,10 +129,9 @@ export const useLeadsFromConversations = (
           : null;
         
         filteredData = filteredData.filter((conv) => {
-        // Priorizar updated_at se for diferente de created_at (lead foi editado)
-        const dateField = (conv.updated_at && conv.updated_at !== conv.created_at)
-          ? conv.updated_at
-          : (conv.created_at || conv.started_at);
+        // SEMPRE usar created_at para o filtro de período (quando o lead ENTROU no sistema)
+        // NUNCA usar updated_at para filtro de data (ele é só para tracking de modificações)
+        const dateField = conv.created_at || conv.started_at;
           if (!dateField) return false;
           
           // Normalizar data independente do tipo que o Supabase retorna
