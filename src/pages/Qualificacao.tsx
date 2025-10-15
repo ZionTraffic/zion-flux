@@ -62,22 +62,32 @@ const Qualificacao = () => {
         break;
       case 'yesterday':
         from.setDate(to.getDate() - 1);
+        from.setHours(0, 0, 0, 0);
         to.setDate(to.getDate() - 1);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'last7days':
         from.setDate(to.getDate() - 7);
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'last30days':
         from.setDate(to.getDate() - 30);
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'thisMonth':
         from.setDate(1);
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'lastMonth':
         from.setMonth(to.getMonth() - 1);
         from.setDate(1);
+        from.setHours(0, 0, 0, 0);
         to.setMonth(to.getMonth() - 1);
         to.setDate(new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate());
+        to.setHours(23, 59, 59, 999);
         break;
     }
     
