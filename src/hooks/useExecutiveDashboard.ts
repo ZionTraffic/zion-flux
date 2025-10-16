@@ -34,6 +34,59 @@ export interface FunnelStage {
   isBottleneck?: boolean;
 }
 
+export interface AdvancedMetrics {
+  roi: number;
+  profit: number;
+  costPerLead: number;
+  costPerQualifiedLead: number;
+  qualificationRate: number;
+  estimatedRevenue: number;
+  totalInvested: number;
+  totalLeads: number;
+  qualifiedLeads: number;
+}
+
+export interface TrafficLeadData {
+  date: string;
+  traffic: number;
+  leads: number;
+}
+
+export interface LeadsSourceData {
+  name: string;
+  value: number;
+  spend: number;
+}
+
+export interface RoiHistoryData {
+  date: string;
+  roi: number;
+  revenue: number;
+  invested: number;
+}
+
+export interface MetaAdsData {
+  impressions: number;
+  clicks: number;
+  spend: number;
+  cpc: number;
+  conversas_iniciadas: number;
+  campaigns: any[];
+  daily: any[];
+}
+
+export interface LeadsStats {
+  totalLeads: number;
+  qualifiedLeads: number;
+  qualificationRate: number;
+}
+
+export interface ConversationsStats {
+  totalConversations: number;
+  conversionRate: number;
+  averageDuration: number;
+}
+
 export function useExecutiveDashboard(
   workspaceId: string,
   startDate?: Date,
@@ -234,6 +287,125 @@ export function useExecutiveDashboard(
       .sort((a, b) => b.cpl - a.cpl)[0]; // Pior CPL
   }, [metaAds.campaigns, metaAds.totals, qualificationMetrics.qualificationRate]);
 
+  // MÉTRICAS FINANCEIRAS AVANÇADAS
+  const advancedMetrics: AdvancedMetrics = useMemo(() => {
+    const totalInvested = metaAds.totals?.spend || 0;
+    const totalLeads = leads.kpis?.totalLeads || 0;
+    const qualifiedLeads = leads.kpis?.qualifiedLeads || 0;
+    
+    // Usar faturamento estimado: R$ 500 por lead qualificado
+    const averageTicket = 500;
+    const estimatedRevenue = qualifiedLeads * averageTicket;
+    
+    // ROI = (Receita - Investimento) / Investimento * 100
+    const roi = totalInvested > 0 
+      ? ((estimatedRevenue - totalInvested) / totalInvested) * 100 
+      : 0;
+    
+    // Profit (Lucro)
+    const profit = estimatedRevenue - totalInvested;
+    
+    // Custo por Lead
+    const costPerLead = totalLeads > 0 
+      ? totalInvested / totalLeads 
+      : 0;
+    
+    // Custo por Lead Qualificado
+    const costPerQualifiedLead = qualifiedLeads > 0 
+      ? totalInvested / qualifiedLeads 
+      : 0;
+    
+    // Taxa de Qualificação
+    const qualificationRate = totalLeads > 0 
+      ? (qualifiedLeads / totalLeads) * 100 
+      : 0;
+    
+    return {
+      roi,
+      profit,
+      costPerLead,
+      costPerQualifiedLead,
+      qualificationRate,
+      estimatedRevenue,
+      totalInvested,
+      totalLeads,
+      qualifiedLeads,
+    };
+  }, [metaAds.totals?.spend, leads.kpis]);
+
+  // DADOS PARA GRÁFICO: TRÁFEGO VS LEADS POR DIA
+  const trafficLeadsChart: TrafficLeadData[] = useMemo(() => {
+    const dailyMap = new Map<string, TrafficLeadData>();
+    
+    // Iterar sobre dados diários de tráfego (Meta Ads)
+    metaAds.daily?.forEach(day => {
+      const dateKey = day.date;
+      dailyMap.set(dateKey, {
+        date: day.date,
+        traffic: day.clicks || 0,
+        leads: 0,
+      });
+    });
+    
+    // Adicionar dados diários de leads
+    leads.charts?.dailyLeads?.forEach((day: any) => {
+      const dateKey = day.day;
+      const existing = dailyMap.get(dateKey) || { date: dateKey, traffic: 0, leads: 0 };
+      existing.leads = day.value || 0;
+      dailyMap.set(dateKey, existing);
+    });
+    
+    // Retornar últimos 30 dias ordenados
+    return Array.from(dailyMap.values())
+      .slice(-30)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [metaAds.daily, leads.charts]);
+
+  // DISTRIBUIÇÃO DE LEADS POR FONTE (CAMPANHA) - ESTIMADO
+  const leadsSourceDistribution: LeadsSourceData[] = useMemo(() => {
+    const totalClicks = metaAds.totals?.clicks || 1;
+    const totalLeads = leads.kpis?.totalLeads || 0;
+    
+    return (metaAds.campaigns || [])
+      .map(campaign => {
+        const campaignClicks = campaign.clicks || 0;
+        // Estimar leads por campanha baseado em proporção de cliques
+        const estimatedLeads = Math.round((campaignClicks / totalClicks) * totalLeads);
+        
+        return {
+          name: campaign.name || 'Sem nome',
+          value: estimatedLeads,
+          spend: campaign.spend || 0,
+        };
+      });
+  }, [metaAds.campaigns, metaAds.totals?.clicks, leads.kpis?.totalLeads]);
+
+  // HISTÓRICO DE ROI (ÚLTIMOS 30 DIAS) - ESTIMADO
+  const roiHistory: RoiHistoryData[] = useMemo(() => {
+    const totalQualifiedLeads = leads.kpis?.qualifiedLeads || 0;
+    const totalClicks = metaAds.daily?.reduce((sum, day) => sum + (day.clicks || 0), 0) || 1;
+    
+    return (metaAds.daily || [])
+      .map(day => {
+        const dayInvested = day.spend || 0;
+        // Estimar leads qualificados do dia baseado em proporção de cliques
+        const dayClicks = day.clicks || 0;
+        const dayQualifiedLeads = (dayClicks / totalClicks) * totalQualifiedLeads;
+        const dayRevenue = dayQualifiedLeads * 500; // R$ 500 por lead qualificado
+        const dayROI = dayInvested > 0 
+          ? ((dayRevenue - dayInvested) / dayInvested) * 100 
+          : 0;
+        
+        return {
+          date: day.date,
+          roi: dayROI,
+          revenue: dayRevenue,
+          invested: dayInvested,
+        };
+      })
+      .slice(-30);
+  }, [metaAds.daily, leads.kpis?.qualifiedLeads]);
+
   return {
     businessHealth,
     qualificationMetrics,
@@ -242,8 +414,28 @@ export function useExecutiveDashboard(
     topCampaigns,
     worstCampaign,
     isLoading: metaAds.loading || leads.isLoading || conversations.isLoading,
-    metaAds: metaAds.totals,
-    leads: leads.kpis,
-    conversations: conversations.stats,
+    advancedMetrics,
+    trafficLeadsChart,
+    leadsSourceDistribution,
+    roiHistory,
+    metaAds: {
+      impressions: metaAds.totals?.impressions || 0,
+      clicks: metaAds.totals?.clicks || 0,
+      spend: metaAds.totals?.spend || 0,
+      cpc: metaAds.totals?.cpc || 0,
+      conversas_iniciadas: metaAds.totals?.conversas_iniciadas || 0,
+      campaigns: metaAds.campaigns || [],
+      daily: metaAds.daily || [],
+    } as MetaAdsData,
+    leads: {
+      totalLeads: leads.kpis?.totalLeads || 0,
+      qualifiedLeads: leads.kpis?.qualifiedLeads || 0,
+      qualificationRate: leads.kpis?.qualificationRate || 0,
+    } as LeadsStats,
+    conversations: {
+      totalConversations: conversations.stats?.totalConversations || 0,
+      conversionRate: conversations.stats?.conversionRate || 0,
+      averageDuration: conversations.stats?.averageDuration || 0,
+    } as ConversationsStats,
   };
 }
