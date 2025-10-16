@@ -121,8 +121,22 @@ serve(async (req) => {
       userId = newUser.user!.id;
       console.log('New user created successfully:', userId);
       
-      // Supabase will automatically send the confirmation email with the configured template
-      // pointing to the redirectUrl configured in Authentication > URL Configuration
+      // Generate and send confirmation email using Supabase templates
+      const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
+        type: 'signup',
+        email: email.toLowerCase().trim(),
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (linkError) {
+        console.error('Error generating confirmation link:', linkError);
+        // User was created but email failed - still proceed to add to workspace
+        console.warn('⚠️ User created but confirmation email failed. User ID:', userId);
+      } else {
+        console.log('✅ Confirmation email sent successfully to:', email);
+      }
     } else {
       userId = foundUser.id;
       console.log('Existing user found:', userId);
