@@ -42,6 +42,16 @@ const DashboardIndex = () => {
     });
   }, []);
 
+  // 🔍 DEBUG roiHistory
+  useEffect(() => {
+    console.log('📊 DEBUG DashboardIndex:', {
+      roiHistoryLength: roiHistory?.length || 0,
+      roiHistoryFirst: roiHistory?.[0],
+      roiHistoryLast: roiHistory?.[roiHistory?.length - 1],
+      advancedMetrics,
+    });
+  }, [roiHistory, advancedMetrics]);
+
   // Auto-refresh a cada 30 segundos
   useEffect(() => {
     const interval = setInterval(() => {
@@ -284,7 +294,10 @@ const DashboardIndex = () => {
                   return (
                     <div key={idx} className="flex-1 flex flex-col items-center gap-1">
                       <div className="text-xs font-semibold" style={{ color: isPositive ? '#10b981' : '#ef4444' }}>
-                        {item.roi.toFixed(0)}%
+                        {item.roi.toLocaleString('pt-BR', { 
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0 
+                        })}%
                       </div>
                       <div 
                         className="w-full rounded-t-lg transition-all duration-500"

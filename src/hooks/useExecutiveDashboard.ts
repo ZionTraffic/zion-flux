@@ -385,7 +385,27 @@ export function useExecutiveDashboard(
     const totalQualifiedLeads = leads.kpis?.qualifiedLeads || 0;
     const totalClicks = metaAds.daily?.reduce((sum, day) => sum + (day.clicks || 0), 0) || 1;
     
-    return (metaAds.daily || [])
+    // ⚠️ FALLBACK: Se não tem dados diários, retornar array vazio
+    if (!metaAds.daily || metaAds.daily.length === 0) {
+      console.warn('⚠️ metaAds.daily está vazio, roiHistory será []');
+      return [];
+    }
+    
+    // Função para formatar data ISO para DD/MM
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return 'N/A';
+      
+      // Se está em formato ISO (YYYY-MM-DD)
+      if (dateStr.includes('-')) {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}`;
+      }
+      
+      // Se já está formatado (DD/MM)
+      return dateStr;
+    };
+    
+    const history = (metaAds.daily || [])
       .map(day => {
         const dayInvested = day.spend || 0;
         // Estimar leads qualificados do dia baseado em proporção de cliques
@@ -397,13 +417,26 @@ export function useExecutiveDashboard(
           : 0;
         
         return {
-          date: day.date,
+          date: formatDate(day.date),
           roi: dayROI,
           revenue: dayRevenue,
           invested: dayInvested,
         };
       })
       .slice(-30);
+    
+    // 🔍 DEBUG
+    console.log('🔍 DEBUG roiHistory:', {
+      metaDailyLength: metaAds.daily?.length || 0,
+      historyLength: history.length,
+      firstItem: history[0],
+      lastItem: history[history.length - 1],
+      totalQualifiedLeads,
+      totalClicks,
+      sampleDay: metaAds.daily?.[0],
+    });
+    
+    return history;
   }, [metaAds.daily, leads.kpis?.qualifiedLeads]);
 
   return {
