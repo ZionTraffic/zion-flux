@@ -12,6 +12,7 @@ import { Users, Plug, Settings, CreditCard, Trash2, UserPlus } from "lucide-reac
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AddMemberModal } from "@/components/workspace/AddMemberModal";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
+  const { workspaces } = useWorkspaces();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
@@ -145,6 +147,8 @@ const Configuracoes = () => {
               open={isAddMemberModalOpen}
               onOpenChange={setIsAddMemberModalOpen}
               onAddMember={addMember}
+              workspaces={workspaces}
+              currentWorkspaceId={currentWorkspaceId}
             />
           </TabsContent>
 

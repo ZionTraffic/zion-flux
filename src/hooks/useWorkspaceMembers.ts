@@ -85,14 +85,12 @@ export function useWorkspaceMembers() {
     }
   };
 
-  const addMember = async (email: string, role: string) => {
-    if (!currentWorkspaceId) return;
-
+  const addMember = async (email: string, role: string, workspaceId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('add-workspace-member', {
         body: {
-          email,
-          workspace_id: currentWorkspaceId,
+          email: email.toLowerCase().trim(),
+          workspace_id: workspaceId,
           role
         }
       });

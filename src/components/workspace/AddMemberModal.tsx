@@ -5,14 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
+import type { Workspace } from '@/hooks/useWorkspaces';
 
 interface AddMemberModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddMember: (email: string, role: string) => Promise<void>;
+  onAddMember: (email: string, role: string, workspaceId: string) => Promise<void>;
+  workspaces: Workspace[];
+  currentWorkspaceId: string | null;
 }
 
 const addMemberSchema = z.object({
+  workspaceId: z.string().uuid('Workspace inválido'),
   email: z.string()
     .trim()
     .email('Email inválido')
@@ -22,7 +26,8 @@ const addMemberSchema = z.object({
   })
 });
 
-export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberModalProps) {
+export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, currentWorkspaceId }: AddMemberModalProps) {
+  const [workspaceId, setWorkspaceId] = useState<string>(currentWorkspaceId || '');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('member');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,11 +39,12 @@ export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberMod
 
     // Validate with zod schema
     try {
-      const validated = addMemberSchema.parse({ email: email.trim(), role });
+      const validated = addMemberSchema.parse({ workspaceId, email: email.trim(), role });
       
       setIsLoading(true);
-      await onAddMember(validated.email, validated.role);
+      await onAddMember(validated.email, validated.role, validated.workspaceId);
       // Reset form
+      setWorkspaceId(currentWorkspaceId || '');
       setEmail('');
       setRole('member');
       onOpenChange(false);
@@ -54,6 +60,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberMod
   };
 
   const handleClose = () => {
+    setWorkspaceId(currentWorkspaceId || '');
     setEmail('');
     setRole('member');
     setError(null);
@@ -70,6 +77,21 @@ export function AddMemberModal({ open, onOpenChange, onAddMember }: AddMemberMod
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="workspace">Workspace</Label>
+            <Select value={workspaceId} onValueChange={setWorkspaceId} disabled={isLoading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um workspace" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                {workspaces.map((ws) => (
+                  <SelectItem key={ws.id} value={ws.id} className="cursor-pointer">
+                    {ws.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
