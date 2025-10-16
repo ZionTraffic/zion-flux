@@ -15,6 +15,7 @@ export default function AcceptInvite() {
 
   const [loading, setLoading] = useState(true);
   const [inviteData, setInviteData] = useState<any>(null);
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,6 +81,11 @@ export default function AcceptInvite() {
   const handleAcceptInvite = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (fullName.trim().length < 2) {
+      toast.error('O nome deve ter no mínimo 2 caracteres');
+      return;
+    }
+
     if (password.length < 6) {
       toast.error('A senha deve ter no mínimo 6 caracteres');
       return;
@@ -98,6 +104,7 @@ export default function AcceptInvite() {
         password,
         options: {
           data: {
+            full_name: fullName.trim(),
             invited_via_token: token
           }
         }
@@ -182,6 +189,20 @@ export default function AcceptInvite() {
         </div>
 
         <form onSubmit={handleAcceptInvite} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Nome Completo</Label>
+            <Input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Digite seu nome completo"
+              required
+              minLength={2}
+              disabled={isProcessing}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="password">Defina sua senha</Label>
             <Input
