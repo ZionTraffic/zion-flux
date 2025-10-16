@@ -78,10 +78,28 @@ Deno.serve(async (req) => {
     console.log('✅ accept-workspace-invite: Invite validated', { workspace_id: invite.workspace_id, role: invite.role });
 
     // Initialize admin client for privileged operations
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // CRITICAL: Validate service role key is available
+    if (!supabaseServiceRoleKey) {
+      console.error('❌ CRITICAL: SUPABASE_SERVICE_ROLE_KEY not available in environment');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error - missing service role key' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('✅ accept-workspace-invite: Service role key available:', supabaseServiceRoleKey.substring(0, 15) + '...');
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Add user to workspace using admin client (bypasses RLS)
+    console.log('🔧 accept-workspace-invite: About to insert into membros_workspace using admin client');
+    console.log('📝 accept-workspace-invite: Insert data:', { 
+      workspace_id: invite.workspace_id, 
+      user_id: user_id, 
+      role: invite.role 
+    });
+    
     const { error: memberError } = await supabaseAdmin
       .from('membros_workspace')
       .insert({
@@ -95,7 +113,10 @@ Deno.serve(async (req) => {
       if (memberError.code === '23505') { // Unique violation
         console.log('⚠️ accept-workspace-invite: User already member of workspace');
       } else {
-        console.error('❌ accept-workspace-invite: Error adding member', memberError);
+        console.error('❌ accept-workspace-invite: Error adding member - Full error details:', JSON.stringify(memberError, null, 2));
+        console.error('❌ accept-workspace-invite: Error code:', memberError.code);
+        console.error('❌ accept-workspace-invite: Error message:', memberError.message);
+        console.error('❌ accept-workspace-invite: Error hint:', memberError.hint);
         throw memberError;
       }
     } else {
