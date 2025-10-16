@@ -102,7 +102,7 @@ serve(async (req) => {
       
       const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
         email: email.toLowerCase().trim(),
-        email_confirm: false,
+        email_confirm: true,
         app_metadata: {
           invited_to_workspace: workspace_id,
           invited_role: role
@@ -118,7 +118,7 @@ serve(async (req) => {
       console.log('New user created successfully:', userId);
       
       // Send invitation email using inviteUserByEmail
-      const redirectUrl = 'https://wrebkgazdlyjenbpexnc.lovable.app/complete-signup';
+      const redirectUrl = 'https://app.ziontraffic.com.br/complete-signup';
       
       const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
         email.toLowerCase().trim(),

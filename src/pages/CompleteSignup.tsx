@@ -82,13 +82,48 @@ const CompleteSignup = () => {
         throw error;
       }
 
-      toast({
-        title: "Cadastro concluído!",
-        description: "Sua senha foi definida com sucesso.",
-      });
+      // Verificar se o usuário tem workspace antes de redirecionar
+      const { data: { user } } = await supabase.auth.getUser();
       
-      // Redirect to dashboard
-      navigate('/');
+      if (user) {
+        const { data: workspaceData } = await supabase
+          .from('membros_workspace')
+          .select('workspace_id, role')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        
+        if (workspaceData) {
+          // Salvar workspace no localStorage para o WorkspaceContext
+          localStorage.setItem('currentWorkspaceId', workspaceData.workspace_id);
+          
+          toast({
+            title: "Cadastro concluído!",
+            description: "Sua senha foi definida com sucesso. Redirecionando...",
+          });
+          
+          // Pequeno delay para garantir que o toast apareça
+          setTimeout(() => {
+            navigate('/');
+            window.location.reload(); // Força reload para carregar o workspace
+          }, 500);
+        } else {
+          toast({
+            title: "Cadastro concluído!",
+            description: "Sua senha foi definida. Aguarde a atribuição do workspace.",
+          });
+          
+          setTimeout(() => {
+            navigate('/');
+          }, 1000);
+        }
+      } else {
+        toast({
+          title: "Cadastro concluído!",
+          description: "Sua senha foi definida com sucesso.",
+        });
+        navigate('/');
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};

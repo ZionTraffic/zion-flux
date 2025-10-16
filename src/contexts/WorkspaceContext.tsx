@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { NoWorkspaceAccess } from '@/components/workspace/NoWorkspaceAccess';
 
 interface WorkspaceContextType {
   currentWorkspaceId: string | null;
@@ -59,6 +60,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setCurrentWorkspaceIdState(data.workspace_id);
           setUserRole(data.role || null);
           localStorage.setItem('currentWorkspaceId', data.workspace_id);
+        } else {
+          // Usuário não tem workspace - manter isLoading false mas workspace null
+          console.log('User has no workspace assigned');
         }
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
@@ -132,6 +136,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Se o usuário está autenticado mas não tem workspace, mostrar tela de "sem acesso"
+  const [userEmail, setUserEmail] = useState<string | undefined>();
+  
+  useEffect(() => {
+    const getUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email);
+    };
+    if (!currentWorkspaceId) {
+      getUserEmail();
+    }
+  }, [currentWorkspaceId]);
+
+  if (!currentWorkspaceId) {
+    return <NoWorkspaceAccess userEmail={userEmail} />;
   }
 
   return (
