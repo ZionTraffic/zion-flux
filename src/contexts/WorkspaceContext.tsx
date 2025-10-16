@@ -17,6 +17,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,6 +29,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setIsLoading(false);
           return;
         }
+
+        // Armazenar email do usuário
+        setUserEmail(user.email);
 
         // Try to load from localStorage and validate
         const stored = localStorage.getItem('currentWorkspaceId');
@@ -139,18 +143,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   // Se o usuário está autenticado mas não tem workspace, mostrar tela de "sem acesso"
-  const [userEmail, setUserEmail] = useState<string | undefined>();
-  
-  useEffect(() => {
-    const getUserEmail = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserEmail(user?.email);
-    };
-    if (!currentWorkspaceId) {
-      getUserEmail();
-    }
-  }, [currentWorkspaceId]);
-
   if (!currentWorkspaceId) {
     return <NoWorkspaceAccess userEmail={userEmail} />;
   }
