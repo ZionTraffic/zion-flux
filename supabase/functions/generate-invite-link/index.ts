@@ -34,21 +34,21 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Extrair o token JWT do header
+    const jwtToken = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token extracted');
     
-    const supabaseClient = createClient(
+    // Criar cliente admin com Service Role Key para validar o token
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('🔐 Checking authentication...');
+    console.log('🔐 Validating JWT token...');
     
-    // Verificar autenticação
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Validar o JWT e obter o usuário
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwtToken);
     
     if (authError) {
       console.error('❌ Auth error:', authError);
@@ -94,7 +94,7 @@ serve(async (req) => {
     console.log('🔍 Checking user permissions...');
 
     // Verificar se o usuário tem permissão (owner ou admin)
-    const { data: membership, error: membershipError } = await supabaseClient
+    const { data: membership, error: membershipError } = await supabaseAdmin
       .from('membros_workspace')
       .select('role')
       .eq('workspace_id', workspace_id)
@@ -120,20 +120,20 @@ serve(async (req) => {
     // Gerar token único e seguro
     const tokenBytes = new Uint8Array(32);
     crypto.getRandomValues(tokenBytes);
-    const token = Array.from(tokenBytes)
+    const inviteToken = Array.from(tokenBytes)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
     console.log('💾 Creating invite record...');
 
     // Criar convite pendente
-    const { data: invite, error: insertError } = await supabaseClient
+    const { data: invite, error: insertError } = await supabaseAdmin
       .from('pending_invites')
       .insert({
         workspace_id,
         email: email.toLowerCase().trim(),
         role,
-        token,
+        token: inviteToken,
         invited_by: user.id,
       })
       .select()
@@ -148,15 +148,15 @@ serve(async (req) => {
     }
 
     // Gerar URL de convite
-    const inviteUrl = `https://app.ziontraffic.com.br/accept-invite?token=${token}`;
+    const inviteUrl = `https://app.ziontraffic.com.br/accept-invite?token=${inviteToken}`;
 
-    console.log(`✅ Convite criado para ${email} - Token: ${token}`);
+    console.log(`✅ Convite criado para ${email} - Token: ${inviteToken}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         invite_url: inviteUrl,
-        token,
+        token: inviteToken,
         expires_at: invite.expires_at,
         email: invite.email,
         role: invite.role
