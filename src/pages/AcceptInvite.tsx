@@ -93,7 +93,7 @@ export default function AcceptInvite() {
     setIsProcessing(true);
 
     try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      let { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: inviteData.email,
         password,
         options: {
@@ -105,7 +105,7 @@ export default function AcceptInvite() {
 
       if (signUpError) {
         if (signUpError.message.includes('already registered')) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: inviteData.email,
             password
           });
@@ -114,6 +114,9 @@ export default function AcceptInvite() {
             toast.error('Email já cadastrado. Use a senha correta para entrar.');
             return;
           }
+
+          // Atualizar authData com os dados do login
+          authData = signInData;
         } else {
           throw signUpError;
         }
