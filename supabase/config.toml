@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.generate-invite-link]
 verify_jwt = true
+
+[functions.accept-workspace-invite]
+verify_jwt = true

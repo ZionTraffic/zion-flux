@@ -124,23 +124,20 @@ export default function AcceptInvite() {
         throw new Error('Erro ao criar usuário');
       }
 
-      const { error: memberError } = await supabase
-        .from('membros_workspace')
-        .insert({
-          workspace_id: inviteData.workspace_id,
-          user_id: userId,
-          role: inviteData.role
-        });
+      // Call edge function to add user to workspace (bypasses RLS)
+      const { data: inviteResult, error: inviteAcceptError } = await supabase.functions.invoke(
+        'accept-workspace-invite',
+        {
+          body: { token, user_id: userId }
+        }
+      );
 
-      if (memberError) {
-        console.error('Erro ao adicionar membro:', memberError);
-        throw memberError;
+      if (inviteAcceptError || !inviteResult?.success) {
+        console.error('Erro ao aceitar convite:', inviteAcceptError);
+        throw new Error(inviteAcceptError?.message || 'Erro ao processar convite');
       }
 
-      await supabase
-        .from('pending_invites')
-        .update({ used_at: new Date().toISOString() })
-        .eq('token', token);
+      console.log('✅ Convite aceito com sucesso:', inviteResult);
 
       toast.success(`Bem-vindo ao workspace ${inviteData.workspaces.name}!`);
       
