@@ -169,7 +169,7 @@ const DashboardIndex = () => {
             value={`R$ ${(advancedMetrics?.profit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
             icon="💰"
             trend={{ 
-              value: Math.abs(advancedMetrics?.roi || 0), 
+              value: Math.abs((advancedMetrics?.roi || 0) / 100), 
               isPositive: (advancedMetrics?.roi || 0) > 0 
             }}
             variant={(advancedMetrics?.roi || 0) > 0 ? "emerald" : "purple"}
