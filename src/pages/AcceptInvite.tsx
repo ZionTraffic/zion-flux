@@ -46,8 +46,21 @@ export default function AcceptInvite() {
 
       console.log('📊 AcceptInvite: Query result:', { data, error });
 
-      if (error || !data) {
-        console.error('❌ AcceptInvite: Invalid or expired invite', error);
+      if (error) {
+        console.error('❌ AcceptInvite: Database error', error);
+        
+        // Verificar se é erro de RLS ou outro problema
+        if (error.code === 'PGRST116') {
+          toast.error('Convite inválido ou expirado');
+        } else {
+          toast.error('Erro ao verificar convite. Verifique as permissões RLS.');
+        }
+        navigate('/auth');
+        return;
+      }
+
+      if (!data) {
+        console.error('❌ AcceptInvite: No invite data found');
         toast.error('Convite inválido ou expirado');
         navigate('/auth');
         return;
