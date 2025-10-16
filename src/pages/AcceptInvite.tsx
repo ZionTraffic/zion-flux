@@ -20,7 +20,10 @@ export default function AcceptInvite() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    console.log('🔍 AcceptInvite: Token from URL:', token);
+    
     if (!token) {
+      console.error('❌ AcceptInvite: No token provided');
       toast.error('Link de convite inválido');
       navigate('/auth');
       return;
@@ -31,6 +34,8 @@ export default function AcceptInvite() {
 
   const verifyToken = async () => {
     try {
+      console.log('🔍 AcceptInvite: Verifying token in database...');
+      
       const { data, error } = await supabase
         .from('pending_invites')
         .select('*, workspaces(name)')
@@ -39,15 +44,19 @@ export default function AcceptInvite() {
         .gt('expires_at', new Date().toISOString())
         .single();
 
+      console.log('📊 AcceptInvite: Query result:', { data, error });
+
       if (error || !data) {
+        console.error('❌ AcceptInvite: Invalid or expired invite', error);
         toast.error('Convite inválido ou expirado');
         navigate('/auth');
         return;
       }
 
+      console.log('✅ AcceptInvite: Invite verified successfully');
       setInviteData(data);
     } catch (error) {
-      console.error('Erro ao verificar token:', error);
+      console.error('❌ AcceptInvite: Error verifying token:', error);
       toast.error('Erro ao verificar convite');
       navigate('/auth');
     } finally {
