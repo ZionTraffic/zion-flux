@@ -100,13 +100,9 @@ serve(async (req) => {
       // User doesn't exist - create new account with invitation
       console.log('User not found, creating new account with invitation');
       
-      // Build redirect URL for complete signup page
-      const baseUrl = Deno.env.get('SUPABASE_URL') || '';
-      const redirectUrl = `${baseUrl.replace('.supabase.co', '.lovable.app')}/complete-signup`;
-      
       const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
         email: email.toLowerCase().trim(),
-        email_confirm: false, // Don't auto-confirm - user needs to set password first
+        email_confirm: false,
         app_metadata: {
           invited_to_workspace: workspace_id,
           invited_role: role
@@ -121,21 +117,20 @@ serve(async (req) => {
       userId = newUser.user!.id;
       console.log('New user created successfully:', userId);
       
-      // Generate and send confirmation email using Supabase templates
-      const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
-        type: 'signup',
-        email: email.toLowerCase().trim(),
-        options: {
+      // Send invitation email using inviteUserByEmail
+      const redirectUrl = 'https://wrebkgazdlyjenbpexnc.lovable.app/complete-signup';
+      
+      const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+        email.toLowerCase().trim(),
+        {
           redirectTo: redirectUrl
         }
-      });
+      );
 
-      if (linkError) {
-        console.error('Error generating confirmation link:', linkError);
-        // User was created but email failed - still proceed to add to workspace
-        console.warn('⚠️ User created but confirmation email failed. User ID:', userId);
+      if (inviteError) {
+        console.error('❌ Error sending invitation email:', inviteError);
       } else {
-        console.log('✅ Confirmation email sent successfully to:', email);
+        console.log('✅ Invitation email sent to:', email);
       }
     } else {
       userId = foundUser.id;
