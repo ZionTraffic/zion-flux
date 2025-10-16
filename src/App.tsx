@@ -16,6 +16,7 @@ import Analise from "./pages/Analise";
 import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
 import CompleteSignup from "./pages/CompleteSignup";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/complete-signup" element={<CompleteSignup />} />
+            <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />

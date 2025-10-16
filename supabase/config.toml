@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.analisar_fluxo_ia]
 verify_jwt = true
+
+[functions.generate-invite-link]
+verify_jwt = true
