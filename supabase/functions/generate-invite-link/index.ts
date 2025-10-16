@@ -18,6 +18,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 Request received:', req.method);
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -28,19 +30,37 @@ serve(async (req) => {
       }
     );
 
+    console.log('🔐 Checking authentication...');
+    
     // Verificar autenticação
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    
+    if (authError) {
+      console.error('❌ Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Erro de autenticação', details: authError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!user) {
+      console.error('❌ No user found');
       return new Response(
         JSON.stringify({ error: 'Não autenticado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { email, role, workspace_id }: GenerateInviteRequest = await req.json();
+    console.log('✅ User authenticated:', user.id);
+
+    const body = await req.json();
+    console.log('📨 Request body:', body);
+    
+    const { email, role, workspace_id }: GenerateInviteRequest = body;
 
     // Validações
     if (!email || !role || !workspace_id) {
+      console.error('❌ Missing required fields:', { email: !!email, role: !!role, workspace_id: !!workspace_id });
       return new Response(
         JSON.stringify({ error: 'Email, role e workspace_id são obrigatórios' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -49,26 +69,38 @@ serve(async (req) => {
 
     const validRoles = ['owner', 'admin', 'member', 'viewer'];
     if (!validRoles.includes(role)) {
+      console.error('❌ Invalid role:', role);
       return new Response(
         JSON.stringify({ error: 'Role inválida' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('🔍 Checking user permissions...');
+
     // Verificar se o usuário tem permissão (owner ou admin)
-    const { data: membership } = await supabaseClient
+    const { data: membership, error: membershipError } = await supabaseClient
       .from('membros_workspace')
       .select('role')
       .eq('workspace_id', workspace_id)
       .eq('user_id', user.id)
       .single();
 
+    if (membershipError) {
+      console.error('❌ Error checking membership:', membershipError);
+    }
+    
+    console.log('👤 User membership:', membership);
+
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      console.error('❌ Insufficient permissions');
       return new Response(
         JSON.stringify({ error: 'Sem permissão para convidar usuários' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('🎲 Generating secure token...');
 
     // Gerar token único e seguro
     const tokenBytes = new Uint8Array(32);
@@ -76,6 +108,8 @@ serve(async (req) => {
     const token = Array.from(tokenBytes)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
+
+    console.log('💾 Creating invite record...');
 
     // Criar convite pendente
     const { data: invite, error: insertError } = await supabaseClient
