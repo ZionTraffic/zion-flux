@@ -97,41 +97,45 @@ serve(async (req) => {
     let userId: string;
 
     if (!foundUser) {
-      // User doesn't exist - create new account with invitation
-      console.log('User not found, creating new account with invitation');
+      // User doesn't exist - send invitation email (this creates the user AND sends email)
+      console.log('User not found, sending invitation email');
       
-      const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
-        email: email.toLowerCase().trim(),
-        email_confirm: true,
-        app_metadata: {
-          invited_to_workspace: workspace_id,
-          invited_role: role
-        }
-      });
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        throw new Error('Failed to create user account. Please try again.');
-      }
-
-      userId = newUser.user!.id;
-      console.log('New user created successfully:', userId);
-      
-      // Send invitation email using inviteUserByEmail
       const redirectUrl = 'https://app.ziontraffic.com.br/complete-signup';
       
-      const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+      const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
         email.toLowerCase().trim(),
         {
-          redirectTo: redirectUrl
+          redirectTo: redirectUrl,
+          data: {
+            invited_to_workspace: workspace_id,
+            invited_role: role
+          }
         }
       );
 
       if (inviteError) {
         console.error('❌ Error sending invitation email:', inviteError);
-      } else {
-        console.log('✅ Invitation email sent to:', email);
+        throw new Error('Failed to send invitation email. Please try again.');
       }
+
+      console.log('✅ Invitation email sent to:', email);
+
+      // Get the newly created user
+      const { data: updatedUsers, error: refreshError } = await supabaseClient.auth.admin.listUsers();
+      
+      if (refreshError) {
+        console.error('Error fetching updated user list:', refreshError);
+        throw new Error('Failed to retrieve user information');
+      }
+
+      foundUser = updatedUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (!foundUser) {
+        throw new Error('User was invited but could not be found');
+      }
+
+      userId = foundUser.id;
+      console.log('New user ID retrieved:', userId);
     } else {
       userId = foundUser.id;
       console.log('Existing user found:', userId);
