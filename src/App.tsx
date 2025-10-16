@@ -15,6 +15,7 @@ import Qualificacao from "./pages/Qualificacao";
 import Analise from "./pages/Analise";
 import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
+import CompleteSignup from "./pages/CompleteSignup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/complete-signup" element={<CompleteSignup />} />
             <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />

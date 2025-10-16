@@ -93,20 +93,47 @@ serve(async (req) => {
       throw new Error('Failed to search for user');
     }
 
-    const foundUser = targetUser.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let foundUser = targetUser.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let userId: string;
 
     if (!foundUser) {
-      throw new Error('User not found. The user must have an account before being added to a workspace.');
-    }
+      // User doesn't exist - create new account with invitation
+      console.log('User not found, creating new account with invitation');
+      
+      // Build redirect URL for complete signup page
+      const baseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const redirectUrl = `${baseUrl.replace('.supabase.co', '.lovable.app')}/complete-signup`;
+      
+      const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
+        email: email.toLowerCase().trim(),
+        email_confirm: false, // Don't auto-confirm - user needs to set password first
+        app_metadata: {
+          invited_to_workspace: workspace_id,
+          invited_role: role
+        }
+      });
 
-    console.log('User found and validated');
+      if (createError) {
+        console.error('Error creating user:', createError);
+        throw new Error('Failed to create user account. Please try again.');
+      }
+
+      userId = newUser.user!.id;
+      console.log('New user created successfully:', userId);
+      
+      // Supabase will automatically send the confirmation email with the configured template
+      // pointing to the redirectUrl configured in Authentication > URL Configuration
+    } else {
+      userId = foundUser.id;
+      console.log('Existing user found:', userId);
+    }
 
     // Check if user is already a member
     const { data: existingMember } = await supabaseClient
       .from('membros_workspace')
       .select('user_id')
       .eq('workspace_id', workspace_id)
-      .eq('user_id', foundUser.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (existingMember) {
@@ -118,7 +145,7 @@ serve(async (req) => {
       .from('membros_workspace')
       .insert({
         workspace_id,
-        user_id: foundUser.id,
+        user_id: userId,
         role
       });
 
@@ -133,7 +160,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Member added successfully',
-        user_id: foundUser.id
+        user_id: userId,
+        user_created: !foundUser // Indicates if a new user was created
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
