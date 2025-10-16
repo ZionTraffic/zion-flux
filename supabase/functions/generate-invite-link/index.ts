@@ -20,12 +20,27 @@ serve(async (req) => {
   try {
     console.log('🔍 Request received:', req.method);
     
+    // Verificar se o header de autorização existe
+    const authHeader = req.headers.get('Authorization');
+    console.log('🔑 Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('❌ Missing Authorization header');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Não autenticado',
+          details: 'Token de autenticação não encontrado. Tente fazer logout e login novamente.'
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );

@@ -66,6 +66,15 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
     }
 
     try {
+      // Verificar se está autenticado antes de chamar a function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError('Você precisa estar autenticado. Faça logout e login novamente.');
+        toast.error('Sessão expirada. Faça login novamente.');
+        return;
+      }
+
       const validation = addMemberSchema.parse({
         workspace_id: targetWorkspaceId,
         email,
@@ -82,8 +91,14 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         }
       });
 
-      if (functionError) throw functionError;
-      if (data?.error) throw new Error(data.error);
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        throw functionError;
+      }
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setGeneratedLink(data.invite_url);
       setInviteDetails(data);
@@ -91,7 +106,9 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
       
     } catch (err: any) {
       console.error('Erro ao gerar link:', err);
-      setError(err.message || 'Erro ao gerar link de convite');
+      const errorMessage = err.message || 'Erro ao gerar link de convite';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
