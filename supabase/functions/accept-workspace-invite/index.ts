@@ -58,8 +58,11 @@ Deno.serve(async (req) => {
 
     console.log('✅ accept-workspace-invite: User authenticated successfully');
 
-    // Verify invite exists and is valid (using regular client - RLS allows public read of valid invites)
-    const { data: invite, error: inviteError } = await supabase
+    // Create anon client for public invite verification (doesn't require user authentication)
+    const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Verify invite exists and is valid (using anon client - RLS policy "Anyone can view invite by token" allows this)
+    const { data: invite, error: inviteError } = await supabasePublic
       .from('pending_invites')
       .select('*')
       .eq('token', token)
