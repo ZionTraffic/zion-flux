@@ -412,94 +412,15 @@ const Trafego = () => {
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >
-      {/* Date Range Filter with Quick Filters */}
+      {/* Date Range Filter */}
       <div className="mb-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
-          <div className="flex-1">
-            <DateRangePicker
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-              onClearFilter={handleClearFilter}
-              minDays={1}
-              maxDays={90}
-            />
-          </div>
-          
-          {/* Quick Filters ao lado */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('today')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('today') && "border-primary bg-primary/10"
-              )}
-            >
-              Hoje
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('yesterday')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('yesterday') && "border-primary bg-primary/10"
-              )}
-            >
-              Ontem
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('last7days')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('last7days') && "border-primary bg-primary/10"
-              )}
-            >
-              Últimos 7 Dias
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('last30days')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('last30days') && "border-primary bg-primary/10"
-              )}
-            >
-              Últimos 30 Dias
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('thisMonth')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('thisMonth') && "border-primary bg-primary/10"
-              )}
-            >
-              Este Mês
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => applyQuickFilter('lastMonth')}
-              className={cn(
-                "glass-medium",
-                isActiveFilter('lastMonth') && "border-primary bg-primary/10"
-              )}
-            >
-              Mês Passado
-            </Button>
-          </div>
-        </div>
+        <DateRangePicker
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          onClearFilter={handleClearFilter}
+          minDays={1}
+          maxDays={90}
+        />
       </div>
 
       {/* Error Messages */}
