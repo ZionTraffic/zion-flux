@@ -6,7 +6,7 @@ interface MoneyKpiCardProps {
   label: string;
   value: string | number;
   icon: ReactNode;
-  trend: {
+  trend?: {
     value: number;
     isPositive: boolean;
   };

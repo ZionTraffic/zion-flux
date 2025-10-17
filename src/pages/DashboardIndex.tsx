@@ -9,9 +9,9 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
-import { BusinessHealthCard } from "@/components/dashboard/executive/BusinessHealthCard";
+import { PeriodSummaryCard } from "@/components/dashboard/executive/PeriodSummaryCard";
 import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
-import { SmartAlertsCard } from "@/components/dashboard/executive/SmartAlertsCard";
+import { StrategicInsightsCard } from "@/components/dashboard/executive/StrategicInsightsCard";
 import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { ActionCard } from "@/components/dashboard/executive/ActionCard";
@@ -188,7 +188,6 @@ const DashboardIndex = () => {
             label="Leads Gerados"
             value={(leads?.totalLeads || 0).toLocaleString('pt-BR')}
             icon="🎯"
-            trend={{ value: 23, isPositive: true }}
             variant="emerald"
             delay={0}
           />
@@ -198,7 +197,6 @@ const DashboardIndex = () => {
             label="Mensagens Iniciadas"
             value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
             icon="💬"
-            trend={{ value: 12, isPositive: true }}
             variant="blue"
             delay={0.05}
           />
@@ -208,7 +206,6 @@ const DashboardIndex = () => {
             label="Leads Qualificados"
             value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
             icon="💎"
-            trend={{ value: 5, isPositive: false }}
             variant="purple"
             delay={0.1}
           />
@@ -220,18 +217,17 @@ const DashboardIndex = () => {
               minimumFractionDigits: 2 
             })}`}
             icon="💰"
-            trend={{ 
-              value: Math.abs((advancedMetrics?.roi || 0)), 
-              isPositive: (advancedMetrics?.roi || 0) > 0 
-            }}
             variant="emerald"
             delay={0.15}
             highlight={true}
           />
         </div>
 
-        {/* 4. Smart Alerts */}
-        <SmartAlertsCard alerts={alerts} />
+        {/* 3. Resumo do Período */}
+        <PeriodSummaryCard metrics={qualificationMetrics} />
+
+        {/* 4. Insights Estratégicos */}
+        <StrategicInsightsCard alerts={alerts} />
 
         {/* 5. Gráficos Consolidados - Linha 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -326,36 +322,30 @@ const DashboardIndex = () => {
 
         {/* 6. Gráficos Consolidados - Linha 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Gráfico 3: ROI ao Longo do Tempo */}
+          {/* Gráfico 3: Evolução de Leads Qualificados */}
           <div className="glass rounded-2xl p-6 border border-border/50">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">ROI ao Longo do Tempo</h3>
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Evolução de Leads Qualificados</h3>
             <div className="h-[300px] flex items-end gap-2 pb-8">
-              {roiHistory && roiHistory.length > 0 ? (
-                roiHistory.slice(-10).map((item, idx) => {
-                  const maxROI = Math.max(...roiHistory.map(d => Math.abs(d.roi)));
-                  const height = maxROI > 0 ? (Math.abs(item.roi) / maxROI * 100) : 0;
-                  const isPositive = item.roi >= 0;
+              {trafficLeadsChart && trafficLeadsChart.length > 0 ? (
+                trafficLeadsChart.slice(-10).map((item, idx) => {
+                  const maxLeads = Math.max(...trafficLeadsChart.map(d => d.leads));
+                  const height = maxLeads > 0 ? (item.leads / maxLeads * 100) : 0;
                   
                   return (
                     <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="text-xs font-semibold" style={{ color: isPositive ? '#10b981' : '#ef4444' }}>
-                        {item.roi.toLocaleString('pt-BR', { 
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0 
-                        })}%
+                      <div className="text-xs font-semibold text-emerald-400">
+                        {item.leads}
                       </div>
                       <div 
                         className="w-full rounded-t-lg transition-all duration-500"
                         style={{ 
                           height: `${Math.max(height, 10)}%`,
-                          background: isPositive 
-                            ? 'linear-gradient(180deg, #10b981, #059669)' 
-                            : 'linear-gradient(180deg, #ef4444, #dc2626)',
+                          background: 'linear-gradient(180deg, #10b981, #059669)',
                           minHeight: '20px'
                         }}
                       />
                       <span className="text-xs text-muted-foreground rotate-45 origin-left mt-2">
-                        {item.date}
+                        {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>
                   );
