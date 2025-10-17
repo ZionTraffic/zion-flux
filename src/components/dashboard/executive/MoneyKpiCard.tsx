@@ -20,20 +20,29 @@ const variantGradients = {
   purple: 'var(--gradient-purple)',
 };
 
+interface MoneyKpiCardPropsExtended extends MoneyKpiCardProps {
+  highlight?: boolean;
+}
+
 export const MoneyKpiCard = ({ 
   label, 
   value, 
   icon, 
   trend, 
   variant = 'blue',
-  delay = 0 
-}: MoneyKpiCardProps) => {
+  delay = 0,
+  highlight = false
+}: MoneyKpiCardPropsExtended) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="glass rounded-apple-lg p-6 border border-border/50 shadow-apple-lg card-hover"
+      className={`glass rounded-apple-lg p-6 border shadow-apple-lg card-hover ${
+        highlight 
+          ? 'border-[#ff1493] ring-2 ring-[#ff1493]/50 ring-offset-2 ring-offset-background' 
+          : 'border-border/50'
+      }`}
       style={{ 
         background: variantGradients[variant],
       }}

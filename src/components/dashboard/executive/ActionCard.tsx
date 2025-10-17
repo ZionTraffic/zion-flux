@@ -15,15 +15,15 @@ interface ActionCardProps {
 
 const variantConfig = {
   trafego: {
-    gradient: 'var(--gradient-blue)',
+    gradient: 'linear-gradient(135deg, #0d47a1 0%, #0a3c8a 100%)',
     color: 'text-blue-400',
   },
   qualificacao: {
-    gradient: 'var(--gradient-emerald)',
+    gradient: 'linear-gradient(135deg, #1b5e20 0%, #155d1e 100%)',
     color: 'text-emerald-400',
   },
   analise: {
-    gradient: 'var(--gradient-purple)',
+    gradient: 'linear-gradient(135deg, #4a148c 0%, #3b1070 100%)',
     color: 'text-purple-400',
   },
 };

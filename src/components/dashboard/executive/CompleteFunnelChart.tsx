@@ -61,15 +61,14 @@ export const CompleteFunnelChart = ({ data }: CompleteFunnelChartProps) => {
                   initial={{ width: 0 }}
                   animate={{ width: `${widthPercent}%` }}
                   transition={{ duration: 0.6, delay: 0.5 + index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  className={`h-full rounded-lg ${
-                    isBottleneck || isBelowBenchmark
-                      ? 'bg-gradient-to-r from-destructive/80 to-destructive/60'
-                      : 'bg-gradient-to-r from-primary/80 to-primary/60'
-                  }`}
+                  className="h-full rounded-lg"
                   style={{
+                    background: isBottleneck || isBelowBenchmark
+                      ? 'linear-gradient(to right, #ef4444, #dc2626)'
+                      : 'linear-gradient(to right, #10b981, #059669)',
                     boxShadow: isBottleneck || isBelowBenchmark
                       ? '0 0 20px rgba(239, 68, 68, 0.3)'
-                      : '0 0 20px rgba(0, 198, 255, 0.2)',
+                      : '0 0 20px rgba(16, 185, 129, 0.2)',
                   }}
                 />
                 
@@ -102,11 +101,11 @@ export const CompleteFunnelChart = ({ data }: CompleteFunnelChartProps) => {
       <div className="mt-6 pt-6 border-t border-border/50">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-400" />
+            <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
             <span className="text-muted-foreground">Acima do benchmark</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-destructive" />
+            <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
             <span className="text-muted-foreground">Abaixo do benchmark / Gargalo</span>
           </div>
         </div>

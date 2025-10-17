@@ -184,6 +184,7 @@ const DashboardIndex = () => {
             }}
             variant={(advancedMetrics?.roi || 0) > 0 ? "emerald" : "purple"}
             delay={0.15}
+            highlight={true}
           />
         </div>
 
@@ -200,7 +201,9 @@ const DashboardIndex = () => {
                 <div className="space-y-2">
                   {trafficLeadsChart.slice(-7).map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4">
-                      <span className="text-xs text-muted-foreground w-16">{item.date}</span>
+                  <span className="text-xs text-muted-foreground w-16">
+                    {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                  </span>
                       <div className="flex-1 flex gap-2">
                         <div 
                           className="h-8 rounded-lg flex items-center justify-center text-xs font-semibold"

@@ -28,7 +28,7 @@ export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps)
         return {
           emoji: '🔴',
           label: 'SITUAÇÃO CRÍTICA',
-          gradient: 'var(--gradient-rose)',
+          gradient: 'linear-gradient(135deg, #3d1f2d 0%, #2a1621 100%)',
           textColor: 'text-rose-400',
         };
     }
