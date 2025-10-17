@@ -320,47 +320,6 @@ const DashboardIndex = () => {
           </div>
         </div>
 
-        {/* 6. Gráficos Consolidados - Linha 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Gráfico 3: Evolução de Leads Qualificados */}
-          <div className="glass rounded-2xl p-6 border border-border/50">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Evolução de Leads Qualificados</h3>
-            <div className="h-[300px] flex items-end gap-2 pb-8">
-              {trafficLeadsChart && trafficLeadsChart.length > 0 ? (
-                trafficLeadsChart.slice(-10).map((item, idx) => {
-                  const maxLeads = Math.max(...trafficLeadsChart.map(d => d.leads));
-                  const height = maxLeads > 0 ? (item.leads / maxLeads * 100) : 0;
-                  
-                  return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="text-xs font-semibold text-emerald-400">
-                        {item.leads}
-                      </div>
-                      <div 
-                        className="w-full rounded-t-lg transition-all duration-500"
-                        style={{ 
-                          height: `${Math.max(height, 10)}%`,
-                          background: 'linear-gradient(180deg, #10b981, #059669)',
-                          minHeight: '20px'
-                        }}
-                      />
-                      <span className="text-xs text-muted-foreground rotate-45 origin-left mt-2">
-                        {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-muted-foreground text-center w-full">Sem dados disponíveis</p>
-              )}
-            </div>
-          </div>
-
-          {/* Gráfico 4: Funil de Vendas */}
-          <div className="lg:col-span-1">
-            <CompleteFunnelChart data={funnelData} />
-          </div>
-        </div>
 
         {/* 7. Tabela de Campanhas */}
         <div className="glass rounded-2xl p-6 border border-border/50">
