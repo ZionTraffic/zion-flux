@@ -14,7 +14,6 @@ import Trafego from "./pages/Trafego";
 import Qualificacao from "./pages/Qualificacao";
 import Analise from "./pages/Analise";
 import Configuracoes from "./pages/Configuracoes";
-import Relatorios from "./pages/Relatorios";
 import Auth from "./pages/Auth";
 import CompleteSignup from "./pages/CompleteSignup";
 import AcceptInvite from "./pages/AcceptInvite";
@@ -39,7 +38,6 @@ const App = () => (
             <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/relatorios" element={<ProtectedRoute><WorkspaceProvider><Relatorios /></WorkspaceProvider></ProtectedRoute>} />
             <Route path="/no-access" element={<ProtectedRoute><WorkspaceProvider><NoAccess /></WorkspaceProvider></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
