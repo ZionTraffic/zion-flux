@@ -182,6 +182,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => navigate('/relatorios')}
                     className="glass hover:glass-medium hidden sm:flex"
                   >
                     <Download className="h-4 w-4" />
