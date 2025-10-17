@@ -85,6 +85,45 @@ export function DateRangePicker({
     onDateRangeChange(newRange);
   };
 
+  const handleQuickFilter = (type: 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth') => {
+    const today = new Date();
+    const from = new Date();
+    const to = new Date();
+
+    switch (type) {
+      case 'today':
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
+        break;
+      case 'yesterday':
+        from.setDate(from.getDate() - 1);
+        from.setHours(0, 0, 0, 0);
+        to.setDate(to.getDate() - 1);
+        to.setHours(23, 59, 59, 999);
+        break;
+      case 'last7':
+        from.setDate(from.getDate() - 7);
+        break;
+      case 'last30':
+        from.setDate(from.getDate() - 30);
+        break;
+      case 'thisMonth':
+        from.setDate(1);
+        from.setHours(0, 0, 0, 0);
+        break;
+      case 'lastMonth':
+        from.setMonth(from.getMonth() - 1);
+        from.setDate(1);
+        from.setHours(0, 0, 0, 0);
+        to.setDate(0); // Last day of previous month
+        to.setHours(23, 59, 59, 999);
+        break;
+    }
+
+    setError("");
+    onDateRangeChange({ from, to });
+  };
+
   const isCustomRange = () => {
     if (!dateRange?.from || !dateRange?.to) return false;
     
@@ -101,7 +140,7 @@ export function DateRangePicker({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
         <DatePickerField
           date={dateRange?.from}
@@ -150,6 +189,58 @@ export function DateRangePicker({
           )}
         </div>
       )}
+
+      {/* Quick Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('today')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Hoje
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('yesterday')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Ontem
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('last7')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Últimos 7 Dias
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('last30')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Últimos 30 Dias
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('thisMonth')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Este Mês
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleQuickFilter('lastMonth')}
+          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
+        >
+          Mês Passado
+        </Button>
+      </div>
     </div>
   );
 }
