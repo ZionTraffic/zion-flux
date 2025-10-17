@@ -127,13 +127,7 @@ const DashboardIndex = () => {
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
-        {/* 1. Business Health - Hero Section */}
-        <BusinessHealthCard 
-          health={businessHealth}
-          metrics={qualificationMetrics}
-        />
-
-        {/* 2. Última Atualização */}
+        {/* 1. Última Atualização */}
         <div className="glass rounded-2xl p-4 border border-border/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
