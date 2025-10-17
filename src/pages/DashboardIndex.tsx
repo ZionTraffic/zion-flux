@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { type DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
 import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
 import { BusinessHealthCard } from "@/components/dashboard/executive/BusinessHealthCard";
 import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
@@ -19,6 +22,16 @@ const DashboardIndex = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const diagnostics = useSupabaseDiagnostics();
+  const { toast } = useToast();
+
+  // Date range state - default to last 90 days
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 90);
+    return { from, to };
+  });
+
   const {
     businessHealth,
     qualificationMetrics,
@@ -34,7 +47,11 @@ const DashboardIndex = () => {
     metaAds,
     leads,
     conversations,
-  } = useExecutiveDashboard(currentWorkspaceId || '');
+  } = useExecutiveDashboard(
+    currentWorkspaceId || '',
+    dateRange?.from,
+    dateRange?.to
+  );
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -65,6 +82,17 @@ const DashboardIndex = () => {
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
+  };
+
+  const handleClearFilter = () => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 90);
+    setDateRange({ from, to });
+    toast({
+      title: "Filtro limpo",
+      description: "Exibindo dados dos últimos 90 dias",
+    });
   };
 
   // Show no workspace screen if user has no workspace access
@@ -140,6 +168,17 @@ const DashboardIndex = () => {
           <span className="text-xs text-muted-foreground">
             Auto-refresh a cada 30s
           </span>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="mb-6">
+          <DateRangePicker
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            onClearFilter={handleClearFilter}
+            minDays={1}
+            maxDays={90}
+          />
         </div>
 
         {/* 2. KPIs Principais - 4 Cards */}
