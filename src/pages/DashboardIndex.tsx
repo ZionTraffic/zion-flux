@@ -183,23 +183,23 @@ const DashboardIndex = () => {
 
         {/* 2. KPIs Principais - 4 Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Mensagens Iniciadas (Conversas do WhatsApp) */}
-          <MoneyKpiCard
-            label="Mensagens Iniciadas"
-            value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
-            icon="💬"
-            trend={{ value: 12, isPositive: true }}
-            variant="blue"
-            delay={0}
-          />
-
-          {/* Card 2: Total de Leads */}
+          {/* Card 1: Leads Gerados */}
           <MoneyKpiCard
             label="Leads Gerados"
             value={(leads?.totalLeads || 0).toLocaleString('pt-BR')}
             icon="🎯"
             trend={{ value: 23, isPositive: true }}
             variant="emerald"
+            delay={0}
+          />
+
+          {/* Card 2: Mensagens Iniciadas */}
+          <MoneyKpiCard
+            label="Mensagens Iniciadas"
+            value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+            icon="💬"
+            trend={{ value: 12, isPositive: true }}
+            variant="blue"
             delay={0.05}
           />
 
