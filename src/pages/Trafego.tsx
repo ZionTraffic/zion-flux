@@ -16,12 +16,16 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { pdf } from "@react-pdf/renderer";
+import { TrafegoPDF } from "@/components/reports/TrafegoPDF";
+import { format } from "date-fns";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   
   // Date range state - default to last 90 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -140,6 +144,47 @@ const Trafego = () => {
         const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
         return isSameDay(dateRange.from, firstDay) && isSameDay(dateRange.to, lastDay);
       }
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!totals) return;
+    
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <TrafegoPDF
+          totals={totals}
+          daily={daily}
+          campaigns={campaigns}
+          dateRange={dateRange}
+          workspaceName={currentWorkspaceId}
+        />
+      ).toBlob();
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = dateRange?.from && dateRange?.to 
+        ? `${format(dateRange.from, 'yyyy-MM-dd')}-${format(dateRange.to, 'yyyy-MM-dd')}`
+        : format(new Date(), 'yyyy-MM-dd');
+      link.download = `trafego-${currentWorkspaceId}-${dateStr}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "✅ Relatório de Tráfego exportado!",
+        description: "PDF gerado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "❌ Erro ao gerar PDF",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -364,6 +409,8 @@ const Trafego = () => {
       lastUpdate={lastUpdate}
       currentWorkspace={currentWorkspaceId}
       onWorkspaceChange={handleWorkspaceChange}
+      onExportPdf={handleExportPdf}
+      isExporting={isExporting}
     >
       {/* Date Range Filter with Quick Filters */}
       <div className="mb-6">

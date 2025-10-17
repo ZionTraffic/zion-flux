@@ -16,10 +16,14 @@ import NovoLeadsChart from "@/components/qualificacao/NovoLeadsChart";
 import LeadsQualificadosChart from "@/components/qualificacao/LeadsQualificadosChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
+import { pdf } from "@react-pdf/renderer";
+import { QualificacaoPDF } from "@/components/reports/QualificacaoPDF";
+import { format } from "date-fns";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   
   // Date range state - default to last 90 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -151,6 +155,44 @@ const Qualificacao = () => {
     moveLead(leadId, fromStage, toStage);
   };
 
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <QualificacaoPDF
+          kpis={kpis}
+          charts={charts}
+          dateRange={dateRange}
+          workspaceName={currentWorkspaceId}
+        />
+      ).toBlob();
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = dateRange?.from && dateRange?.to 
+        ? `${format(dateRange.from, 'yyyy-MM-dd')}-${format(dateRange.to, 'yyyy-MM-dd')}`
+        : format(new Date(), 'yyyy-MM-dd');
+      link.download = `qualificacao-${currentWorkspaceId}-${dateStr}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "✅ Relatório de Qualificação exportado!",
+        description: "PDF gerado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "❌ Erro ao gerar PDF",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const kpiCards = [
     {
       label: "Total de Leads",
@@ -182,6 +224,8 @@ const Qualificacao = () => {
       lastUpdate={new Date()}
       currentWorkspace={currentWorkspaceId}
       onWorkspaceChange={handleWorkspaceChange}
+      onExportPdf={handleExportPdf}
+      isExporting={isExporting}
     >
       {/* Date Range Filter with Quick Filters */}
       <div className="mb-6">

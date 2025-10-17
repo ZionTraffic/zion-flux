@@ -8,6 +8,8 @@ interface DashboardLayoutProps {
   lastUpdate?: Date | null;
   currentWorkspace?: string | null;
   onWorkspaceChange?: (workspaceId: string) => Promise<void>;
+  onExportPdf?: () => void;
+  isExporting?: boolean;
 }
 
 export const DashboardLayout = ({
@@ -17,6 +19,8 @@ export const DashboardLayout = ({
   lastUpdate,
   currentWorkspace,
   onWorkspaceChange,
+  onExportPdf,
+  isExporting,
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen w-full">
@@ -27,6 +31,8 @@ export const DashboardLayout = ({
         lastUpdate={lastUpdate}
         currentWorkspace={currentWorkspace}
         onWorkspaceChange={onWorkspaceChange}
+        onExportPdf={onExportPdf}
+        isExporting={isExporting}
       />
 
       {/* Page Content */}

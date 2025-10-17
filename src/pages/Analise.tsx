@@ -11,6 +11,9 @@ import { MessageSquare, Search, TrendingUp, Clock, Lightbulb, CheckCircle2 } fro
 import { DetailedAnalysisModal } from "@/components/analise/DetailedAnalysisModal";
 import { calculateQualityScore } from "@/utils/conversationMetrics";
 import { EditableTagBadge } from "@/components/analise/components/EditableTagBadge";
+import { pdf } from "@react-pdf/renderer";
+import { AnalisePDF } from "@/components/reports/AnalisePDF";
+import { useToast } from "@/hooks/use-toast";
 
 const Conversas = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -19,6 +22,8 @@ const Conversas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   // Sync conversations with data from hook
   useEffect(() => {
@@ -57,6 +62,40 @@ const Conversas = () => {
     negative: "bg-red-500/10 text-red-400 border-red-500/30",
   };
 
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <AnalisePDF
+          conversations={conversations}
+          stats={stats}
+          workspaceName={currentWorkspaceId}
+        />
+      ).toBlob();
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analise-conversas-${currentWorkspaceId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "✅ Relatório de Análise exportado!",
+        description: "PDF gerado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "❌ Erro ao gerar PDF",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header 
@@ -65,6 +104,8 @@ const Conversas = () => {
         lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
         onWorkspaceChange={handleWorkspaceChange}
+        onExportPdf={handleExportPdf}
+        isExporting={isExporting}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
