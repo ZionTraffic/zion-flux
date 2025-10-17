@@ -15,12 +15,16 @@ import { StrategicInsightsCard } from "@/components/dashboard/executive/Strategi
 import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { ActionCard } from "@/components/dashboard/executive/ActionCard";
+import { pdf } from "@react-pdf/renderer";
+import { DashboardPDF } from "@/components/reports/DashboardPDF";
+import { format } from "date-fns";
 
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const [userEmail, setUserEmail] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
 
@@ -95,6 +99,52 @@ const DashboardIndex = () => {
     });
   };
 
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <DashboardPDF
+          businessHealth={businessHealth}
+          qualificationMetrics={qualificationMetrics}
+          alerts={alerts}
+          funnelData={funnelData}
+          topCampaigns={topCampaigns}
+          advancedMetrics={advancedMetrics}
+          trafficLeadsChart={trafficLeadsChart}
+          leadsSourceDistribution={leadsSourceDistribution}
+          metaAds={metaAds}
+          dateRange={dateRange || { from: undefined, to: undefined }}
+          workspaceName={currentWorkspaceId}
+          leads={leads}
+          conversations={conversations}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fromDate = dateRange?.from || new Date();
+      const toDate = dateRange?.to || new Date();
+      link.download = `dashboard-${currentWorkspaceId}-${format(fromDate, 'yyyy-MM-dd')}-${format(toDate, 'yyyy-MM-dd')}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "✅ PDF gerado com sucesso!",
+        description: "O arquivo foi baixado automaticamente.",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "❌ Erro ao gerar PDF",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Show no workspace screen if user has no workspace access
   if (!currentWorkspaceId && diagnostics.status !== "checking") {
     return <NoWorkspaceAccess userEmail={userEmail} />;
@@ -152,6 +202,8 @@ const DashboardIndex = () => {
         lastUpdate={new Date()}
         currentWorkspace={currentWorkspaceId}
         onWorkspaceChange={handleWorkspaceChange}
+        onExportPdf={handleExportPdf}
+        isExporting={isExporting}
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">

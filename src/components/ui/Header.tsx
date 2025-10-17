@@ -22,9 +22,11 @@ interface HeaderProps {
   lastUpdate: Date | null;
   currentWorkspace: string | null;
   onWorkspaceChange: (workspaceId: string) => Promise<void>;
+  onExportPdf?: () => void;
+  isExporting?: boolean;
 }
 
-export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange }: HeaderProps) => {
+export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange, onExportPdf, isExporting }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -183,12 +185,14 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                     variant="ghost"
                     size="sm"
                     className="glass hover:glass-medium hidden sm:flex"
+                    onClick={onExportPdf}
+                    disabled={isExporting}
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className={`h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Exportar relatório</p>
+                  <p>{isExporting ? 'Gerando PDF...' : 'Exportar relatório'}</p>
                 </TooltipContent>
               </Tooltip>
 
