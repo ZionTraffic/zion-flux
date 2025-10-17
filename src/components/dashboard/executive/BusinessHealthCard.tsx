@@ -46,16 +46,13 @@ export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps)
       style={{ background: config.gradient }}
     >
       <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="text-5xl">{config.emoji}</span>
-          <div>
-            <h2 className={`text-2xl font-bold ${config.textColor}`}>
-              {config.label}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Hoje, {currentTime}
-            </p>
-          </div>
+        <div>
+          <h2 className={`text-2xl font-bold ${config.textColor}`}>
+            {config.label}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Hoje, {currentTime}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-muted-foreground">Score de Saúde</p>
