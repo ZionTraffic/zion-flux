@@ -330,42 +330,43 @@ const DashboardIndex = () => {
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-3">Campanha</th>
                   <th className="text-right py-3 px-3">Impressões</th>
-                  <th className="text-right py-3 px-3">Cliques</th>
+                  <th className="text-right py-3 px-3">Mensagens Iniciadas</th>
                   <th className="text-right py-3 px-3">CTR (%)</th>
-                  <th className="text-right py-3 px-3">CPC (R$)</th>
+                  <th className="text-right py-3 px-3">Custo por Conversa Iniciada</th>
                   <th className="text-right py-3 px-3">Investimento</th>
-                  <th className="text-right py-3 px-3">Leads Est.</th>
                 </tr>
               </thead>
               <tbody>
                 {metaAds.campaigns && metaAds.campaigns.length > 0 ? (
                   metaAds.campaigns.slice(0, 10).map((campaign: any, idx: number) => {
                     const totalClicks = metaAds.clicks || 1;
-                    const totalLeads = leads?.totalLeads || 0;
-                    const estimatedLeads = Math.round((campaign.clicks / totalClicks) * totalLeads);
+                    const totalConversas = metaAds.conversas_iniciadas || 1;
+                    const estimatedConversas = Math.round((campaign.clicks / totalClicks) * totalConversas);
                     const ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions * 100) : 0;
+                    const custoConversa = estimatedConversas > 0 ? (campaign.spend / estimatedConversas) : 0;
                     
                     return (
                       <tr key={idx} className="border-b border-border/50 hover:bg-secondary/30 transition">
                         <td className="py-3 px-3 max-w-[200px] truncate">{campaign.campaign_name || campaign.name}</td>
                         <td className="text-right py-3 px-3">{(campaign.impressions || 0).toLocaleString('pt-BR')}</td>
-                        <td className="text-right py-3 px-3">{(campaign.clicks || 0).toLocaleString('pt-BR')}</td>
                         <td className="text-right py-3 px-3 font-semibold" style={{ color: '#00d4ff' }}>
+                          {estimatedConversas}
+                        </td>
+                        <td className="text-right py-3 px-3 font-semibold" style={{ color: '#10b981' }}>
                           {ctr.toFixed(2)}%
                         </td>
-                        <td className="text-right py-3 px-3">R$ {(campaign.cpc || 0).toFixed(2)}</td>
+                        <td className="text-right py-3 px-3">
+                          R$ {custoConversa.toFixed(2)}
+                        </td>
                         <td className="text-right py-3 px-3 font-semibold">
                           R$ {(campaign.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="text-right py-3 px-3 font-semibold" style={{ color: '#ff1493' }}>
-                          {estimatedLeads}
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhuma campanha disponível
                     </td>
                   </tr>
