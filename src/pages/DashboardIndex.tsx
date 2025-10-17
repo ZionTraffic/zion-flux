@@ -142,41 +142,50 @@ const DashboardIndex = () => {
           </span>
         </div>
 
-        {/* 3. KPIs Principais - 4 Cards */}
+        {/* 2. KPIs Principais - 4 Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Card 1: Mensagens Iniciadas (Conversas do WhatsApp) */}
           <MoneyKpiCard
-            label="Tráfego Total"
-            value={(metaAds?.clicks || 0).toLocaleString('pt-BR')}
-            icon="📊"
+            label="Mensagens Iniciadas"
+            value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+            icon="💬"
             trend={{ value: 12, isPositive: true }}
             variant="blue"
             delay={0}
           />
+
+          {/* Card 2: Total de Leads */}
           <MoneyKpiCard
             label="Leads Gerados"
-            value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+            value={(leads?.totalLeads || 0).toLocaleString('pt-BR')}
             icon="🎯"
-            trend={{ value: qualificationMetrics.qualifiedTrend, isPositive: true }}
+            trend={{ value: 23, isPositive: true }}
             variant="emerald"
             delay={0.05}
           />
+
+          {/* Card 3: Leads Qualificados */}
           <MoneyKpiCard
-            label="Taxa de Conversão"
-            value={`${(advancedMetrics?.qualificationRate || 0).toFixed(1)}%`}
+            label="Leads Qualificados"
+            value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
             icon="💎"
-            trend={{ value: 5, isPositive: true }}
+            trend={{ value: 5, isPositive: false }}
             variant="purple"
             delay={0.1}
           />
+
+          {/* Card 4: Total Investido (com borda magenta) */}
           <MoneyKpiCard
-            label="ROI / Lucro"
-            value={`R$ ${(advancedMetrics?.profit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            label="Total Investido"
+            value={`R$ ${(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { 
+              minimumFractionDigits: 2 
+            })}`}
             icon="💰"
             trend={{ 
-              value: Math.abs((advancedMetrics?.roi || 0) / 100), 
+              value: Math.abs((advancedMetrics?.roi || 0)), 
               isPositive: (advancedMetrics?.roi || 0) > 0 
             }}
-            variant={(advancedMetrics?.roi || 0) > 0 ? "emerald" : "purple"}
+            variant="emerald"
             delay={0.15}
             highlight={true}
           />
