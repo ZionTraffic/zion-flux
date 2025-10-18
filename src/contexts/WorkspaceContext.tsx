@@ -147,22 +147,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Se o usuário está autenticado mas não tem workspace, mostrar tela de "sem acesso"
-  if (!currentWorkspaceId) {
-    return <NoWorkspaceAccess userEmail={userEmail} />;
-  }
-
   return (
     <WorkspaceContext.Provider value={{ currentWorkspaceId, setCurrentWorkspaceId, isLoading, userRole }}>
-      {children}
+      {isLoading ? (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : !currentWorkspaceId ? (
+        <NoWorkspaceAccess userEmail={userEmail} />
+      ) : (
+        children
+      )}
     </WorkspaceContext.Provider>
   );
 }
