@@ -21,18 +21,38 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
   useEffect(() => {
     async function fetchWorkspaces() {
       try {
-        // Buscar do banco ASF
+        // Obter sessão do usuário logado
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          console.error('No active session');
+          setIsLoading(false);
+          return;
+        }
+
+        // Criar clientes para ambos os bancos
         const asfClient = createSupabaseClient(
           'https://wrebkgazdlyjenbpexnc.supabase.co',
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
         );
         
-        // Buscar do banco SIEG
         const siegClient = createSupabaseClient(
           'https://vrbgptrmmvsaoozrplng.supabase.co',
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
         );
 
+        // Configurar autenticação nos clientes
+        await asfClient.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+        
+        await siegClient.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+
+        // Buscar workspaces de ambos os bancos com autenticação
         const [asfResult, siegResult] = await Promise.all([
           asfClient.from('workspaces').select('id, name, database').order('name'),
           siegClient.from('workspaces').select('id, name, database').order('name')
@@ -48,6 +68,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
           allWorkspaces.push(...siegResult.data as Workspace[]);
         }
 
+        console.log('Workspaces carregados:', allWorkspaces);
         setWorkspaces(allWorkspaces);
       } catch (error) {
         console.error('Failed to fetch workspaces:', error);
