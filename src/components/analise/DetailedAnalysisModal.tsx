@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalysisHeader } from "./components/AnalysisHeader";
@@ -28,6 +28,12 @@ export const DetailedAnalysisModal = ({
 
   const [selectedConversation, setSelectedConversation] = useState(conversation);
   const { currentWorkspaceId } = useWorkspace();
+
+  useEffect(() => {
+    if (conversation) {
+      setSelectedConversation(conversation);
+    }
+  }, [conversation]);
 
   const handleTagUpdated = (newTag: string) => {
     setSelectedConversation({ ...selectedConversation, tag: newTag });
