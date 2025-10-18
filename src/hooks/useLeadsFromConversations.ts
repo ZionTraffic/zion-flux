@@ -292,26 +292,24 @@ export const useLeadsFromConversations = (
     qualificationRate,
   };
 
-  // Chart data - criar todos os dias do período selecionado
+  // Chart data - sempre começar de MIN_DATA_DATE até hoje
   const dailyLeads = (() => {
     const result: Record<string, number> = {};
     
-    // Se temos filtro de data, criar todos os dias do período
-    if (startDate && endDate) {
-      const currentDate = new Date(startDate);
-      const end = new Date(endDate);
-      
-      while (currentDate <= end) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        result[dateStr] = 0; // Inicializar com 0
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
+    // ✅ SEMPRE começar de MIN_DATA_DATE (01/10/2025) até hoje
+    const startChartDate = new Date(MIN_DATA_DATE);
+    const endChartDate = new Date();
+    
+    let currentDate = new Date(startChartDate);
+    while (currentDate <= endChartDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      result[dateStr] = 0; // Inicializar com 0
+      currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    // Preencher com os leads que temos - APENAS os que estão dentro do período
+    // Preencher com os leads que temos
     allLeads.forEach(lead => {
       const day = lead.reference_date.split('T')[0];
-      // Só adicionar se o dia já está no resultado (dentro do período filtrado)
       if (result.hasOwnProperty(day)) {
         result[day] = result[day] + 1;
       }
@@ -329,26 +327,26 @@ export const useLeadsFromConversations = (
   }));
 
   const dailyQualified = (() => {
-    // Primeiro criar objeto com todos os dias do período filtrado inicializados com 0
     const result: Record<string, number> = {};
-    const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const end = endDate || new Date();
-    let currentDate = new Date(start);
     
-    while (currentDate <= end) {
+    // ✅ SEMPRE começar de MIN_DATA_DATE (01/10/2025) até hoje
+    const startChartDate = new Date(MIN_DATA_DATE);
+    const endChartDate = new Date();
+    
+    let currentDate = new Date(startChartDate);
+    while (currentDate <= endChartDate) {
       const dayStr = currentDate.toISOString().split('T')[0];
       result[dayStr] = 0;
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    // Preencher apenas com leads qualificados dentro do período
+    // Preencher apenas com leads qualificados
     const qualifiedLeads = columns
       .filter((col) => col.stage === 'qualificados')
       .flatMap((col) => col.leads);
       
     qualifiedLeads.forEach(lead => {
       const day = lead.reference_date.split('T')[0];
-      // Só adicionar se o dia já está no resultado (dentro do período filtrado)
       if (result.hasOwnProperty(day)) {
         result[day] = result[day] + 1;
       }
