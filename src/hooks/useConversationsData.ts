@@ -225,6 +225,7 @@ export function useConversationsData(workspaceId: string) {
               .select("*")
               .eq("phone", conv.phone)
               .eq("workspace_id", workspaceId)
+              .gte("started_at", MIN_DATA_DATE)
               .maybeSingle();
 
             // Buscar lead (opcional)
@@ -233,6 +234,7 @@ export function useConversationsData(workspaceId: string) {
               .select("nome, email, produto, stage")
               .eq("telefone", conv.phone)
               .eq("workspace_id", workspaceId)
+              .gte("created_at", MIN_DATA_DATE)
               .maybeSingle();
 
             return {
