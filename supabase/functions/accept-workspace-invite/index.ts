@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
 
     // Get request body
     const { token, user_id } = await req.json();
-    console.log('📊 accept-workspace-invite: Received data', { token: token?.substring(0, 10) + '...', user_id });
+    console.log('📊 accept-workspace-invite: Processing request');
 
     // Validate inputs
     if (!token || !user_id) {
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log('✅ accept-workspace-invite: Service role key available:', supabaseServiceRoleKey.substring(0, 15) + '...');
+    console.log('✅ accept-workspace-invite: Service role key configured:', !!supabaseServiceRoleKey);
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Add user to workspace using admin client (bypasses RLS)

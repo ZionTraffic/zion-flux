@@ -66,7 +66,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('✅ User authenticated');
 
     const body = await req.json();
     console.log('📨 Request body:', body);
@@ -105,7 +105,7 @@ serve(async (req) => {
       console.error('❌ Error checking membership:', membershipError);
     }
     
-    console.log('👤 User membership:', membership);
+    console.log('👤 User membership verified');
 
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
       console.error('❌ Insufficient permissions');
@@ -150,7 +150,7 @@ serve(async (req) => {
     // Gerar URL de convite
     const inviteUrl = `https://app.ziontraffic.com.br/accept-invite?token=${inviteToken}`;
 
-    console.log(`✅ Convite criado para ${email} - Token: ${inviteToken}`);
+    console.log('✅ Invite created successfully');
 
     return new Response(
       JSON.stringify({
