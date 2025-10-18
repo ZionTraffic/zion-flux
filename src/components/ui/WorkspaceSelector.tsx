@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useDatabase } from '@/contexts/DatabaseContext';
+import { createSupabaseClient } from '@/integrations/supabase/client';
 
 interface Workspace {
   id: string;
   name: string;
+  database: 'asf' | 'sieg';
 }
 
 interface WorkspaceSelectorProps {
@@ -19,15 +21,34 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
   useEffect(() => {
     async function fetchWorkspaces() {
       try {
-        // RLS will automatically filter to user's workspaces
-        const { data, error } = await supabase
-          .from('workspaces')
-          .select('id, name')
-          .order('name');
+        // Buscar do banco ASF
+        const asfClient = createSupabaseClient(
+          'https://wrebkgazdlyjenbpexnc.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+        );
         
-        if (data && !error) {
-          setWorkspaces(data);
+        // Buscar do banco SIEG
+        const siegClient = createSupabaseClient(
+          'https://vrbgptrmmvsaoozrplng.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
+        );
+
+        const [asfResult, siegResult] = await Promise.all([
+          asfClient.from('workspaces').select('id, name, database').order('name'),
+          siegClient.from('workspaces').select('id, name, database').order('name')
+        ]);
+
+        const allWorkspaces: Workspace[] = [];
+        
+        if (asfResult.data) {
+          allWorkspaces.push(...asfResult.data.map(w => ({ ...w, database: 'asf' as const })));
         }
+        
+        if (siegResult.data) {
+          allWorkspaces.push(...siegResult.data.map(w => ({ ...w, database: 'sieg' as const })));
+        }
+
+        setWorkspaces(allWorkspaces);
       } catch (error) {
         console.error('Failed to fetch workspaces:', error);
       } finally {
