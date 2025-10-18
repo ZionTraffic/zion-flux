@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMetaAdsData } from './useMetaAdsData';
 import { useLeadsFromConversations } from './useLeadsFromConversations';
 import { useConversationsData } from './useConversationsData';
+import { MIN_DATA_DATE_OBJ } from '@/lib/constants';
 
 export interface BusinessHealth {
   status: 'healthy' | 'warning' | 'critical';
@@ -93,8 +94,11 @@ export function useExecutiveDashboard(
   endDate?: Date,
   days: number = 30
 ) {
-  const metaAds = useMetaAdsData(workspaceId, startDate, endDate, days);
-  const leads = useLeadsFromConversations(workspaceId, startDate, endDate);
+  // Aplicar data mínima ao startDate se fornecido
+  const effectiveStartDate = startDate && startDate < MIN_DATA_DATE_OBJ ? MIN_DATA_DATE_OBJ : startDate;
+  
+  const metaAds = useMetaAdsData(workspaceId, effectiveStartDate, endDate, days);
+  const leads = useLeadsFromConversations(workspaceId, effectiveStartDate, endDate);
   const conversations = useConversationsData(workspaceId);
 
   // Calcular métricas de qualificação

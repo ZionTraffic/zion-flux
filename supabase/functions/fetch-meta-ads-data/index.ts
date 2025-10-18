@@ -280,6 +280,13 @@ serve(async (req) => {
       since = startDate.toISOString().slice(0, 10);
       until = endDate.toISOString().slice(0, 10);
     }
+    
+    // Aplicar data mínima do sistema (nunca buscar antes de 01/10/2025)
+    const MIN_DATA_DATE = '2025-10-01';
+    if (since < MIN_DATA_DATE) {
+      console.log(`⚠️ Adjusted since from ${since} to ${MIN_DATA_DATE} (system minimum date)`);
+      since = MIN_DATA_DATE;
+    }
 
     console.log("Date range:", { since, until });
 

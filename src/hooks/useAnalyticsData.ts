@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { MIN_DATA_DATE_OBJ } from '@/lib/constants';
 
 export interface TotalsData {
   leads_recebidos: number;
@@ -31,10 +32,13 @@ export function useAnalyticsData(workspaceId: string) {
     try {
       setLoading(true);
 
-      // Calcular datas (últimos 30 dias)
+      // Calcular datas (últimos 30 dias, mas nunca antes de MIN_DATA_DATE)
       const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
+      const calculatedStartDate = new Date();
+      calculatedStartDate.setDate(calculatedStartDate.getDate() - 30);
+      
+      // Aplicar data mínima
+      const startDate = calculatedStartDate < MIN_DATA_DATE_OBJ ? MIN_DATA_DATE_OBJ : calculatedStartDate;
 
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];

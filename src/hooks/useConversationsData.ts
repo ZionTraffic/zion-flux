@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
+import { MIN_DATA_DATE } from "@/lib/constants";
 
 interface Message {
   role: string;
@@ -205,11 +206,12 @@ export function useConversationsData(workspaceId: string) {
         setIsLoading(true);
         setError(null);
 
-        // 1. Buscar conversas principais de historico_conversas
+        // 1. Buscar conversas principais de historico_conversas (a partir de MIN_DATA_DATE)
         const { data: conversationsData, error: conversationsError } = await supabase
           .from("historico_conversas")
           .select("*")
           .eq("workspace_id", workspaceId)
+          .gte("started_at", `${MIN_DATA_DATE}T00:00:00`)
           .order("started_at", { ascending: false });
 
         if (conversationsError) throw conversationsError;

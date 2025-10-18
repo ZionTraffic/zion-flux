@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { MIN_DATA_DATE } from '@/lib/constants';
 
 export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
@@ -104,23 +105,40 @@ export const useLeadsFromConversations = (
     setError(null);
 
     try {
-      // Fetch all conversations without date filtering in SQL
-      // We'll filter in JS to handle both created_at and started_at
+      // Fetch conversations with minimum date filter
       let query = supabase
         .from('historico_conversas')
         .select('*')
         .eq('workspace_id', workspaceId)
+        .gte('created_at', MIN_DATA_DATE)
         .order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
-      // Filter by date in JavaScript to handle both created_at and started_at
+      // Filter by date in JavaScript - apply MIN_DATA_DATE and user filters
       let filteredData = data || [];
       
+      // Aplicar filtro de data mínima do sistema
+      filteredData = filteredData.filter(conv => {
+        const dateField = conv.created_at || conv.started_at;
+        if (!dateField) return false;
+        
+        try {
+          const convDate = typeof dateField === 'string' 
+            ? dateField.split('T')[0] 
+            : new Date(dateField).toISOString().split('T')[0];
+          
+          if (convDate < MIN_DATA_DATE) return false;
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      
+      // Aplicar filtros de data do usuário (se fornecidos)
       if (startDate || endDate) {
-        // Usar data local em vez de UTC para evitar problemas de timezone
         const startStr = startDate 
           ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}` 
           : null;
@@ -129,35 +147,22 @@ export const useLeadsFromConversations = (
           : null;
         
         filteredData = filteredData.filter((conv) => {
-        // SEMPRE usar created_at para o filtro de período (quando o lead ENTROU no sistema)
-        // NUNCA usar updated_at para filtro de data (ele é só para tracking de modificações)
-        const dateField = conv.created_at || conv.started_at;
+          const dateField = conv.created_at || conv.started_at;
           if (!dateField) return false;
           
-          // Normalizar data independente do tipo que o Supabase retorna
-          let convDate: string;
-          
-          // Tentar converter para string YYYY-MM-DD
           try {
-            if (typeof dateField === 'string') {
-              // Se for string, extrair apenas YYYY-MM-DD
-              convDate = dateField.split('T')[0];
-            } else {
-              // Se for qualquer outro tipo, tentar converter para Date e depois para string
-              const parsed = new Date(dateField);
-              if (isNaN(parsed.getTime())) return false;
-              convDate = parsed.toISOString().split('T')[0];
-            }
+            const convDate = typeof dateField === 'string'
+              ? dateField.split('T')[0]
+              : new Date(dateField).toISOString().split('T')[0];
+            
+            if (startStr && convDate < startStr) return false;
+            if (endStr && convDate > endStr) return false;
+            
+            return true;
           } catch (error) {
             console.error('Erro ao processar data:', dateField, error);
             return false;
           }
-          
-          // Comparação de strings YYYY-MM-DD
-          if (startStr && convDate < startStr) return false;
-          if (endStr && convDate > endStr) return false;
-          
-          return true;
         });
       }
 

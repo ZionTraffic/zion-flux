@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
+import { MIN_DATA_DATE, MIN_DATA_DATE_OBJ } from "@/lib/constants";
 
 export interface MetaAdsTotals {
   impressions: number;
@@ -56,17 +57,29 @@ export function useMetaAdsData(
 
       logger.info('Fetching Meta Ads data');
 
-      // Prepare request body based on whether dates or days are provided
-      const requestBody = startDate && endDate
-        ? {
-            workspace_id: workspaceId,
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: endDate.toISOString().split('T')[0],
-          }
-        : { 
-            workspace_id: workspaceId,
-            days 
-          };
+      // Prepare request body - enforce MIN_DATA_DATE
+      let requestBody: any;
+      
+      if (startDate && endDate) {
+        // Aplicar data mínima ao startDate fornecido
+        const effectiveStartDate = startDate < MIN_DATA_DATE_OBJ ? MIN_DATA_DATE_OBJ : startDate;
+        requestBody = {
+          workspace_id: workspaceId,
+          startDate: effectiveStartDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+        };
+      } else {
+        // Quando usar 'days', garantir que não busque antes de MIN_DATA_DATE
+        const calculatedStart = new Date();
+        calculatedStart.setDate(calculatedStart.getDate() - days);
+        const effectiveStartDate = calculatedStart < MIN_DATA_DATE_OBJ ? MIN_DATA_DATE_OBJ : calculatedStart;
+        
+        requestBody = {
+          workspace_id: workspaceId,
+          startDate: effectiveStartDate.toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
+        };
+      }
 
       const { data, error: functionError } = await supabase.functions.invoke(
         'fetch-meta-ads-data',
