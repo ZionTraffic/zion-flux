@@ -41,11 +41,11 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
         const allWorkspaces: Workspace[] = [];
         
         if (asfResult.data) {
-          allWorkspaces.push(...asfResult.data.map(w => ({ ...w, database: 'asf' as const })));
+          allWorkspaces.push(...asfResult.data as Workspace[]);
         }
         
         if (siegResult.data) {
-          allWorkspaces.push(...siegResult.data.map(w => ({ ...w, database: 'sieg' as const })));
+          allWorkspaces.push(...siegResult.data as Workspace[]);
         }
 
         setWorkspaces(allWorkspaces);
