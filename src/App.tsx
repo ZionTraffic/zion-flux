@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
@@ -28,20 +29,22 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/complete-signup" element={<CompleteSignup />} />
-            <Route path="/accept-invite" element={<AcceptInvite />} />
-            <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
-            <Route path="/no-access" element={<ProtectedRoute><WorkspaceProvider><NoAccess /></WorkspaceProvider></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <DatabaseProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/complete-signup" element={<CompleteSignup />} />
+              <Route path="/accept-invite" element={<AcceptInvite />} />
+              <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
+              <Route path="/no-access" element={<ProtectedRoute><WorkspaceProvider><NoAccess /></WorkspaceProvider></ProtectedRoute>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </DatabaseProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

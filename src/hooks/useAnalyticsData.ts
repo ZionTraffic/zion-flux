@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from '@/utils/logger';
 import { MIN_DATA_DATE_OBJ } from '@/lib/constants';
 
@@ -23,6 +23,7 @@ export interface DailyData {
 }
 
 export function useAnalyticsData(workspaceId: string) {
+  const { supabase } = useDatabase();
   const [totals, setTotals] = useState<TotalsData | null>(null);
   const [daily, setDaily] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,7 @@ export function useAnalyticsData(workspaceId: string) {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [workspaceId]);
+  }, [workspaceId, supabase]);
 
   return { totals, daily, loading, lastUpdate, refetch: fetchData };
 }

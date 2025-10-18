@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 
 interface Workspace {
   id: string;
@@ -12,6 +12,7 @@ interface WorkspaceSelectorProps {
 }
 
 export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps) {
+  const { supabase } = useDatabase();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,7 +36,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
     }
     
     fetchWorkspaces();
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return (

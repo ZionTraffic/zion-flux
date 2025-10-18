@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { NoWorkspaceAccess } from '@/components/workspace/NoWorkspaceAccess';
@@ -14,6 +14,7 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const { supabase, currentDatabase } = useDatabase();
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     initializeWorkspace();
     
     return () => subscription.unsubscribe();
-  }, []);
+  }, [currentDatabase, supabase]);
 
   const setCurrentWorkspaceId = async (id: string) => {
     try {
