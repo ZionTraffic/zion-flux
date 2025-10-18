@@ -31,18 +31,28 @@ const App = () => (
         <BrowserRouter>
           <DatabaseProvider>
             <Routes>
+              {/* Public Routes - No WorkspaceProvider needed */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/complete-signup" element={<CompleteSignup />} />
               <Route path="/accept-invite" element={<AcceptInvite />} />
-              <Route path="/" element={<ProtectedRoute><WorkspaceProvider><DashboardIndex /></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/leads" element={<ProtectedRoute><WorkspaceProvider><Leads /></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/trafego" element={<ProtectedRoute><WorkspaceProvider><Trafego /></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/qualificacao" element={<ProtectedRoute><WorkspaceProvider><Qualificacao /></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/analise" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/configuracoes" element={<ProtectedRoute><WorkspaceProvider><RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute></WorkspaceProvider></ProtectedRoute>} />
-              <Route path="/no-access" element={<ProtectedRoute><WorkspaceProvider><NoAccess /></WorkspaceProvider></ProtectedRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              
+              {/* Protected Routes - Single WorkspaceProvider for all */}
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <Routes>
+                      <Route path="/" element={<DashboardIndex />} />
+                      <Route path="/leads" element={<Leads />} />
+                      <Route path="/trafego" element={<Trafego />} />
+                      <Route path="/qualificacao" element={<Qualificacao />} />
+                      <Route path="/analise" element={<RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute>} />
+                      <Route path="/configuracoes" element={<RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute>} />
+                      <Route path="/no-access" element={<NoAccess />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              } />
             </Routes>
           </DatabaseProvider>
         </BrowserRouter>
