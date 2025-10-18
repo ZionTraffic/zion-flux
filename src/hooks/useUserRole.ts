@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { logger } from '@/utils/logger';
 
@@ -25,6 +25,7 @@ export function useUserRole(): UseUserRoleReturn {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const { currentWorkspaceId } = useWorkspace();
+  const { supabase } = useDatabase();
 
   useEffect(() => {
     async function fetchUserRole() {
@@ -65,7 +66,7 @@ export function useUserRole(): UseUserRoleReturn {
     }
 
     fetchUserRole();
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceId, supabase]);
 
   const isOwner = role === 'owner';
   const isAdmin = role === 'admin';
