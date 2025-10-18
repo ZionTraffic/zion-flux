@@ -57,7 +57,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
     }
     
     fetchWorkspaces();
-  }, [supabase]);
+  }, []);
 
   if (isLoading) {
     return (
