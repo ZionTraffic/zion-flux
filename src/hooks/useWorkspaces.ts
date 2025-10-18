@@ -6,6 +6,7 @@ export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  database: 'asf' | 'sieg';
   created_at: string;
   segment?: string;
   logo_url?: string;
@@ -39,7 +40,7 @@ export function useWorkspaces() {
       // Fetch workspaces the user has access to
       const { data: workspacesData, error: workspacesError } = await supabase
         .from('workspaces')
-        .select('*')
+        .select('*, database')
         .order('created_at', { ascending: false });
 
       if (workspacesError) throw workspacesError;
@@ -71,6 +72,7 @@ export function useWorkspaces() {
 
           return {
             ...workspace,
+            database: workspace.database as 'asf' | 'sieg',
             kpis: {
               leads: kpi.recebidos || 0,
               conversions: kpi.recebidos > 0 

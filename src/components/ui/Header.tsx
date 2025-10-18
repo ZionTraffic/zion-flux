@@ -1,6 +1,5 @@
 import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DatabaseSelector } from "./DatabaseSelector";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
@@ -138,10 +137,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             </div>
           </div>
 
-          {/* Center Section: Database & Workspace Selectors (Desktop Only) */}
+          {/* Center Section: Workspace Selector (Desktop Only) */}
           <div className="hidden lg:flex flex-1 justify-center items-center gap-4 max-w-2xl">
-            <DatabaseSelector />
-            <div className="h-6 w-px bg-border/50" />
             <WorkspaceSelector 
               current={currentWorkspace} 
               onChange={onWorkspaceChange} 

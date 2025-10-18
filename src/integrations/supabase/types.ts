@@ -468,18 +468,21 @@ export type Database = {
       workspaces: {
         Row: {
           created_at: string | null
+          database: string
           id: string
           name: string
           slug: string
         }
         Insert: {
           created_at?: string | null
+          database?: string
           id?: string
           name: string
           slug: string
         }
         Update: {
           created_at?: string | null
+          database?: string
           id?: string
           name?: string
           slug?: string

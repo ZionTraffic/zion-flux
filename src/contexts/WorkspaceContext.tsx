@@ -14,7 +14,7 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { supabase, currentDatabase } = useDatabase();
+  const { supabase, currentDatabase, setDatabase } = useDatabase();
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -106,24 +106,36 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Validate user has access to this workspace and get their role
-      const { data } = await supabase
-        .from('membros_workspace')
-        .select('workspace_id, role')
-        .eq('user_id', user.id)
-        .eq('workspace_id', id)
+      // Fetch workspace to get its database
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('id, database')
+        .eq('id', id)
         .maybeSingle();
       
-      if (data) {
-        setCurrentWorkspaceIdState(id);
-        setUserRole(data.role || null);
-        localStorage.setItem('currentWorkspaceId', id);
-      } else {
-        toast({
-          title: 'Access denied',
-          description: 'You do not have access to this workspace',
-          variant: 'destructive',
-        });
+      if (workspace) {
+        // Switch database automatically based on workspace
+        setDatabase(workspace.database as 'asf' | 'sieg');
+        
+        // Validate user has access to this workspace and get their role
+        const { data: memberData } = await supabase
+          .from('membros_workspace')
+          .select('workspace_id, role')
+          .eq('user_id', user.id)
+          .eq('workspace_id', id)
+          .maybeSingle();
+        
+        if (memberData) {
+          setCurrentWorkspaceIdState(id);
+          setUserRole(memberData.role || null);
+          localStorage.setItem('currentWorkspaceId', id);
+        } else {
+          toast({
+            title: 'Access denied',
+            description: 'You do not have access to this workspace',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to switch workspace:', error);
