@@ -3,6 +3,7 @@ import { useDatabase } from '@/contexts/DatabaseContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { NoWorkspaceAccess } from '@/components/workspace/NoWorkspaceAccess';
+import { createSupabaseClient } from '@/integrations/supabase/client';
 
 interface WorkspaceContextType {
   currentWorkspaceId: string | null;
@@ -38,16 +39,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const stored = localStorage.getItem('currentWorkspaceId');
         
         if (stored) {
-          const { data } = await supabase
-            .from('membros_workspace')
-            .select('workspace_id, role')
-            .eq('user_id', user.id)
-            .eq('workspace_id', stored)
-            .maybeSingle();
+          // Buscar em ambos os bancos
+          const asfClient = createSupabaseClient(
+            'https://wrebkgazdlyjenbpexnc.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+          );
           
-          if (data) {
+          const siegClient = createSupabaseClient(
+            'https://vrbgptrmmvsaoozrplng.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
+          );
+
+          const [asfMember, siegMember, asfWorkspace, siegWorkspace] = await Promise.all([
+            asfClient.from('membros_workspace').select('workspace_id, role').eq('user_id', user.id).eq('workspace_id', stored).maybeSingle(),
+            siegClient.from('membros_workspace').select('workspace_id, role').eq('user_id', user.id).eq('workspace_id', stored).maybeSingle(),
+            asfClient.from('workspaces').select('database').eq('id', stored).maybeSingle(),
+            siegClient.from('workspaces').select('database').eq('id', stored).maybeSingle()
+          ]);
+          
+          const memberData = asfMember.data || siegMember.data;
+          const workspaceData = asfWorkspace.data || siegWorkspace.data;
+          
+          if (memberData && workspaceData) {
+            // Trocar para o banco correto
+            setDatabase(workspaceData.database as 'asf' | 'sieg');
             setCurrentWorkspaceIdState(stored);
-            setUserRole(data.role || null);
+            setUserRole(memberData.role || null);
             setIsLoading(false);
             return;
           }
@@ -106,36 +123,55 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Fetch workspace to get its database
-      const { data: workspace } = await supabase
-        .from('workspaces')
-        .select('id, database')
-        .eq('id', id)
+      // Buscar workspace em ambos os bancos
+      const asfClient = createSupabaseClient(
+        'https://wrebkgazdlyjenbpexnc.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+      );
+      
+      const siegClient = createSupabaseClient(
+        'https://vrbgptrmmvsaoozrplng.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
+      );
+
+      const [asfResult, siegResult] = await Promise.all([
+        asfClient.from('workspaces').select('id, database').eq('id', id).maybeSingle(),
+        siegClient.from('workspaces').select('id, database').eq('id', id).maybeSingle()
+      ]);
+
+      const workspace = asfResult.data || siegResult.data;
+      const targetClient = asfResult.data ? asfClient : siegClient;
+      
+      if (!workspace) {
+        toast({
+          title: 'Error',
+          description: 'Workspace not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Switch database automatically based on workspace
+      setDatabase(workspace.database as 'asf' | 'sieg');
+      
+      // Validate user has access using the correct database client
+      const { data: memberData } = await targetClient
+        .from('membros_workspace')
+        .select('workspace_id, role')
+        .eq('user_id', user.id)
+        .eq('workspace_id', id)
         .maybeSingle();
       
-      if (workspace) {
-        // Switch database automatically based on workspace
-        setDatabase(workspace.database as 'asf' | 'sieg');
-        
-        // Validate user has access to this workspace and get their role
-        const { data: memberData } = await supabase
-          .from('membros_workspace')
-          .select('workspace_id, role')
-          .eq('user_id', user.id)
-          .eq('workspace_id', id)
-          .maybeSingle();
-        
-        if (memberData) {
-          setCurrentWorkspaceIdState(id);
-          setUserRole(memberData.role || null);
-          localStorage.setItem('currentWorkspaceId', id);
-        } else {
-          toast({
-            title: 'Access denied',
-            description: 'You do not have access to this workspace',
-            variant: 'destructive',
-          });
-        }
+      if (memberData) {
+        setCurrentWorkspaceIdState(id);
+        setUserRole(memberData.role || null);
+        localStorage.setItem('currentWorkspaceId', id);
+      } else {
+        toast({
+          title: 'Access denied',
+          description: 'You do not have access to this workspace',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to switch workspace:', error);
