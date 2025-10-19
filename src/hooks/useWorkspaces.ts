@@ -24,9 +24,6 @@ export interface CreateWorkspaceData {
   name: string;
   slug: string;
   database: string;
-  segment?: string;
-  logo_url?: string;
-  primary_color?: string;
 }
 
 export function useWorkspaces() {

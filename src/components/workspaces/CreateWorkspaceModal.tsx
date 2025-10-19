@@ -23,14 +23,7 @@ const workspaceSchema = z.object({
     .min(1)
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
-  database: z.string().min(1, 'Selecione um banco'),
-  segment: z.string()
-    .trim()
-    .max(100, 'Segmento deve ter no máximo 100 caracteres')
-    .optional()
-    .or(z.literal('')),
-  primary_color: z.string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida. Use formato hexadecimal (#RRGGBB)')
+  database: z.string().min(1, 'Selecione um banco')
 });
 
 interface CreateWorkspaceModalProps {
@@ -50,8 +43,6 @@ export function CreateWorkspaceModal({
     name: "",
     slug: "",
     database: "asf",
-    segment: "",
-    primary_color: "#007AFF",
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
@@ -74,8 +65,7 @@ export function CreateWorkspaceModal({
 
       const dataToValidate = {
         ...formData,
-        slug,
-        segment: formData.segment || ''
+        slug
       };
 
       // Validate inputs to prevent SQL injection and XSS
@@ -84,9 +74,7 @@ export function CreateWorkspaceModal({
       await onCreateWorkspace({
         name: validatedData.name,
         slug: validatedData.slug,
-        database: validatedData.database,
-        segment: validatedData.segment,
-        primary_color: validatedData.primary_color
+        database: validatedData.database
       });
       
       toast({
@@ -99,8 +87,6 @@ export function CreateWorkspaceModal({
         name: "",
         slug: "",
         database: "asf",
-        segment: "",
-        primary_color: "#007AFF",
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -183,44 +169,6 @@ export function CreateWorkspaceModal({
             </Select>
             {validationErrors.database && (
               <p className="text-sm text-destructive">{validationErrors.database}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="segment">Segmento</Label>
-            <Input
-              id="segment"
-              placeholder="Ex: Financeiro, Saúde, Educação"
-              value={formData.segment}
-              onChange={(e) => setFormData({ ...formData, segment: e.target.value })}
-              className="glass-medium border-border/50"
-            />
-            {validationErrors.segment && (
-              <p className="text-sm text-destructive">{validationErrors.segment}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="color">Cor da Identidade Visual</Label>
-            <div className="flex gap-2">
-              <Input
-                id="color"
-                type="color"
-                value={formData.primary_color}
-                onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                className="w-20 h-10 glass-medium border-border/50 cursor-pointer"
-              />
-              <Input
-                type="text"
-                value={formData.primary_color}
-                onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                placeholder="#007AFF"
-                pattern="^#[0-9A-Fa-f]{6}$"
-                className="flex-1 glass-medium border-border/50"
-              />
-            </div>
-            {validationErrors.primary_color && (
-              <p className="text-sm text-destructive">{validationErrors.primary_color}</p>
             )}
           </div>
 

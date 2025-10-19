@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     console.log(`✅ User authenticated: ${user.id}`);
 
     // Receber dados da requisição
-    const { name, slug, database, segment, logo_url, primary_color } = await req.json();
+    const { name, slug, database } = await req.json();
 
     console.log(`📝 Creating workspace: ${name} (${slug}) in database: ${database}`);
 
@@ -73,10 +73,7 @@ Deno.serve(async (req) => {
       .insert([{
         name,
         slug,
-        database,
-        segment,
-        logo_url,
-        primary_color
+        database
       }])
       .select()
       .single();
