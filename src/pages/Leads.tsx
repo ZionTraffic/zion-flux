@@ -10,11 +10,13 @@ import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
 
 const Leads = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { currentDatabase } = useDatabase();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
   const { totals, daily, loading, lastUpdate, refetch } = useAnalyticsData(currentWorkspaceId || '');
@@ -145,8 +147,10 @@ const Leads = () => {
     { name: 'Conversões', value: Math.floor(totals.leads_qualificados * 0.3) },
   ];
 
+  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+
   return (
-    <DashboardLayout
+    <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { useAnalyzeConversation } from './useAnalyzeConversation';
 import { logger } from '@/utils/logger';
 
@@ -15,6 +15,7 @@ interface AnalysisData {
 }
 
 export function useAnalysisData(conversationId: number, workspaceId: string, messages: any[]) {
+  const { supabase } = useDatabase();
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

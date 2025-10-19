@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -12,6 +12,7 @@ const VALID_TAGS = [
 ] as const;
 
 export const useUpdateConversationTag = () => {
+  const { supabase } = useDatabase();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const updateTag = async (conversationId: number, newTag: string) => {

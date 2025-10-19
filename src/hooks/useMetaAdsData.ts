@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from "@/utils/logger";
 import { MIN_DATA_DATE, MIN_DATA_DATE_OBJ } from "@/lib/constants";
 
@@ -33,11 +33,12 @@ export interface MetaCampaign {
 }
 
 export function useMetaAdsData(
-  workspaceId: string, 
-  startDate?: Date, 
+  workspaceId: string,
+  startDate?: Date,
   endDate?: Date,
   days: number = 30
 ) {
+  const { supabase } = useDatabase();
   const [totals, setTotals] = useState<MetaAdsTotals | null>(null);
   const [daily, setDaily] = useState<MetaAdsDaily[]>([]);
   const [campaigns, setCampaigns] = useState<MetaCampaign[]>([]);

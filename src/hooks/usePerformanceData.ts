@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays, addDays } from 'date-fns';
 
 export interface WorkspacePerformanceMetrics {
@@ -37,6 +37,7 @@ export interface PredictiveData {
 }
 
 export function usePerformanceData(workspaceId?: string) {
+  const { supabase } = useDatabase();
   const [metrics, setMetrics] = useState<WorkspacePerformanceMetrics[]>([]);
   const [predictiveData, setPredictiveData] = useState<PredictiveData[]>([]);
   const [isLoading, setIsLoading] = useState(true);

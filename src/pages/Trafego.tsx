@@ -10,6 +10,7 @@ import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -22,6 +23,7 @@ import { format } from "date-fns";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { currentDatabase } = useDatabase();
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
@@ -402,8 +404,10 @@ const Trafego = () => {
     { name: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
   ];
 
+  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+
   return (
-    <DashboardLayout
+    <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}

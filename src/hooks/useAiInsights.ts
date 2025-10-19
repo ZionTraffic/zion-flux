@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays } from 'date-fns';
 import { generateAiInsights, AiInsight } from '@/utils/insightsGenerator';
 
 export function useAiInsights() {
+  const { supabase } = useDatabase();
   const [insights, setInsights] = useState<AiInsight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

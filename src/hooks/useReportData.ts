@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays } from 'date-fns';
 
 export interface ReportData {
@@ -37,6 +37,7 @@ export interface ReportData {
 }
 
 export function useReportData(workspaceId: string, fromDate: Date, toDate: Date) {
+  const { supabase } = useDatabase();
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

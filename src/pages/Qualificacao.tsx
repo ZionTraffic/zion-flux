@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { useLeadsFromConversations, LeadStage } from "@/hooks/useLeadsFromConversations";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
@@ -22,6 +23,7 @@ import { format } from "date-fns";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { currentDatabase } = useDatabase();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   
@@ -217,8 +219,10 @@ const Qualificacao = () => {
     },
   ];
 
+  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+
   return (
-    <DashboardLayout
+    <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={isLoading}
       lastUpdate={new Date()}

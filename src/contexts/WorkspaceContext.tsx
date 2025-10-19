@@ -151,10 +151,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Switch database automatically based on workspace
+      // 1. Switch database FIRST
       setDatabase(workspace.database as 'asf' | 'sieg');
       
-      // Validate user has access using the correct database client
+      // 2. Await a tick to ensure context updated
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // 3. Validate user has access using the correct database client
       const { data: memberData } = await targetClient
         .from('membros_workspace')
         .select('workspace_id, role')
@@ -163,9 +166,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
       
       if (memberData) {
+        // 4. Update workspace state
         setCurrentWorkspaceIdState(id);
         setUserRole(memberData.role || null);
         localStorage.setItem('currentWorkspaceId', id);
+        
+        // 5. Show success toast
+        toast({
+          title: 'Workspace alterado',
+          description: `Agora visualizando: ${workspace.database.toUpperCase()}`,
+        });
       } else {
         toast({
           title: 'Access denied',

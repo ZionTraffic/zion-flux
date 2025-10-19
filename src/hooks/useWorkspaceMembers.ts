@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
@@ -12,6 +12,7 @@ export interface WorkspaceMember {
 }
 
 export function useWorkspaceMembers() {
+  const { supabase } = useDatabase();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentWorkspaceId } = useWorkspace();

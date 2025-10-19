@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from "@/utils/logger";
 import { MIN_DATA_DATE } from "@/lib/constants";
 
@@ -189,6 +189,7 @@ function generateSummaryFromMessages(messages: any[]): string {
 }
 
 export function useConversationsData(workspaceId: string) {
+  const { supabase } = useDatabase();
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [stats, setStats] = useState<ConversationsStats>({
     totalConversations: 0,

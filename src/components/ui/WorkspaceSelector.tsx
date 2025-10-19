@@ -21,31 +21,91 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
   useEffect(() => {
     async function fetchWorkspaces() {
       try {
-        // Buscar do banco ASF
+        // Obter sessão atual
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          console.warn('Sem sessão ativa para buscar workspaces');
+          setIsLoading(false);
+          return;
+        }
+
+        // Criar clientes com storage keys únicos
         const asfClient = createSupabaseClient(
           'https://wrebkgazdlyjenbpexnc.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w',
+          'sb-asf-workspaces'
         );
         
-        // Buscar do banco SIEG
         const siegClient = createSupabaseClient(
           'https://vrbgptrmmvsaoozrplng.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI',
+          'sb-sieg-workspaces'
         );
 
-        const [asfResult, siegResult] = await Promise.all([
-          asfClient.from('workspaces').select('id, name, database').order('name'),
-          siegClient.from('workspaces').select('id, name, database').order('name')
+        // Configurar sessões
+        await Promise.all([
+          asfClient.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          }),
+          siegClient.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          })
         ]);
 
+        // Buscar workspaces do usuário via JOIN
+        const userId = session.user.id;
+        
+        const [asfResult, siegResult] = await Promise.all([
+          asfClient
+            .from('membros_workspace')
+            .select(`
+              workspace_id,
+              workspaces!inner (
+                id,
+                name,
+                database
+              )
+            `)
+            .eq('user_id', userId),
+          siegClient
+            .from('membros_workspace')
+            .select(`
+              workspace_id,
+              workspaces!inner (
+                id,
+                name,
+                database
+              )
+            `)
+            .eq('user_id', userId)
+        ]);
+
+        // Mesclar e mapear resultados
         const allWorkspaces: Workspace[] = [];
         
         if (asfResult.data) {
-          allWorkspaces.push(...asfResult.data.map(w => ({ ...w, database: 'asf' as const })));
+          asfResult.data.forEach(item => {
+            const ws = item.workspaces as any;
+            allWorkspaces.push({
+              id: ws.id,
+              name: ws.name,
+              database: ws.database || 'asf'
+            });
+          });
         }
         
         if (siegResult.data) {
-          allWorkspaces.push(...siegResult.data.map(w => ({ ...w, database: 'sieg' as const })));
+          siegResult.data.forEach(item => {
+            const ws = item.workspaces as any;
+            allWorkspaces.push({
+              id: ws.id,
+              name: ws.name,
+              database: ws.database || 'sieg'
+            });
+          });
         }
 
         setWorkspaces(allWorkspaces);
@@ -57,7 +117,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
     }
     
     fetchWorkspaces();
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return (

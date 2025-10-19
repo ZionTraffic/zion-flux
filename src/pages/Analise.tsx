@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { useConversationsData } from "@/hooks/useConversationsData";
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Conversas = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { currentDatabase } = useDatabase();
   const { conversations: conversationsData, stats, isLoading, error } = useConversationsData(currentWorkspaceId);
   const [conversations, setConversations] = useState(conversationsData);
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,9 +98,11 @@ const Conversas = () => {
     }
   };
 
+  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+
   return (
-    <div className="min-h-screen">
-      <Header 
+    <div className="min-h-screen" key={componentKey}>
+      <Header
         onRefresh={() => window.location.reload()} 
         isRefreshing={isLoading} 
         lastUpdate={new Date()}

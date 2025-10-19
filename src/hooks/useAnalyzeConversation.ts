@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
 export function useAnalyzeConversation() {
+  const { supabase } = useDatabase();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 

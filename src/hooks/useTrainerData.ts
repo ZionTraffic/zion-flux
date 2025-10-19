@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from "@/utils/logger";
 
 export interface TrainerConversation {
@@ -27,6 +27,7 @@ export interface TrainerStats {
 }
 
 export function useTrainerData(workspaceId: string) {
+  const { supabase } = useDatabase();
   const [conversations, setConversations] = useState<TrainerConversation[]>([]);
   const [stats, setStats] = useState<TrainerStats>({
     satisfactionIndex: 0,

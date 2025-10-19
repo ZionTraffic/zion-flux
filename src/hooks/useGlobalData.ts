@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays } from 'date-fns';
 
 export interface GlobalKpis {
@@ -33,6 +33,7 @@ export interface GlobalData {
 }
 
 export function useGlobalData() {
+  const { supabase } = useDatabase();
   const [data, setData] = useState<GlobalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

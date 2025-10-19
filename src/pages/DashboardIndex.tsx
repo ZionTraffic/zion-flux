@@ -3,6 +3,7 @@ import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -21,6 +22,7 @@ import { format } from "date-fns";
 
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
+  const { currentDatabase } = useDatabase();
   const [userEmail, setUserEmail] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -194,9 +196,11 @@ const DashboardIndex = () => {
     );
   }
 
+  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+
   return (
-    <div className="min-h-screen">
-      <Header 
+    <div className="min-h-screen" key={componentKey}>
+      <Header
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
         lastUpdate={new Date()}
