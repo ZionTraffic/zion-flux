@@ -137,8 +137,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
             </div>
           </div>
 
-          {/* Center Section: Workspace Selector (Desktop Only) */}
-          <div className="hidden lg:flex flex-1 justify-center items-center gap-4 max-w-2xl">
+          {/* Center Section: Workspace Selector */}
+          <div className="flex flex-1 justify-center items-center gap-4 max-w-2xl">
             <WorkspaceSelector 
               current={currentWorkspace} 
               onChange={onWorkspaceChange} 

@@ -20,6 +20,13 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    // se não houver seleção atual, define a primeira disponível
+    if (!current && !isLoading && !error && workspaces.length > 0) {
+      onChange(workspaces[0].id);
+    }
+  }, [current, isLoading, error, workspaces, onChange]);
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-3">
@@ -28,8 +35,17 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
     );
   }
 
-  if (error || workspaces.length === 0) {
-    return null;
+  if (error) {
+    return (
+      <div className="text-sm text-destructive">Erro ao carregar workspaces</div>
+    );
+  }
+  if (workspaces.length === 0) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground">Sem workspaces</span>
+      </div>
+    );
   }
   return (
     <div className="flex items-center gap-3">
@@ -43,7 +59,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
       >
         {workspaces.map((ws: Workspace) => (
           <option key={ws.id} value={ws.id} className="bg-background text-foreground">
-            {ws.name}
+            {ws.name} ({ws.id})
           </option>
         ))}
       </select>
