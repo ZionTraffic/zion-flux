@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus } from "lucide-react";
+import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus, Building2 } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AddMemberModal } from "@/components/workspace/AddMemberModal";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
+import { CreateWorkspaceModal } from "@/components/workspaces/CreateWorkspaceModal";
 import {
   Select,
   SelectContent,
@@ -27,10 +28,11 @@ const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
-  const { workspaces } = useWorkspaces();
+  const { workspaces, isLoading: workspacesLoading, refetch: refetchWorkspaces, createWorkspace } = useWorkspaces();
   const { availableDatabases, refetchConfigs } = useDatabase();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
+  const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -53,8 +55,12 @@ const Configuracoes = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+        <Tabs defaultValue="workspaces" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
+            <TabsTrigger value="workspaces" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Workspaces</span>
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
@@ -76,6 +82,67 @@ const Configuracoes = () => {
               <span className="hidden sm:inline">Planos</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="workspaces" className="space-y-4">
+            <Card className="p-6 glass border border-border/50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Workspaces</h3>
+                {isOwner && (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => setIsCreateWorkspaceModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Workspace
+                  </Button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {workspacesLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Carregando workspaces...
+                  </div>
+                ) : workspaces.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Nenhuma workspace encontrada
+                  </div>
+                ) : (
+                  workspaces.map((workspace) => (
+                    <div key={workspace.id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{workspace.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Banco: {workspace.database.toUpperCase()} • Slug: {workspace.slug}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-primary/10 text-primary">
+                          {workspace.database.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+            
+            <CreateWorkspaceModal
+              open={isCreateWorkspaceModalOpen}
+              onOpenChange={setIsCreateWorkspaceModalOpen}
+              onCreateWorkspace={async (data) => {
+                await createWorkspace(data);
+                setIsCreateWorkspaceModalOpen(false);
+                refetchWorkspaces();
+              }}
+            />
+          </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <Card className="p-6 glass border border-border/50">
