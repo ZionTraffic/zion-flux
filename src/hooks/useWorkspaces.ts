@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { createSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface Workspace {
@@ -22,6 +23,7 @@ export interface Workspace {
 export interface CreateWorkspaceData {
   name: string;
   slug: string;
+  database: string;
   segment?: string;
   logo_url?: string;
   primary_color?: string;
@@ -96,33 +98,66 @@ export function useWorkspaces() {
 
   const createWorkspace = async (data: CreateWorkspaceData) => {
     try {
-      const { data: workspace, error: workspaceError } = await supabase
+      // Buscar configuração do banco
+      const { data: dbConfig } = await supabase
+        .from('database_configs')
+        .select('*')
+        .eq('database_key', data.database)
+        .single();
+
+      if (!dbConfig) {
+        throw new Error('Configuração de banco não encontrada');
+      }
+
+      // Criar client para o banco alvo
+      const targetClient = createSupabaseClient(
+        dbConfig.url,
+        dbConfig.anon_key,
+        `sb-${data.database}-workspace`
+      );
+
+      // Autenticar
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão não encontrada');
+
+      await targetClient.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+
+      // Criar workspace
+      const { data: workspace, error: workspaceError } = await targetClient
         .from('workspaces')
-        .insert([data])
+        .insert([{
+          name: data.name,
+          slug: data.slug,
+          database: data.database,
+          segment: data.segment,
+          logo_url: data.logo_url,
+          primary_color: data.primary_color
+        }])
         .select()
         .single();
 
       if (workspaceError) throw workspaceError;
 
-      // Add current user as owner
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { error: memberError } = await supabase
-          .from('membros_workspace')
-          .insert([
-            {
-              workspace_id: workspace.id,
-              user_id: user.id,
-              role: 'owner',
-            },
-          ]);
+      // Adicionar usuário como owner
+      const { error: memberError } = await targetClient
+        .from('membros_workspace')
+        .insert([{
+          workspace_id: workspace.id,
+          user_id: session.user.id,
+          role: 'owner',
+        }]);
 
-        if (memberError) throw memberError;
-      }
+      if (memberError) throw memberError;
 
-      toast.success('Workspace criada com sucesso!');
+      toast.success(`Workspace criada no banco ${dbConfig.name}!`);
       await fetchWorkspaces();
+      
+      // Disparar evento para recarregar seletor
+      window.dispatchEvent(new Event('workspace-created'));
+      
       return workspace;
     } catch (err: any) {
       toast.error('Erro ao criar workspace');

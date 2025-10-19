@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard, Trash2, UserPlus } from "lucide-react";
+import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AddMemberModal } from "@/components/workspace/AddMemberModal";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
 import {
   Select,
   SelectContent,
@@ -26,7 +28,9 @@ const Configuracoes = () => {
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
   const { workspaces } = useWorkspaces();
+  const { availableDatabases, refetchConfigs } = useDatabase();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -50,10 +54,14 @@ const Configuracoes = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
+            </TabsTrigger>
+            <TabsTrigger value="databases" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              <span className="hidden sm:inline">Bancos</span>
             </TabsTrigger>
             <TabsTrigger value="integrations" className="flex items-center gap-2">
               <Plug className="h-4 w-4" />
@@ -149,6 +157,49 @@ const Configuracoes = () => {
               onAddMember={addMember}
               workspaces={workspaces}
               currentWorkspaceId={currentWorkspaceId}
+            />
+          </TabsContent>
+
+          <TabsContent value="databases" className="space-y-4">
+            <Card className="p-6 glass border border-border/50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Bancos de Dados</h3>
+                {isOwner && (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => setIsDatabaseModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Banco
+                  </Button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {availableDatabases.map((db) => (
+                  <div key={db.id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <Database className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{db.name}</p>
+                        <p className="text-sm text-muted-foreground">ID: {db.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-green-500/10 text-green-400">Ativo</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            
+            <AddDatabaseModal
+              open={isDatabaseModalOpen}
+              onOpenChange={setIsDatabaseModalOpen}
+              onSuccess={refetchConfigs}
             />
           </TabsContent>
 

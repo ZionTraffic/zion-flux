@@ -3,11 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Loader2, Database } from "lucide-react";
 import { CreateWorkspaceData } from "@/hooks/useWorkspaces";
 import { z } from "zod";
 import { logger } from "@/utils/logger";
 import { useToast } from "@/hooks/use-toast";
+import { useDatabase } from "@/contexts/DatabaseContext";
 
 // Input validation schema to prevent SQL injection and XSS
 const workspaceSchema = z.object({
@@ -21,6 +23,7 @@ const workspaceSchema = z.object({
     .min(1)
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
+  database: z.string().min(1, 'Selecione um banco'),
   segment: z.string()
     .trim()
     .max(100, 'Segmento deve ter no máximo 100 caracteres')
@@ -41,10 +44,12 @@ export function CreateWorkspaceModal({
   onOpenChange,
   onCreateWorkspace,
 }: CreateWorkspaceModalProps) {
+  const { availableDatabases } = useDatabase();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateWorkspaceData>({
     name: "",
     slug: "",
+    database: "asf",
     segment: "",
     primary_color: "#007AFF",
   });
@@ -79,6 +84,7 @@ export function CreateWorkspaceModal({
       await onCreateWorkspace({
         name: validatedData.name,
         slug: validatedData.slug,
+        database: validatedData.database,
         segment: validatedData.segment,
         primary_color: validatedData.primary_color
       });
@@ -92,6 +98,7 @@ export function CreateWorkspaceModal({
       setFormData({
         name: "",
         slug: "",
+        database: "asf",
         segment: "",
         primary_color: "#007AFF",
       });
@@ -148,6 +155,34 @@ export function CreateWorkspaceModal({
             />
             {validationErrors.name && (
               <p className="text-sm text-destructive">{validationErrors.name}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="database">Banco de Dados</Label>
+            <Select
+              value={formData.database}
+              onValueChange={(value) => setFormData({ ...formData, database: value })}
+            >
+              <SelectTrigger className="glass-medium border-border/50">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="Selecione o banco" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {availableDatabases.map((db) => (
+                  <SelectItem key={db.id} value={db.id}>
+                    <div className="flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      <span>{db.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {validationErrors.database && (
+              <p className="text-sm text-destructive">{validationErrors.database}</p>
             )}
           </div>
 

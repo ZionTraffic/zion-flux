@@ -1,35 +1,28 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseClient } from '@/integrations/supabase/client';
+import { supabase as defaultSupabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-export type DatabaseType = 'asf' | 'sieg';
+export type DatabaseType = string;
 
 interface DatabaseConfig {
+  id: string;
   name: string;
+  database_key: string;
   url: string;
-  anonKey: string;
+  anon_key: string;
+  active: boolean;
 }
 
-const DATABASE_CONFIGS: Record<DatabaseType, DatabaseConfig> = {
-  asf: {
-    name: 'ASF Finance',
-    url: 'https://wrebkgazdlyjenbpexnc.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
-  },
-  sieg: {
-    name: 'SIEG',
-    url: 'https://vrbgptrmmvsaoozrplng.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
-  }
-};
-
 interface DatabaseContextType {
-  currentDatabase: DatabaseType;
+  currentDatabase: string;
   databaseName: string;
   supabase: SupabaseClient<Database>;
-  setDatabase: (database: DatabaseType) => void;
-  availableDatabases: Array<{ id: DatabaseType; name: string }>;
+  setDatabase: (databaseKey: string) => void;
+  availableDatabases: Array<{ id: string; name: string }>;
+  isLoading: boolean;
+  refetchConfigs: () => Promise<void>;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
@@ -37,37 +30,75 @@ const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined
 const STORAGE_KEY = 'zion-selected-database';
 
 export function DatabaseProvider({ children }: { children: ReactNode }) {
-  const [currentDatabase, setCurrentDatabase] = useState<DatabaseType>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return (stored === 'sieg' ? 'sieg' : 'asf') as DatabaseType;
-  });
+  const [configs, setConfigs] = useState<DatabaseConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentDatabase, setCurrentDatabase] = useState<string>('asf');
+  const [supabaseClient, setSupabaseClient] = useState<SupabaseClient<Database>>(defaultSupabase);
 
-  const [supabaseClient, setSupabaseClient] = useState<SupabaseClient<Database>>(() => {
-    const config = DATABASE_CONFIGS[currentDatabase];
-    return createSupabaseClient(config.url, config.anonKey);
-  });
+  const fetchDatabaseConfigs = async () => {
+    try {
+      const { data, error } = await defaultSupabase
+        .from('database_configs')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: true });
 
-  const setDatabase = (database: DatabaseType) => {
-    setCurrentDatabase(database);
-    localStorage.setItem(STORAGE_KEY, database);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setConfigs(data);
+        
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const dbKey = stored || data[0].database_key;
+        
+        const config = data.find(c => c.database_key === dbKey) || data[0];
+        setCurrentDatabase(config.database_key);
+        
+        const client = createSupabaseClient(config.url, config.anon_key);
+        setSupabaseClient(client);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações de banco:', error);
+      setCurrentDatabase('asf');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDatabaseConfigs();
+  }, []);
+
+  const setDatabase = (databaseKey: string) => {
+    const config = configs.find(c => c.database_key === databaseKey);
     
-    // Criar novo client
-    const config = DATABASE_CONFIGS[database];
-    const newClient = createSupabaseClient(config.url, config.anonKey);
+    if (!config) {
+      console.error(`Banco ${databaseKey} não encontrado`);
+      return;
+    }
+
+    setCurrentDatabase(databaseKey);
+    localStorage.setItem(STORAGE_KEY, databaseKey);
+    
+    const newClient = createSupabaseClient(config.url, config.anon_key);
     setSupabaseClient(newClient);
   };
 
-  const availableDatabases = Object.entries(DATABASE_CONFIGS).map(([id, config]) => ({
-    id: id as DatabaseType,
+  const availableDatabases = configs.map(config => ({
+    id: config.database_key,
     name: config.name
   }));
 
+  const currentConfig = configs.find(c => c.database_key === currentDatabase);
+
   const value: DatabaseContextType = {
     currentDatabase,
-    databaseName: DATABASE_CONFIGS[currentDatabase].name,
+    databaseName: currentConfig?.name || 'ASF Finance',
     supabase: supabaseClient,
     setDatabase,
-    availableDatabases
+    availableDatabases,
+    isLoading,
+    refetchConfigs: fetchDatabaseConfigs
   };
 
   return (

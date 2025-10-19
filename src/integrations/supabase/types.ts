@@ -204,6 +204,39 @@ export type Database = {
           },
         ]
       }
+      database_configs: {
+        Row: {
+          active: boolean | null
+          anon_key: string
+          created_at: string | null
+          created_by: string | null
+          database_key: string
+          id: string
+          name: string
+          url: string
+        }
+        Insert: {
+          active?: boolean | null
+          anon_key: string
+          created_at?: string | null
+          created_by?: string | null
+          database_key: string
+          id?: string
+          name: string
+          url: string
+        }
+        Update: {
+          active?: boolean | null
+          anon_key?: string
+          created_at?: string | null
+          created_by?: string | null
+          database_key?: string
+          id?: string
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
       historico_conversas: {
         Row: {
           created_at: string | null
