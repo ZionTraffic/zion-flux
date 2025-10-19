@@ -34,7 +34,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setUserEmail(user.email);
 
         // 1. Tentar carregar workspace padrão de user_settings
-        const { data: settings } = await supabase
+        const { data: settings } = await (supabase as any)
           .from('user_settings')
           .select('default_workspace_id')
           .eq('user_id', user.id)
@@ -134,7 +134,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('currentWorkspaceId', id);
 
       // Salvar como workspace padrão
-      await supabase
+      await (supabase as any)
         .from('user_settings')
         .upsert({
           user_id: user.id,
@@ -179,3 +179,4 @@ export function useWorkspace() {
   }
   return context;
 }
+

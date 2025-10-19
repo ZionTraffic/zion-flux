@@ -2,8 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://wrebkgazdlyjenbpexnc.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w";
+// Prefer valores do .env. Mantém fallback para compatibilidade.
+const ENV_DEFAULT_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const ENV_DEFAULT_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const ASF_URL = import.meta.env.VITE_SUPABASE_ASF_URL as string | undefined;
+const ASF_KEY = import.meta.env.VITE_SUPABASE_ASF_ANON_KEY as string | undefined;
+
+const SUPABASE_URL = ENV_DEFAULT_URL || ASF_URL || '';
+const SUPABASE_PUBLISHABLE_KEY = ENV_DEFAULT_KEY || ASF_KEY || '';
 
 // Export function to create Supabase clients dynamically
 export const createSupabaseClient = (url: string, anonKey: string, storageKey?: string) => {
@@ -18,4 +24,6 @@ export const createSupabaseClient = (url: string, anonKey: string, storageKey?: 
 };
 
 // Default client (for backward compatibility)
-export const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
+  ? createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  : createSupabaseClient('http://localhost', 'invalid-key');
