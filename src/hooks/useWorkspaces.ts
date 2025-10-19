@@ -98,61 +98,20 @@ export function useWorkspaces() {
 
   const createWorkspace = async (data: CreateWorkspaceData) => {
     try {
-      // Buscar configuração do banco
-      const { data: dbConfig } = await supabase
-        .from('database_configs')
-        .select('*')
-        .eq('database_key', data.database)
-        .single();
-
-      if (!dbConfig) {
-        throw new Error('Configuração de banco não encontrada');
-      }
-
-      // Criar client para o banco alvo
-      const targetClient = createSupabaseClient(
-        dbConfig.url,
-        dbConfig.anon_key,
-        `sb-${data.database}-workspace`
-      );
-
-      // Autenticar
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
 
-      await targetClient.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      });
+      // Chamar edge function para criar workspace
+      const { data: workspace, error } = await supabase.functions.invoke(
+        'create-workspace',
+        {
+          body: data
+        }
+      );
 
-      // Criar workspace
-      const { data: workspace, error: workspaceError } = await targetClient
-        .from('workspaces')
-        .insert([{
-          name: data.name,
-          slug: data.slug,
-          database: data.database,
-          segment: data.segment,
-          logo_url: data.logo_url,
-          primary_color: data.primary_color
-        }])
-        .select()
-        .single();
+      if (error) throw error;
 
-      if (workspaceError) throw workspaceError;
-
-      // Adicionar usuário como owner
-      const { error: memberError } = await targetClient
-        .from('membros_workspace')
-        .insert([{
-          workspace_id: workspace.id,
-          user_id: session.user.id,
-          role: 'owner',
-        }]);
-
-      if (memberError) throw memberError;
-
-      toast.success(`Workspace criada no banco ${dbConfig.name}!`);
+      toast.success(`Workspace criada com sucesso!`);
       await fetchWorkspaces();
       
       // Disparar evento para recarregar seletor
@@ -160,6 +119,7 @@ export function useWorkspaces() {
       
       return workspace;
     } catch (err: any) {
+      console.error('Error creating workspace:', err);
       toast.error('Erro ao criar workspace');
       throw err;
     }
