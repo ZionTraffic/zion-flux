@@ -1,4 +1,4 @@
-import { Settings, Users, Plug, CreditCard, LogOut } from "lucide-react";
+import { Settings, Users, Plug, CreditCard, LogOut, Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -40,6 +40,13 @@ export const SettingsMenu = () => {
         >
           <Users className="mr-2 h-4 w-4" />
           <span>Usuários e Permissões</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleNavigation("/configuracoes?tab=databases")}
+          className="cursor-pointer hover:bg-accent/50"
+        >
+          <Database className="mr-2 h-4 w-4" />
+          <span>Bancos de Dados</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => handleNavigation("/configuracoes?tab=integrations")}
