@@ -21,59 +21,43 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
   useEffect(() => {
     async function fetchWorkspaces() {
       try {
-        console.log('🔍 [WorkspaceSelector] Iniciando busca de workspaces...');
+        // Buscar do banco ASF
+        const asfClient = createSupabaseClient(
+          'https://wrebkgazdlyjenbpexnc.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w'
+        );
         
-        const { data: { user } } = await supabase.auth.getUser();
+        // Buscar do banco SIEG
+        const siegClient = createSupabaseClient(
+          'https://vrbgptrmmvsaoozrplng.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYmdwdHJtbXZzYW9venJwbG5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTQxNDgsImV4cCI6MjA3NjM5MDE0OH0.q7GPpHQxCG-V5J0BZlKZoPy57XJiQCqLCA1Ya72HxPI'
+        );
+
+        const [asfResult, siegResult] = await Promise.all([
+          asfClient.from('workspaces').select('id, name, database').order('name'),
+          siegClient.from('workspaces').select('id, name, database').order('name')
+        ]);
+
+        const allWorkspaces: Workspace[] = [];
         
-        if (!user) {
-          console.error('❌ [WorkspaceSelector] Usuário não autenticado');
-          setIsLoading(false);
-          return;
+        if (asfResult.data) {
+          allWorkspaces.push(...asfResult.data.map(w => ({ ...w, database: 'asf' as const })));
+        }
+        
+        if (siegResult.data) {
+          allWorkspaces.push(...siegResult.data.map(w => ({ ...w, database: 'sieg' as const })));
         }
 
-        console.log('✅ [WorkspaceSelector] Usuário autenticado:', user.email);
-
-        // Buscar workspaces onde o usuário tem acesso via membros_workspace
-        // Fazemos JOIN com workspaces para pegar os dados completos
-        const { data: memberWorkspaces, error } = await supabase
-          .from('membros_workspace')
-          .select(`
-            workspace_id,
-            workspaces!inner (
-              id,
-              name,
-              database
-            )
-          `)
-          .eq('user_id', user.id);
-
-        if (error) {
-          console.error('❌ [WorkspaceSelector] Erro ao buscar workspaces:', error);
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('📊 [WorkspaceSelector] Membros workspace encontrados:', memberWorkspaces);
-
-        // Transformar dados para o formato esperado
-        const workspacesList: Workspace[] = memberWorkspaces
-          ?.map((member: any) => ({
-            id: member.workspaces.id,
-            name: member.workspaces.name,
-            database: member.workspaces.database
-          })) || [];
-
-        console.log('✅ [WorkspaceSelector] Workspaces carregados:', workspacesList.length, workspacesList);
-        setWorkspaces(workspacesList);
+        setWorkspaces(allWorkspaces);
       } catch (error) {
-        console.error('❌ [WorkspaceSelector] Erro fatal:', error);
+        console.error('Failed to fetch workspaces:', error);
       } finally {
         setIsLoading(false);
       }
     }
     
     fetchWorkspaces();
-  }, [supabase]);
+  }, []);
 
   if (isLoading) {
     return (

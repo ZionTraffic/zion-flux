@@ -6,11 +6,10 @@ const SUPABASE_URL = "https://wrebkgazdlyjenbpexnc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w";
 
 // Export function to create Supabase clients dynamically
-export const createSupabaseClient = (url: string, anonKey: string, storageKey?: string) => {
+export const createSupabaseClient = (url: string, anonKey: string) => {
   return createClient<Database>(url, anonKey, {
     auth: {
       storage: localStorage,
-      storageKey: storageKey || 'sb-auth-token',
       persistSession: true,
       autoRefreshToken: true,
     }
