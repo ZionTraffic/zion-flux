@@ -213,6 +213,7 @@ export type Database = {
           database_key: string
           id: string
           name: string
+          service_role_secret_name: string | null
           url: string
         }
         Insert: {
@@ -223,6 +224,7 @@ export type Database = {
           database_key: string
           id?: string
           name: string
+          service_role_secret_name?: string | null
           url: string
         }
         Update: {
@@ -233,6 +235,7 @@ export type Database = {
           database_key?: string
           id?: string
           name?: string
+          service_role_secret_name?: string | null
           url?: string
         }
         Relationships: []
