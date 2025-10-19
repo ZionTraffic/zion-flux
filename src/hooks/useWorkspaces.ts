@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { createSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface Workspace {
@@ -39,20 +38,69 @@ export function useWorkspaces() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
 
-      // Call the unified edge function
-      const { data, error } = await supabase.functions.invoke('list-workspaces', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      // Buscar workspaces do usuário diretamente do banco
+      const { data: memberWorkspaces, error: memberError } = await supabase
+        .from('membros_workspace')
+        .select(`
+          workspace_id,
+          role,
+          workspaces (
+            id,
+            name,
+            slug,
+            database,
+            created_at,
+            segment,
+            logo_url,
+            primary_color
+          )
+        `)
+        .eq('user_id', session.user.id);
 
-      if (error) {
-        console.error('Error calling list-workspaces function:', error);
-        throw error;
+      if (memberError) {
+        console.error('Error fetching workspaces:', memberError);
+        throw memberError;
       }
 
-      console.log('Workspaces from edge function:', data);
-      setWorkspaces(data.workspaces || []);
+      // Transformar dados e buscar KPIs
+      const workspacesData = await Promise.all(
+        (memberWorkspaces || []).map(async (member: any) => {
+          const workspace = member.workspaces;
+          if (!workspace) return null;
+
+          // Buscar KPIs dos últimos 30 dias
+          const now = new Date();
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const fromDate = thirtyDaysAgo.toISOString().split('T')[0];
+          const toDate = now.toISOString().split('T')[0];
+
+          try {
+            const { data: kpiData } = await supabase.rpc('kpi_totais_periodo', {
+              p_workspace_id: workspace.id,
+              p_from: fromDate,
+              p_to: toDate,
+            });
+
+            const kpi = kpiData?.[0];
+
+            return {
+              ...workspace,
+              kpis: kpi ? {
+                leads: kpi.recebidos || 0,
+                conversions: kpi.qualificados || 0,
+                aiEfficiency: kpi.recebidos > 0 ? Math.round((kpi.qualificados / kpi.recebidos) * 100) : 0,
+                activeConversations: kpi.followup || 0,
+              } : undefined,
+            };
+          } catch (kpiError) {
+            console.error('Error fetching KPIs:', kpiError);
+            return workspace;
+          }
+        })
+      );
+
+      const validWorkspaces = workspacesData.filter((ws): ws is Workspace => ws !== null);
+      setWorkspaces(validWorkspaces);
     } catch (err: any) {
       setError(err.message);
       toast.error('Erro ao carregar workspaces');

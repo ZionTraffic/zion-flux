@@ -1,8 +1,5 @@
 project_id = "wrebkgazdlyjenbpexnc"
 
-[functions.list-workspaces]
-verify_jwt = true
-
 [functions.add-workspace-member]
 verify_jwt = true
 
