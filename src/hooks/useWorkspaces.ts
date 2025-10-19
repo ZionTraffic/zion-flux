@@ -39,141 +39,20 @@ export function useWorkspaces() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
 
-      // Buscar todas as configurações de banco
-      const { data: dbConfigs, error: dbConfigsError } = await supabase
-        .from('database_configs')
-        .select('*')
-        .eq('active', true);
+      // Call the unified edge function
+      const { data, error } = await supabase.functions.invoke('list-workspaces', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (dbConfigsError) throw dbConfigsError;
-      if (!dbConfigs || dbConfigs.length === 0) {
-        throw new Error('Nenhuma configuração de banco encontrada');
+      if (error) {
+        console.error('Error calling list-workspaces function:', error);
+        throw error;
       }
 
-      // Buscar workspaces de cada banco configurado
-      const allWorkspacesPromises = dbConfigs.map(async (config) => {
-        try {
-          const dbClient = createSupabaseClient(
-            config.url,
-            config.anon_key,
-            `sb-${config.database_key}-auth-token`
-          );
-
-          const { data, error } = await dbClient
-            .from('workspaces')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error(`Error fetching workspaces from ${config.database_key}:`, error);
-            return [];
-          }
-
-          // Adicionar informação do banco a cada workspace
-          return (data || []).map(ws => ({
-            ...ws,
-            database: config.database_key as 'asf' | 'sieg'
-          }));
-        } catch (err) {
-          console.error(`Error with database ${config.database_key}:`, err);
-          return [];
-        }
-      });
-
-      const allWorkspacesArrays = await Promise.all(allWorkspacesPromises);
-      const allWorkspaces = allWorkspacesArrays.flat();
-
-      // Filtrar workspaces onde o usuário é membro
-      const workspacesWithAccessPromises = allWorkspaces.map(async (workspace) => {
-        try {
-          const dbConfig = dbConfigs.find(c => c.database_key === workspace.database);
-          if (!dbConfig) return null;
-
-          const dbClient = createSupabaseClient(
-            dbConfig.url,
-            dbConfig.anon_key,
-            `sb-${dbConfig.database_key}-auth-token`
-          );
-
-          const { data: accessData } = await dbClient
-            .from('membros_workspace')
-            .select('role')
-            .eq('workspace_id', workspace.id)
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          return accessData ? workspace : null;
-        } catch (err) {
-          console.error(`Error checking access for workspace ${workspace.id}:`, err);
-          return null;
-        }
-      });
-
-      const workspacesWithAccess = await Promise.all(workspacesWithAccessPromises);
-      const validWorkspaces = workspacesWithAccess.filter((ws): ws is Workspace => ws !== null);
-
-      // Buscar KPIs para cada workspace
-      const workspacesWithKpis = await Promise.all(
-        validWorkspaces.map(async (workspace) => {
-          try {
-            // Get last 30 days KPIs
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const dbConfig = dbConfigs.find(c => c.database_key === workspace.database);
-            if (!dbConfig) return workspace;
-
-            const dbClient = createSupabaseClient(
-              dbConfig.url,
-              dbConfig.anon_key,
-              `sb-${dbConfig.database_key}-auth-token`
-            );
-
-            const { data: kpiData } = await dbClient
-              .rpc('kpi_totais_periodo', {
-                p_workspace_id: workspace.id,
-                p_from: thirtyDaysAgo.toISOString().split('T')[0],
-                p_to: new Date().toISOString().split('T')[0],
-              });
-
-            const { data: conversations } = await dbClient
-              .from('analise_ia')
-              .select('id')
-              .eq('workspace_id', workspace.id)
-              .gte('ended_at', thirtyDaysAgo.toISOString());
-
-            const kpi = kpiData?.[0] || {
-              recebidos: 0,
-              qualificados: 0,
-            };
-
-            return {
-              ...workspace,
-              kpis: {
-                leads: kpi.recebidos || 0,
-                conversions: kpi.recebidos > 0 
-                  ? ((kpi.qualificados / kpi.recebidos) * 100) 
-                  : 0,
-                aiEfficiency: 154, // Mock - would calculate from conversation_summaries
-                activeConversations: conversations?.length || 0,
-              },
-            };
-          } catch (err) {
-            console.error(`Error fetching KPIs for workspace ${workspace.id}:`, err);
-            return {
-              ...workspace,
-              kpis: {
-                leads: 0,
-                conversions: 0,
-                aiEfficiency: 0,
-                activeConversations: 0,
-              },
-            };
-          }
-        })
-      );
-
-      setWorkspaces(workspacesWithKpis);
+      console.log('Workspaces from edge function:', data);
+      setWorkspaces(data.workspaces || []);
     } catch (err: any) {
       setError(err.message);
       toast.error('Erro ao carregar workspaces');
