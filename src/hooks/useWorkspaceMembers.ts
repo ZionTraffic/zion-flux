@@ -124,13 +124,19 @@ export function useWorkspaceMembers() {
     if (!currentWorkspaceId) return;
 
     try {
-      const { error } = await supabase
-        .from('membros_workspace')
-        .delete()
-        .eq('workspace_id', currentWorkspaceId)
-        .eq('user_id', userId);
+      const { data, error } = await supabase.rpc('remove_workspace_member', {
+        p_workspace_id: currentWorkspaceId,
+        p_user_id: userId
+      });
 
       if (error) throw error;
+
+      // Type assertion since we know the RPC returns jsonb with success/error fields
+      const result = data as { success: boolean; error?: string; message?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to remove member');
+      }
 
       toast({
         title: 'Membro removido',
@@ -140,9 +146,10 @@ export function useWorkspaceMembers() {
       await fetchMembers();
     } catch (error) {
       logger.error('Error removing member', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível remover o membro.';
       toast({
         title: 'Erro ao remover membro',
-        description: 'Não foi possível remover o membro.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

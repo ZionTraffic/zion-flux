@@ -10,6 +10,8 @@ import { Copy, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PendingInvitesList } from './PendingInvitesList';
+import { PermissionSelector } from '@/components/permissions/PermissionSelector';
+import { PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from '@/types/permissions';
 import type { Workspace } from '@/hooks/useWorkspaces';
 
 interface AddMemberModalProps {
@@ -35,6 +37,9 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
   const [workspaceId, setWorkspaceId] = useState<string>(currentWorkspaceId || '');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('member');
+  const [selectedPermissions, setSelectedPermissions] = useState<PermissionKey[]>(
+    [...DEFAULT_PERMISSIONS_BY_ROLE.member] as PermissionKey[]
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
@@ -166,7 +171,17 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
 
             <div className="space-y-2">
               <Label htmlFor="role">Função</Label>
-              <Select value={role} onValueChange={setRole} disabled={isLoading}>
+              <Select 
+                value={role} 
+                onValueChange={(newRole) => {
+                  setRole(newRole);
+                  // Atualizar permissões padrão quando o role muda
+                  if (DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]) {
+                    setSelectedPermissions([...DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]] as PermissionKey[]);
+                  }
+                }} 
+                disabled={isLoading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma função" />
                 </SelectTrigger>
@@ -177,6 +192,15 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
                   <SelectItem value="viewer">Viewer - Apenas visualização</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Seletor de Permissões */}
+            <div className="space-y-2">
+              <PermissionSelector
+                selectedPermissions={selectedPermissions}
+                onPermissionsChange={setSelectedPermissions}
+                userRole={role}
+              />
             </div>
 
             {error && (

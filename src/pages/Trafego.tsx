@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { pdf } from "@react-pdf/renderer";
 import { TrafegoPDF } from "@/components/reports/TrafegoPDF";
 import { format } from "date-fns";
+import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
+import { PERMISSIONS } from "@/types/permissions";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -462,7 +464,16 @@ const Trafego = () => {
   const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
 
   return (
-    <DashboardLayout key={componentKey}
+    <PermissionGuard 
+      permission={PERMISSIONS.TRAFFIC_VIEW}
+      fallback={
+        <AccessDenied 
+          title="Acesso ao Tráfego Negado"
+          message="Você não tem permissão para visualizar dados de tráfego e Meta Ads."
+        />
+      }
+    >
+      <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}
@@ -576,6 +587,7 @@ const Trafego = () => {
         </div>
       </div>
     </DashboardLayout>
+    </PermissionGuard>
   );
 };
 

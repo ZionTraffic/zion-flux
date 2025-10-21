@@ -15,6 +15,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/types/permissions";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -31,6 +33,12 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   const location = useLocation();
   const { toast } = useToast();
   const { canAccessAnalysis, canAccessSettings } = useUserRole();
+  const { 
+    canViewDashboard, 
+    canViewTraffic, 
+    canViewQualification, 
+    canViewAnalysis 
+  } = usePermissions();
 
   const handleLogout = async () => {
     try {
@@ -80,12 +88,20 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     },
   ];
 
-  // Filter menu items based on user role
+  // Filter menu items based on user permissions
   const menuItems = allMenuItems.filter(item => {
-    if (item.label === 'Análise') {
-      return canAccessAnalysis;
+    switch (item.label) {
+      case 'Dashboard':
+        return canViewDashboard();
+      case 'Tráfego':
+        return canViewTraffic();
+      case 'Qualificação':
+        return canViewQualification();
+      case 'Análise':
+        return canViewAnalysis();
+      default:
+        return true;
     }
-    return true;
   });
 
   const getActiveItem = () => {

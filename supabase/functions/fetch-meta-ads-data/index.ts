@@ -143,7 +143,7 @@ serve(async (req) => {
       );
     }
 
-    // Verify user has access to this workspace
+    // Verify user has access to this workspace AND workspace uses ASF database
     const { data: membership, error: membershipError } = await supabaseClient
       .from('membros_workspace')
       .select('role')
@@ -159,7 +159,22 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Workspace access verified:', { userId: user.id, workspaceId: workspace_id, role: membership.role });
+    // Verify workspace uses ASF database (only ASF workspaces have Meta Ads integration)
+    const { data: workspace, error: workspaceError } = await supabaseClient
+      .from('workspaces')
+      .select('database')
+      .eq('id', workspace_id)
+      .single();
+
+    if (workspaceError || !workspace || workspace.database !== 'asf') {
+      console.error('Workspace not ASF:', { workspaceId: workspace_id, database: workspace?.database });
+      return new Response(
+        JSON.stringify({ error: 'CREDENTIALS_MISSING', message: 'Meta Ads integration not available for this workspace' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Workspace access verified:', { userId: user.id, workspaceId: workspace_id, role: membership.role, database: workspace.database });
 
     const META_ACCESS_TOKEN = Deno.env.get("META_ACCESS_TOKEN");
     const META_AD_ACCOUNT_ID = Deno.env.get("META_AD_ACCOUNT_ID");
