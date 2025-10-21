@@ -127,24 +127,28 @@ export const useLeadsFromConversations = (
 
       if (fetchError) throw fetchError;
 
+      // Helper para normalizar qualquer valor de data para 'YYYY-MM-DD'
+      const toDateStr = (value: any): string | null => {
+        if (!value) return null;
+        try {
+          // Se vier string 'YYYY-MM-DD HH:MM:SS+TZ' ou 'YYYY-MM-DDTHH:MM:SSZ'
+          const d = new Date(value);
+          if (isNaN(d.getTime())) return null;
+          return d.toISOString().split('T')[0]; // normaliza em UTC
+        } catch {
+          return null;
+        }
+      };
+
       // Filter by date in JavaScript - apply MIN_DATA_DATE and user filters
       let filteredData = data || [];
       
       // Aplicar filtro de data mínima do sistema
       filteredData = filteredData.filter(conv => {
         const dateValue = conv.created_at || conv.started_at;
-        if (!dateField) return false;
-        
-        try {
-          const convDate = typeof dateValue === 'string' 
-            ? dateValue.split('T')[0] 
-            : new Date(dateValue).toISOString().split('T')[0];
-          
-          if (convDate < MIN_DATA_DATE) return false;
-          return true;
-        } catch {
-          return false;
-        }
+        const convDate = toDateStr(dateValue);
+        if (!convDate) return false;
+        return convDate >= MIN_DATA_DATE;
       });
       
       // Aplicar filtros de data do usuário (se fornecidos)
@@ -158,21 +162,11 @@ export const useLeadsFromConversations = (
         
         filteredData = filteredData.filter((conv) => {
           const dateValue = conv.created_at || conv.started_at;
-          if (!dateField) return false;
-          
-          try {
-            const convDate = typeof dateValue === 'string'
-              ? dateValue.split('T')[0]
-              : new Date(dateValue).toISOString().split('T')[0];
-            
-            if (startStr && convDate < startStr) return false;
-            if (endStr && convDate > endStr) return false;
-            
-            return true;
-          } catch (error) {
-            console.error('Erro ao processar data:', dateField, error);
-            return false;
-          }
+          const convDate = toDateStr(dateValue);
+          if (!convDate) return false;
+          if (startStr && convDate < startStr) return false;
+          if (endStr && convDate > endStr) return false;
+          return true;
         });
       }
 
@@ -203,11 +197,10 @@ export const useLeadsFromConversations = (
         // Calcular reference_date usando APENAS a data de ENTRADA
         // NUNCA usar updated_at - queremos saber quando o lead ENTROU, não quando foi movido
         let referenceDate: string;
-        if (conversation.created_at) {
-          // Usar data de criação (quando o lead ENTROU no sistema)
-          referenceDate = conversation.created_at.split('T')[0];
+        const createdStr = toDateStr(conversation.created_at);
+        if (createdStr) {
+          referenceDate = createdStr;
         } else if (conversation.started_at) {
-          // Fallback para started_at
           const parsedDate = parseStartedAt(conversation.started_at);
           referenceDate = parsedDate ? parsedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         } else {
