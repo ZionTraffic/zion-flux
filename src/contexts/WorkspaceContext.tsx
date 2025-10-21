@@ -14,7 +14,7 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { supabase } = useDatabase();
+  const { supabase, setDatabase } = useDatabase();
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (targetWorkspaceId) {
           const { data: memberData } = await supabase
             .from('membros_workspace')
-            .select('role')
+            .select('role, workspaces(name, database)')
             .eq('user_id', user.id)
             .eq('workspace_id', targetWorkspaceId)
             .maybeSingle();
@@ -70,6 +70,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             setCurrentWorkspaceIdState(targetWorkspaceId);
             setUserRole(memberData.role || null);
             localStorage.setItem('currentWorkspaceId', targetWorkspaceId);
+            const dbKey = (memberData as any).workspaces?.database || 'asf';
+            if (dbKey === 'asf') {
+              setDatabase(dbKey);
+            }
           } else {
             console.log('User lost access to default workspace');
           }
@@ -114,7 +118,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // Validar acesso à workspace
       const { data: memberData } = await supabase
         .from('membros_workspace')
-        .select('role, workspaces(name)')
+        .select('role, workspaces(name, database)')
         .eq('user_id', user.id)
         .eq('workspace_id', id)
         .maybeSingle();
@@ -132,6 +136,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setCurrentWorkspaceIdState(id);
       setUserRole(memberData.role || null);
       localStorage.setItem('currentWorkspaceId', id);
+
+      // Ajustar banco ativo conforme workspace
+      const dbKey = (memberData as any).workspaces?.database || 'asf';
+      if (dbKey === 'asf') {
+        setDatabase(dbKey);
+      }
 
       // Salvar como workspace padrão
       await (supabase as any)

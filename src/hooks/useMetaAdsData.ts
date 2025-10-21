@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from "@/utils/logger";
 import { MIN_DATA_DATE, MIN_DATA_DATE_OBJ } from "@/lib/constants";
+import { supabase as defaultSupabase } from '@/integrations/supabase/client';
 
 export interface MetaAdsTotals {
   impressions: number;
@@ -48,6 +49,31 @@ export function useMetaAdsData(
 
   async function fetchData() {
     if (!workspaceId) {
+      setLoading(false);
+      return;
+    }
+
+    // Short-circuit by workspace database field (authoritative source)
+    try {
+      const { data: ws } = await defaultSupabase
+        .from('workspaces')
+        .select('database')
+        .eq('id', workspaceId)
+        .maybeSingle();
+      if (!ws || ws.database !== 'asf') {
+        setError('CREDENTIALS_MISSING');
+        setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
+        setDaily([]);
+        setCampaigns([]);
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      // If we cannot determine, fail safe with empty data
+      setError('CREDENTIALS_MISSING');
+      setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
+      setDaily([]);
+      setCampaigns([]);
       setLoading(false);
       return;
     }
@@ -127,9 +153,21 @@ export function useMetaAdsData(
       setCampaigns(data.campaigns || []);
       setLastUpdate(new Date());
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Error fetching Meta Ads data', err);
-      setError('FETCH_ERROR');
+      // If the Edge Function is not deployed or credentials are missing for this database/workspace,
+      // present a clear, non-blocking state with zeroed data.
+      const message = String(err?.message || err || '');
+      if (
+        message.includes('FunctionsFetchError') ||
+        message.includes('Failed to fetch') ||
+        message.includes('404') ||
+        message.includes('401')
+      ) {
+        setError('CREDENTIALS_MISSING');
+      } else {
+        setError('FETCH_ERROR');
+      }
       setTotals({
         impressions: 0,
         clicks: 0,

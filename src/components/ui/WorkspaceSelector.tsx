@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAllWorkspaces } from '@/hooks/useAllWorkspaces';
+import { useWorkspaces } from '@/hooks/useWorkspaces';
 
 interface Workspace {
   id: string;
@@ -13,7 +13,7 @@ interface WorkspaceSelectorProps {
 }
 
 export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps) {
-  const { workspaces, isLoading, error, refetch } = useAllWorkspaces();
+  const { workspaces, isLoading, error, refetch } = useWorkspaces();
 
   // O hook já faz o fetch inicial. Evite refetch em toda renderização para não travar em loading.
 

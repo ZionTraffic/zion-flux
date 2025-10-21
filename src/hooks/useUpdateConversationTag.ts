@@ -15,7 +15,8 @@ export const useUpdateConversationTag = () => {
   const { supabase } = useDatabase();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const updateTag = async (conversationId: number, newTag: string) => {
+  // workspaceId é opcional para manter compatibilidade
+  const updateTag = async (conversationId: number, newTag: string, workspaceId?: string) => {
     if (!VALID_TAGS.includes(newTag as any)) {
       toast({
         title: "Erro",
@@ -28,8 +29,18 @@ export const useUpdateConversationTag = () => {
     setIsUpdating(true);
     
     try {
-      const { error } = await supabase
-        .from('historico_conversas')
+      // Descobrir tabela por workspace quando fornecido
+      let tableName: string = 'historico_conversas';
+      if (workspaceId) {
+        const { data: ws } = await supabase
+          .from('workspaces')
+          .select('slug')
+          .eq('id', workspaceId)
+          .maybeSingle();
+        tableName = ws?.slug === 'asf' ? 'conversas_asf' : ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
+      }
+
+      const { error } = await (supabase.from as any)(tableName)
         .update({ tag: newTag })
         .eq('id', conversationId);
 

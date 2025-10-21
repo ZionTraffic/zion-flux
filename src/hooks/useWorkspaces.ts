@@ -38,35 +38,45 @@ export function useWorkspaces() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
 
-      // Buscar workspaces do usuário diretamente do banco
-      const { data: memberWorkspaces, error: memberError } = await supabase
+      // 1) Buscar apenas os IDs das workspaces do usuário
+      const { data: memberRows, error: memberError } = await supabase
         .from('membros_workspace')
-        .select(`
-          workspace_id,
-          role,
-          workspaces (
-            id,
-            name,
-            slug,
-            database,
-            created_at,
-            segment,
-            logo_url,
-            primary_color
-          )
-        `)
+        .select('workspace_id, role')
         .eq('user_id', session.user.id);
 
       if (memberError) {
-        console.error('Error fetching workspaces:', memberError);
+        console.error('Error fetching member rows:', memberError);
         throw memberError;
       }
 
-      // Transformar dados e buscar KPIs
+      const workspaceIds = (memberRows || []).map((r: any) => r.workspace_id);
+      if (workspaceIds.length === 0) {
+        setWorkspaces([]);
+        return;
+      }
+
+      // 2) Buscar detalhes das workspaces em uma segunda query
+      const { data: wsRows, error: wsError } = await supabase
+        .from('workspaces')
+        .select('id, name, slug, database, created_at')
+        .in('id', workspaceIds);
+
+      if (wsError) {
+        console.error('Error fetching workspace details:', wsError);
+        throw wsError;
+      }
+
+      // Mapear roles por workspace
+      const rolesByWs = new Map<string, string>();
+      (memberRows || []).forEach((r: any) => rolesByWs.set(r.workspace_id, r.role));
+
+      // 3) Transformar dados e buscar KPIs
       const workspacesData = await Promise.all(
-        (memberWorkspaces || []).map(async (member: any) => {
-          const workspace = member.workspaces;
-          if (!workspace) return null;
+        (wsRows || []).map(async (workspace: any) => {
+          // Se não for ASF, não há KPIs de Meta Ads — retorna sem KPIs
+          if (workspace.database !== 'asf') {
+            return { ...workspace, role: rolesByWs.get(workspace.id) } as any;
+          }
 
           // Buscar KPIs dos últimos 30 dias
           const now = new Date();
@@ -85,16 +95,18 @@ export function useWorkspaces() {
 
             return {
               ...workspace,
+              role: rolesByWs.get(workspace.id),
               kpis: kpi ? {
                 leads: kpi.recebidos || 0,
                 conversions: kpi.qualificados || 0,
                 aiEfficiency: kpi.recebidos > 0 ? Math.round((kpi.qualificados / kpi.recebidos) * 100) : 0,
                 activeConversations: kpi.followup || 0,
               } : undefined,
-            };
+            } as any;
           } catch (kpiError) {
             console.error('Error fetching KPIs:', kpiError);
-            return workspace;
+            // Em caso de erro no RPC, retorna sem KPIs para não quebrar a UI
+            return { ...workspace, role: rolesByWs.get(workspace.id) } as any;
           }
         })
       );

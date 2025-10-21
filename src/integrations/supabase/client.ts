@@ -18,12 +18,12 @@ export const createSupabaseClient = (url: string, anonKey: string, storageKey?: 
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: storageKey,
-    }
+      storageKey,
+    },
   });
 };
 
 // Default client (for backward compatibility)
 export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
-  ? createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
-  : createSupabaseClient('http://localhost', 'invalid-key');
+  ? createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, 'sb-asf')
+  : createSupabaseClient('http://localhost', 'invalid-key', 'sb-asf');

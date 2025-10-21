@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createSupabaseClient } from '@/integrations/supabase/client';
+import { createSupabaseClient, supabase as defaultSupabase } from '@/integrations/supabase/client';
 
 export interface CrossWorkspace {
   id: string;
@@ -20,25 +20,33 @@ interface UseAllWorkspacesResult {
 
 const ASF_URL = import.meta.env.VITE_SUPABASE_ASF_URL as string;
 const ASF_ANON = import.meta.env.VITE_SUPABASE_ASF_ANON_KEY as string;
-const SIEG_URL = import.meta.env.VITE_SUPABASE_SIEG_URL as string;
-const SIEG_ANON = import.meta.env.VITE_SUPABASE_SIEG_ANON_KEY as string;
+const SIEG_URL = (import.meta.env.VITE_SUPABASE_SIEG_URL as string) || '';
+const SIEG_ANON = (import.meta.env.VITE_SUPABASE_SIEG_ANON_KEY as string) || '';
 
 export function useAllWorkspaces(): UseAllWorkspacesResult {
   const [workspaces, setWorkspaces] = useState<CrossWorkspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const asf = useMemo(() => createSupabaseClient(ASF_URL, ASF_ANON, 'sb-asf'), []);
-  const sieg = useMemo(() => createSupabaseClient(SIEG_URL, SIEG_ANON, 'sb-sieg'), []);
+  // Reuse default client for ASF so we don't duplicate GoTrue with same storageKey
+  const asf = defaultSupabase;
+  const sieg = useMemo(() => (SIEG_URL && SIEG_ANON)
+    ? createSupabaseClient(SIEG_URL, SIEG_ANON, 'sb-sieg')
+    : null
+  , [SIEG_URL, SIEG_ANON]);
 
   const fetchAll = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [{ data: userData }] = await Promise.all([
+      const [asfUserRes, siegUserRes] = await Promise.all([
         asf.auth.getUser(),
+        sieg?.auth.getUser() ?? Promise.resolve({ data: { user: null } } as any),
       ]);
-      const userId = userData.user?.id;
+      const asfUserData = (asfUserRes as any).data;
+      const siegUserData = (siegUserRes as any).data;
+      const asfUserId = asfUserData.user?.id;
+      const siegUserId = siegUserData.user?.id;
 
       // Busca nos dois bancos de forma resiliente
       let asfWsData: any[] = [];
@@ -54,34 +62,44 @@ export function useAllWorkspaces(): UseAllWorkspacesResult {
         asfErr = e;
       }
 
-      try {
-        const siegWs = await (sieg.from('workspaces').select('*') as any);
-        if (siegWs.error) throw siegWs.error;
-        siegWsData = siegWs.data || [];
-      } catch (e: any) {
-        siegErr = e;
+      if (sieg) {
+        try {
+          const siegWs = await (sieg.from('workspaces').select('*') as any);
+          if (siegWs.error) throw siegWs.error;
+          siegWsData = siegWs.data || [];
+        } catch (e: any) {
+          siegErr = e;
+        }
       }
 
-      // Se houver user, valida acesso por membros
+      // Se houver user em cada projeto, valida acesso por membros daquele projeto
       let allowedAsf = asfWsData;
       let allowedSieg = siegWsData;
 
-      if (userId) {
-        const [asfMembersRes, siegMembersRes] = await Promise.allSettled([
-          asf.from('membros_workspace').select('workspace_id').eq('user_id', userId),
-          sieg.from('membros_workspace').select('workspace_id').eq('user_id', userId),
-        ]);
+      const [asfMembersRes, siegMembersRes] = await Promise.allSettled([
+        asfUserId
+          ? asf.from('membros_workspace').select('workspace_id').eq('user_id', asfUserId)
+          : Promise.resolve({ data: null }),
+        sieg && siegUserId
+          ? sieg.from('membros_workspace').select('workspace_id').eq('user_id', siegUserId)
+          : Promise.resolve({ data: null }),
+      ]);
+
+      if (asfUserId) {
         const asfMembers =
           asfMembersRes.status === 'fulfilled' && !('error' in asfMembersRes.value)
             ? (asfMembersRes.value as any)
             : { data: [] };
+        const asfIds = new Set((asfMembers.data || []).map((m: any) => m.workspace_id));
+        allowedAsf = allowedAsf.filter((w: any) => asfIds.has(w.id));
+      }
+
+      if (sieg && siegUserId) {
         const siegMembers =
           siegMembersRes.status === 'fulfilled' && !('error' in siegMembersRes.value)
             ? (siegMembersRes.value as any)
             : { data: [] };
-        const asfIds = new Set((asfMembers.data || []).map((m: any) => m.workspace_id));
         const siegIds = new Set((siegMembers.data || []).map((m: any) => m.workspace_id));
-        allowedAsf = allowedAsf.filter((w: any) => asfIds.has(w.id));
         allowedSieg = allowedSieg.filter((w: any) => siegIds.has(w.id));
       }
 

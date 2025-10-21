@@ -131,19 +131,27 @@ export function usePerformanceData(workspaceId?: string) {
         const aiSpeedChange = previousAiSpeed > 0 ? ((aiSpeed - previousAiSpeed) / previousAiSpeed) * 100 : 0;
 
         // Calculate Retention (leads with multiple conversations)
-        const { data: currentConversations } = await supabase
-          .from('historico_conversas')
-          .select('phone')
-          .eq('workspace_id', workspace.id)
-          .gte('started_at', format(sevenDaysAgo, 'yyyy-MM-dd'))
-          .lte('started_at', to);
+        // Conversas por cliente (ASF/Sieg) via slug
+        const { data: wsInfo } = await supabase
+          .from('workspaces')
+          .select('slug')
+          .eq('id', workspace.id)
+          .maybeSingle();
+        const tableName = wsInfo?.slug === 'asf' ? 'conversas_asf' : wsInfo?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'conversas_asf';
+        const dateField = 'created_at';
+        const workspaceField = 'id_workspace';
 
-        const { data: previousConversations } = await supabase
-          .from('historico_conversas')
+        const { data: currentConversations } = await (supabase.from as any)(tableName)
           .select('phone')
-          .eq('workspace_id', workspace.id)
-          .gte('started_at', format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'))
-          .lte('started_at', format(subDays(new Date(), 1), 'yyyy-MM-dd'));
+          .eq(workspaceField, workspace.id)
+          .gte(dateField, format(sevenDaysAgo, 'yyyy-MM-dd'))
+          .lte(dateField, to);
+
+        const { data: previousConversations } = await (supabase.from as any)(tableName)
+          .select('phone')
+          .eq(workspaceField, workspace.id)
+          .gte(dateField, format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'))
+          .lte(dateField, format(subDays(new Date(), 1), 'yyyy-MM-dd'));
 
         const calculateRetention = (conversations: any[]) => {
           if (!conversations || conversations.length === 0) return 0;

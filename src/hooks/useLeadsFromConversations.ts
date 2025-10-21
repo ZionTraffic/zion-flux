@@ -105,13 +105,23 @@ export const useLeadsFromConversations = (
     setError(null);
 
     try {
+      // Resolver tabela por workspace
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('slug,name')
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      const tableName = ws?.slug === 'asf' ? 'conversas_asf' : ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
+      const dateField = tableName === 'historico_conversas' ? 'started_at' : 'created_at';
+      const workspaceField = tableName === 'historico_conversas' ? 'workspace_id' : 'id_workspace';
+
       // Fetch conversations with minimum date filter
-      let query = supabase
-        .from('historico_conversas')
+      let query = (supabase.from as any)(tableName)
         .select('*')
-        .eq('workspace_id', workspaceId)
-        .gte('created_at', MIN_DATA_DATE)
-        .order('created_at', { ascending: false });
+        .eq(workspaceField, workspaceId)
+        .gte(dateField, MIN_DATA_DATE)
+        .order(dateField, { ascending: false });
 
       const { data, error: fetchError } = await query;
 
@@ -122,13 +132,13 @@ export const useLeadsFromConversations = (
       
       // Aplicar filtro de data mínima do sistema
       filteredData = filteredData.filter(conv => {
-        const dateField = conv.created_at || conv.started_at;
+        const dateValue = conv.created_at || conv.started_at;
         if (!dateField) return false;
         
         try {
-          const convDate = typeof dateField === 'string' 
-            ? dateField.split('T')[0] 
-            : new Date(dateField).toISOString().split('T')[0];
+          const convDate = typeof dateValue === 'string' 
+            ? dateValue.split('T')[0] 
+            : new Date(dateValue).toISOString().split('T')[0];
           
           if (convDate < MIN_DATA_DATE) return false;
           return true;
@@ -147,13 +157,13 @@ export const useLeadsFromConversations = (
           : null;
         
         filteredData = filteredData.filter((conv) => {
-          const dateField = conv.created_at || conv.started_at;
+          const dateValue = conv.created_at || conv.started_at;
           if (!dateField) return false;
           
           try {
-            const convDate = typeof dateField === 'string'
-              ? dateField.split('T')[0]
-              : new Date(dateField).toISOString().split('T')[0];
+            const convDate = typeof dateValue === 'string'
+              ? dateValue.split('T')[0]
+              : new Date(dateValue).toISOString().split('T')[0];
             
             if (startStr && convDate < startStr) return false;
             if (endStr && convDate > endStr) return false;
@@ -261,8 +271,14 @@ export const useLeadsFromConversations = (
 
       // Update database
       const newTag = mapStageToTag(toStage);
-      const { error: updateError } = await supabase
-        .from('historico_conversas')
+      // Descobrir tabela alvo para atualização
+      const { data: ws2 } = await supabase
+        .from('workspaces')
+        .select('slug')
+        .eq('id', workspaceId)
+        .maybeSingle();
+      const updateTable = ws2?.slug === 'asf' ? 'conversas_asf' : ws2?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
+      const { error: updateError } = await (supabase.from as any)(updateTable)
         .update({ 
           tag: newTag,
           updated_at: new Date().toISOString().split('T')[0]

@@ -23,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -33,6 +35,14 @@ const Configuracoes = () => {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "workspaces";
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  useEffect(() => {
+    const current = searchParams.get("tab") || "workspaces";
+    setActiveTab(current);
+  }, [searchParams]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -55,7 +65,14 @@ const Configuracoes = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="workspaces" className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => {
+            setActiveTab(val);
+            setSearchParams({ tab: val });
+          }}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
             <TabsTrigger value="workspaces" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />

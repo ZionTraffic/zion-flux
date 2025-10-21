@@ -207,19 +207,28 @@ export function useConversationsData(workspaceId: string) {
         setIsLoading(true);
         setError(null);
 
-        // 1. Buscar conversas principais de historico_conversas (a partir de MIN_DATA_DATE)
-        const { data: conversationsData, error: conversationsError } = await supabase
-          .from("historico_conversas")
+        // Resolver tabela por workspace
+        const { data: ws } = await supabase
+          .from("workspaces")
+          .select("slug,name")
+          .eq("id", workspaceId)
+          .maybeSingle();
+
+        const tableName = ws?.slug === "asf" ? "conversas_asf" : ws?.slug === "sieg" ? "conversas_sieg_financeiro" : "conversas_asf";
+        const dateField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "created_at" : "created_at";
+        const workspaceField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "id_workspace" : "id_workspace";
+
+        const { data: conversationsData, error: conversationsError } = await (supabase.from as any)(tableName)
           .select("*")
-          .eq("workspace_id", workspaceId)
-          .gte("started_at", `${MIN_DATA_DATE}T00:00:00`)
-          .order("started_at", { ascending: false });
+          .eq(workspaceField, workspaceId)
+          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`)
+          .order(dateField, { ascending: false });
 
         if (conversationsError) throw conversationsError;
 
         // 2. Para cada conversa, buscar dados complementares
         const enrichedConversations = await Promise.all(
-          (conversationsData || []).map(async (conv) => {
+          (((conversationsData as any[]) || [])).map(async (conv: any) => {
             // Buscar análise IA (opcional)
             const { data: analysisData } = await supabase
               .from("analise_ia")
@@ -281,6 +290,9 @@ export function useConversationsData(workspaceId: string) {
               ? calculateSentiment(positives, negatives)
               : analyzeSentimentFromMessages(messages);
 
+            const startedAtStr = (conversation as any).started_at || (conversation as any).created_at || null;
+            const endedAtStr = (conversation as any).ended_at || null;
+
             return {
               id: conversation.id,
               leadName: conversation.lead_name || lead?.nome || `Lead ${conversation.phone}`,
@@ -293,9 +305,9 @@ export function useConversationsData(workspaceId: string) {
               sentimentScore: sentimentData.score,
               sentimentIntensity: sentimentData.intensity,
               summary: analysis?.summary || generateSummaryFromMessages(messages),
-              startedAt: conversation.started_at ? new Date(conversation.started_at) : new Date(),
-              endedAt: conversation.ended_at ? new Date(conversation.ended_at) : undefined,
-              duration: calculateDuration(conversation.started_at, conversation.ended_at),
+              startedAt: startedAtStr ? new Date(startedAtStr) : new Date(),
+              endedAt: endedAtStr ? new Date(endedAtStr) : undefined,
+              duration: calculateDuration(startedAtStr, endedAtStr),
               positives,
               negatives,
               suggestions: analysis?.ai_suggestions || [],
