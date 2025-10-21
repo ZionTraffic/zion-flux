@@ -24,6 +24,7 @@ import { format } from "date-fns";
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { currentDatabase } = useDatabase();
+  const [workspaceDb, setWorkspaceDb] = useState<string | undefined>(undefined);
   const [userEmail, setUserEmail] = useState<string>();
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
@@ -49,6 +50,17 @@ const Trafego = () => {
       if (user) setUserEmail(user.email);
     });
   }, []);
+
+  // Fetch workspace database to enforce ASF-only view for Meta Ads
+  useEffect(() => {
+    if (!currentWorkspaceId) return;
+    supabase
+      .from('workspaces')
+      .select('database')
+      .eq('id', currentWorkspaceId)
+      .maybeSingle()
+      .then(({ data }) => setWorkspaceDb(data?.database || null));
+  }, [currentWorkspaceId]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -101,6 +113,49 @@ const Trafego = () => {
         to.setDate(new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate());
         break;
     }
+
+  // Guard: Only ASF workspaces can view Meta Ads. Others see guidance
+  if (workspaceDb === undefined) {
+    return (
+      <DashboardLayout
+        onRefresh={refetch}
+        isRefreshing={true}
+        lastUpdate={new Date()}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
+        onExportPdf={() => {}}
+        isExporting={false}
+      >
+        <div className="min-h-[60vh] flex items-center justify-center p-6">
+          <div className="animate-pulse text-center text-muted-foreground">Carregando workspace...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (workspaceDb && workspaceDb !== 'asf') {
+    return (
+      <DashboardLayout
+        onRefresh={refetch}
+        isRefreshing={false}
+        lastUpdate={new Date()}
+        currentWorkspace={currentWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
+        onExportPdf={() => {}}
+        isExporting={false}
+      >
+        <div className="min-h-[60vh] flex items-center justify-center p-6">
+          <div className="glass rounded-2xl p-8 border border-yellow-500/30 bg-yellow-500/5 max-w-lg w-full text-center">
+            <div className="text-4xl mb-3">⚙️</div>
+            <h2 className="text-xl font-semibold mb-2">Workspace sem integração de Meta Ads</h2>
+            <p className="text-sm text-muted-foreground">
+              O workspace selecionado não usa a base ASF. Esta tela só exibe dados do Meta Ads para workspaces com integração ASF.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
     
     setDateRange({ from, to });
     toast({

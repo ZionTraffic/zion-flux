@@ -23,6 +23,7 @@ import { format } from "date-fns";
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { currentDatabase } = useDatabase();
+  const [workspaceDb, setWorkspaceDb] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -64,6 +65,17 @@ const DashboardIndex = () => {
       if (user) setUserEmail(user.email);
     });
   }, []);
+
+  // Fetch workspace database to avoid showing Meta Ads for non-ASF workspaces
+  useEffect(() => {
+    if (!currentWorkspaceId) return;
+    supabase
+      .from('workspaces')
+      .select('database')
+      .eq('id', currentWorkspaceId)
+      .maybeSingle()
+      .then(({ data }) => setWorkspaceDb(data?.database || null));
+  }, [currentWorkspaceId]);
 
   // 🔍 DEBUG roiHistory
   useEffect(() => {

@@ -41,12 +41,12 @@ export function DateRangePicker({
       return;
     }
 
-    // Validar range de dias
+    // Validar range de dias (inclusivo: conta dia inicial e final)
     if (newRange.to) {
-      const diffTime = Math.abs(newRange.to.getTime() - date.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < minDays || diffDays > maxDays) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const diffTime = Math.abs(newRange.to.setHours(0,0,0,0) - date.setHours(0,0,0,0));
+      const inclusiveDays = Math.floor(diffTime / msPerDay) + 1;
+      if (inclusiveDays < minDays || inclusiveDays > maxDays) {
         setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
         return;
       }
@@ -70,12 +70,12 @@ export function DateRangePicker({
       return;
     }
 
-    // Validar range de dias
+    // Validar range de dias (inclusivo: conta dia inicial e final)
     if (newRange.from) {
-      const diffTime = Math.abs(date.getTime() - newRange.from.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < minDays || diffDays > maxDays) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const diffTime = Math.abs(date.setHours(0,0,0,0) - newRange.from.setHours(0,0,0,0));
+      const inclusiveDays = Math.floor(diffTime / msPerDay) + 1;
+      if (inclusiveDays < minDays || inclusiveDays > maxDays) {
         setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
         return;
       }
