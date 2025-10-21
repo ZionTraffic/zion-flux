@@ -40,24 +40,45 @@ export function useAllWorkspaces(): UseAllWorkspacesResult {
       ]);
       const userId = userData.user?.id;
 
-      // Busca nos dois bancos com filtro por membro quando possível
-      const [asfWs, siegWs] = await Promise.all([
-        asf.from('workspaces').select('*') as any,
-        sieg.from('workspaces').select('*') as any,
-      ]);
+      // Busca nos dois bancos de forma resiliente
+      let asfWsData: any[] = [];
+      let siegWsData: any[] = [];
+      let asfErr: any = null;
+      let siegErr: any = null;
 
-      if (asfWs.error) throw asfWs.error;
-      if (siegWs.error) throw siegWs.error;
+      try {
+        const asfWs = await (asf.from('workspaces').select('*') as any);
+        if (asfWs.error) throw asfWs.error;
+        asfWsData = asfWs.data || [];
+      } catch (e: any) {
+        asfErr = e;
+      }
+
+      try {
+        const siegWs = await (sieg.from('workspaces').select('*') as any);
+        if (siegWs.error) throw siegWs.error;
+        siegWsData = siegWs.data || [];
+      } catch (e: any) {
+        siegErr = e;
+      }
 
       // Se houver user, valida acesso por membros
-      let allowedAsf = asfWs.data || [];
-      let allowedSieg = siegWs.data || [];
+      let allowedAsf = asfWsData;
+      let allowedSieg = siegWsData;
 
       if (userId) {
-        const [asfMembers, siegMembers] = await Promise.all([
+        const [asfMembersRes, siegMembersRes] = await Promise.allSettled([
           asf.from('membros_workspace').select('workspace_id').eq('user_id', userId),
           sieg.from('membros_workspace').select('workspace_id').eq('user_id', userId),
         ]);
+        const asfMembers =
+          asfMembersRes.status === 'fulfilled' && !('error' in asfMembersRes.value)
+            ? (asfMembersRes.value as any)
+            : { data: [] };
+        const siegMembers =
+          siegMembersRes.status === 'fulfilled' && !('error' in siegMembersRes.value)
+            ? (siegMembersRes.value as any)
+            : { data: [] };
         const asfIds = new Set((asfMembers.data || []).map((m: any) => m.workspace_id));
         const siegIds = new Set((siegMembers.data || []).map((m: any) => m.workspace_id));
         allowedAsf = allowedAsf.filter((w: any) => asfIds.has(w.id));
@@ -70,6 +91,10 @@ export function useAllWorkspaces(): UseAllWorkspacesResult {
       ].sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
 
       setWorkspaces(merged);
+      if (merged.length === 0 && asfErr && siegErr) {
+        // Só marca erro se ambos os projetos falharam
+        setError(asfErr?.message || siegErr?.message || 'Erro ao carregar workspaces');
+      }
     } catch (e: any) {
       setError(e.message || 'Erro ao carregar workspaces');
     } finally {

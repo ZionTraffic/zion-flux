@@ -15,10 +15,7 @@ interface WorkspaceSelectorProps {
 export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps) {
   const { workspaces, isLoading, error, refetch } = useAllWorkspaces();
 
-  useEffect(() => {
-    // permite revalidar em navegações
-    refetch();
-  }, [refetch]);
+  // O hook já faz o fetch inicial. Evite refetch em toda renderização para não travar em loading.
 
   useEffect(() => {
     // se não houver seleção atual, define a primeira disponível
@@ -59,7 +56,7 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
       >
         {workspaces.map((ws: Workspace) => (
           <option key={ws.id} value={ws.id} className="bg-background text-foreground">
-            {ws.name} ({ws.id})
+            {ws.name}
           </option>
         ))}
       </select>
