@@ -19,6 +19,8 @@ import { ActionCard } from "@/components/dashboard/executive/ActionCard";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
+import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
+import { PERMISSIONS } from "@/types/permissions";
 
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -211,7 +213,16 @@ const DashboardIndex = () => {
   const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
 
   return (
-    <div className="min-h-screen" key={componentKey}>
+    <PermissionGuard 
+      permission={PERMISSIONS.DASHBOARD_VIEW}
+      fallback={
+        <AccessDenied 
+          title="Acesso ao Dashboard Negado"
+          message="Você não tem permissão para visualizar o dashboard."
+        />
+      }
+    >
+      <div className="min-h-screen" key={componentKey}>
       <Header
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
@@ -507,6 +518,7 @@ const DashboardIndex = () => {
         </div>
       </footer>
     </div>
+    </PermissionGuard>
   );
 };
 

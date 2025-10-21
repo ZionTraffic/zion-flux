@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus, Building2 } from "lucide-react";
+import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus, Building2, Shield } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AddMemberModal } from "@/components/workspace/AddMemberModal";
@@ -16,6 +16,7 @@ import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
 import { CreateWorkspaceModal } from "@/components/workspaces/CreateWorkspaceModal";
+import { EditPermissionsModal } from "@/components/permissions/EditPermissionsModal";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,13 @@ const Configuracoes = () => {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
+  const [isEditPermissionsModalOpen, setIsEditPermissionsModalOpen] = useState(false);
+  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<{
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userRole: string;
+  } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "workspaces";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -46,6 +54,21 @@ const Configuracoes = () => {
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
+  };
+
+  const handleEditPermissions = (member: any) => {
+    setSelectedUserForPermissions({
+      userId: member.user_id,
+      userName: member.user_name,
+      userEmail: member.user_email,
+      userRole: member.role,
+    });
+    setIsEditPermissionsModalOpen(true);
+  };
+
+  const handlePermissionsUpdated = () => {
+    // Recarregar membros para refletir mudanças
+    // O hook useWorkspaceMembers já tem um refetch que pode ser usado
   };
   return (
     <div className="min-h-screen">
@@ -218,12 +241,24 @@ const Configuracoes = () => {
                         ) : (
                           <Badge variant="outline">{member.role}</Badge>
                         )}
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditPermissions(member)}
+                            className="text-primary hover:text-primary"
+                            title="Editar Permissões"
+                          >
+                            <Shield className="h-4 w-4" />
+                          </Button>
+                        )}
                         {isOwner && member.role !== 'owner' && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => removeMember(member.user_id)}
                             className="text-destructive hover:text-destructive"
+                            title="Remover Usuário"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -436,6 +471,20 @@ const Configuracoes = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Modal de Edição de Permissões */}
+      {selectedUserForPermissions && (
+        <EditPermissionsModal
+          open={isEditPermissionsModalOpen}
+          onOpenChange={setIsEditPermissionsModalOpen}
+          userId={selectedUserForPermissions.userId}
+          userName={selectedUserForPermissions.userName}
+          userEmail={selectedUserForPermissions.userEmail}
+          userRole={selectedUserForPermissions.userRole}
+          workspaceId={currentWorkspaceId || ''}
+          onPermissionsUpdated={handlePermissionsUpdated}
+        />
+      )}
 
       <footer className="container mx-auto px-6 py-6 mt-12">
         <div className="glass rounded-2xl p-6 text-center border border-border/50">

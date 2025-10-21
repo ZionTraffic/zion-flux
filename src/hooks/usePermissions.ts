@@ -27,12 +27,17 @@ export function usePermissions() {
     try {
       setLoading(true);
       
-      // Buscar permissões específicas do usuário
-      const { data: userPermissions, error } = await supabase
-        .from('user_permissions')
-        .select('permission_key, granted')
-        .eq('workspace_id', currentWorkspaceId)
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      // Usar função RPC para buscar permissões (evita problemas de TypeScript)
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setPermissions(new Set());
+        return;
+      }
+
+      const { data: result, error } = await supabase.rpc('get_user_permissions', {
+        p_workspace_id: currentWorkspaceId,
+        p_user_id: userData.user.id
+      });
 
       if (error) {
         logger.error('Error fetching user permissions', error);
@@ -43,20 +48,30 @@ export function usePermissions() {
         return;
       }
 
-      // Se não há permissões específicas, usar padrões do role
-      if (!userPermissions || userPermissions.length === 0) {
+      // Type assertion para o resultado da RPC
+      const permissionResult = result as any;
+      
+      if (!permissionResult?.success) {
+        logger.error('RPC error:', permissionResult?.error);
+        // Fallback para permissões padrão do role
         if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
           setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
         }
         return;
       }
 
-      // Aplicar permissões específicas
-      const grantedPermissions = userPermissions
-        .filter(p => p.granted)
-        .map(p => p.permission_key as PermissionKey);
-      
-      setPermissions(new Set(grantedPermissions));
+      // Se há permissões customizadas definidas, usar apenas elas (mesmo que vazias)
+      if (permissionResult.has_custom_permissions) {
+        const customPermissions = permissionResult.permissions || [];
+        setPermissions(new Set(customPermissions));
+      } else {
+        // Se não há permissões customizadas, usar padrões do role
+        if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
+          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
+        } else {
+          setPermissions(new Set());
+        }
+      }
     } catch (error) {
       logger.error('Error in fetchPermissions', error);
       // Fallback para permissões padrão do role
