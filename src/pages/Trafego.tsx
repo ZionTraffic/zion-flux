@@ -20,8 +20,6 @@ import { cn } from "@/lib/utils";
 import { pdf } from "@react-pdf/renderer";
 import { TrafegoPDF } from "@/components/reports/TrafegoPDF";
 import { format } from "date-fns";
-import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
-import { PERMISSIONS } from "@/types/permissions";
 
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -352,7 +350,7 @@ const Trafego = () => {
       label: 'Impressões',
       value: totals?.impressions.toLocaleString('pt-BR') || '0',
       icon: '👁️',
-      variant: 'emerald' as const,
+      variant: 'blue' as const,
       trend: totals ? calculateTrend(daily, 'impressions') : { value: 0, isPositive: true },
       delay: 0,
     },
@@ -361,7 +359,7 @@ const Trafego = () => {
       label: 'Investimento',
       value: `R$ ${totals?.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}`,
       icon: '💰',
-      variant: 'amber' as const,
+      variant: 'blue' as const,
       trend: totals ? calculateTrend(daily, 'spend') : { value: 0, isPositive: true },
       delay: 0.1,
     },
@@ -399,7 +397,7 @@ const Trafego = () => {
       label: 'CTR Médio',
       value: `${totals?.ctr.toFixed(2) || '0,00'}%`,
       icon: '🎯',
-      variant: 'purple' as const,
+      variant: 'gray' as const,
       trend: totals ? calculateTrend(daily, 'ctr') : { value: 0, isPositive: true },
       delay: 0.4,
     },
@@ -408,7 +406,7 @@ const Trafego = () => {
       label: 'Conversas Iniciadas',
       value: totals?.conversas_iniciadas.toLocaleString('pt-BR') || '0',
       icon: '💬',
-      variant: 'rose' as const,
+      variant: 'blue' as const,
       trend: totals ? calculateTrend(daily, 'conversas_iniciadas') : { value: 0, isPositive: true },
       delay: 0.5,
     },
@@ -464,15 +462,6 @@ const Trafego = () => {
   const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
 
   return (
-    <PermissionGuard 
-      permission={PERMISSIONS.TRAFFIC_VIEW}
-      fallback={
-        <AccessDenied 
-          title="Acesso ao Tráfego Negado"
-          message="Você não tem permissão para visualizar dados de tráfego e Meta Ads."
-        />
-      }
-    >
       <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={loading}
@@ -524,7 +513,7 @@ const Trafego = () => {
               Credenciais não configuradas
             </h3>
             <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
-              Configure as credenciais do Meta Ads no Supabase para ver os dados.
+              Configure as credenciais do Meta Ads no sistema para ver os dados.
             </p>
           </div>
         </div>
@@ -587,7 +576,6 @@ const Trafego = () => {
         </div>
       </div>
     </DashboardLayout>
-    </PermissionGuard>
   );
 };
 

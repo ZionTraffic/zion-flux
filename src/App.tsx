@@ -8,6 +8,7 @@ import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
+import { AutoRedirect } from "@/components/auth/AutoRedirect";
 import { NoAccess } from "@/components/workspace/NoAccess";
 import DashboardIndex from "./pages/DashboardIndex";
 import Leads from "./pages/Leads";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WorkspaceProvider>
+                    <AutoRedirect />
                     <Routes>
                       <Route path="/" element={<DashboardIndex />} />
                       <Route path="/leads" element={<Leads />} />

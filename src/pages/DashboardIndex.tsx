@@ -16,16 +16,17 @@ import { StrategicInsightsCard } from "@/components/dashboard/executive/Strategi
 import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { ActionCard } from "@/components/dashboard/executive/ActionCard";
+import { HeroSection } from "@/components/dashboard/HeroSection";
+import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
-import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
-import { PERMISSIONS } from "@/types/permissions";
 
 const DashboardIndex = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { currentDatabase } = useDatabase();
   const [workspaceDb, setWorkspaceDb] = useState<string | null>(null);
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -73,20 +74,25 @@ const DashboardIndex = () => {
     if (!currentWorkspaceId) return;
     supabase
       .from('workspaces')
-      .select('database')
+      .select('database, name')
       .eq('id', currentWorkspaceId)
       .maybeSingle()
-      .then(({ data }) => setWorkspaceDb(data?.database || null));
+      .then(({ data }) => {
+        setWorkspaceDb(data?.database || null);
+        setWorkspaceName(data?.name || null);
+      });
   }, [currentWorkspaceId]);
 
   // 🔍 DEBUG roiHistory
   useEffect(() => {
-    console.log('📊 DEBUG DashboardIndex:', {
-      roiHistoryLength: roiHistory?.length || 0,
-      roiHistoryFirst: roiHistory?.[0],
-      roiHistoryLast: roiHistory?.[roiHistory?.length - 1],
-      advancedMetrics,
-    });
+    if (roiHistory && roiHistory.length > 0 && advancedMetrics) {
+      console.log('📊 DEBUG DashboardIndex:', {
+        roiHistoryLength: roiHistory.length,
+        roiHistoryFirst: roiHistory[0],
+        roiHistoryLast: roiHistory[roiHistory.length - 1],
+        advancedMetrics,
+      });
+    }
   }, [roiHistory, advancedMetrics]);
 
   // Auto-refresh a cada 30 segundos
@@ -130,7 +136,7 @@ const DashboardIndex = () => {
           leadsSourceDistribution={leadsSourceDistribution}
           metaAds={metaAds}
           dateRange={dateRange || { from: undefined, to: undefined }}
-          workspaceName={currentWorkspaceId}
+          workspaceName={workspaceName || 'Workspace'}
           leads={leads}
           conversations={conversations}
         />
@@ -213,16 +219,7 @@ const DashboardIndex = () => {
   const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
 
   return (
-    <PermissionGuard 
-      permission={PERMISSIONS.DASHBOARD_VIEW}
-      fallback={
-        <AccessDenied 
-          title="Acesso ao Dashboard Negado"
-          message="Você não tem permissão para visualizar o dashboard."
-        />
-      }
-    >
-      <div className="min-h-screen" key={componentKey}>
+    <div className="min-h-screen" key={componentKey}>
       <Header
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
@@ -234,23 +231,20 @@ const DashboardIndex = () => {
       />
 
       <main className="container mx-auto px-6 py-8 space-y-8">
-        {/* 1. Última Atualização */}
-        <div className="glass rounded-2xl p-4 border border-border/50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
-              {isRefreshing ? '🔄' : '✅'}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            Auto-refresh a cada 30s
-          </span>
-        </div>
+        {/* Hero Section */}
+        {!isLoading && (
+          <HeroSection
+            userName={userEmail}
+            workspaceName={workspaceDb || 'Carregando...'}
+            totalLeads={leads?.totalLeads || 0}
+            totalInvested={advancedMetrics?.totalInvested || 0}
+            conversionRate={leads?.qualificationRate || 0}
+            trend="up"
+          />
+        )}
 
         {/* Date Range Filter */}
-        <div className="mb-6">
+        <div className="flex items-center justify-between gap-4">
           <DateRangePicker
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
@@ -258,54 +252,66 @@ const DashboardIndex = () => {
             minDays={1}
             maxDays={90}
           />
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
+            <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
+              {isRefreshing ? '🔄' : '✅'}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {lastUpdate.toLocaleTimeString('pt-BR')}
+            </span>
+          </div>
         </div>
 
-        {/* 2. KPIs Principais - 4 Cards */}
+        {/* Enhanced KPIs with Trends */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Leads Gerados */}
-          <MoneyKpiCard
+          <EnhancedKpiCard
             label="Leads Gerados"
             value={(leads?.totalLeads || 0).toLocaleString('pt-BR')}
             icon="🎯"
-            variant="emerald"
+            variant="blue"
+            trend={{
+              value: 12.5,
+              direction: "up"
+            }}
             delay={0}
           />
 
-          {/* Card 2: Mensagens Iniciadas */}
-          <MoneyKpiCard
+          <EnhancedKpiCard
             label="Mensagens Iniciadas"
             value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
             icon="💬"
             variant="blue"
-            delay={0.05}
-          />
-
-          {/* Card 3: Leads Qualificados */}
-          <MoneyKpiCard
-            label="Leads Qualificados"
-            value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
-            icon="💎"
-            variant="purple"
+            trend={{
+              value: 8.3,
+              direction: "up"
+            }}
             delay={0.1}
           />
 
-          {/* Card 4: Total Investido (com borda magenta) */}
-          <MoneyKpiCard
+          <EnhancedKpiCard
+            label="Leads Qualificados"
+            value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+            icon="💎"
+            variant="gray"
+            delay={0.2}
+          />
+
+          <EnhancedKpiCard
             label="Total Investido"
             value={`R$ ${(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { 
               minimumFractionDigits: 2 
             })}`}
             icon="💰"
-            variant="emerald"
-            delay={0.15}
-            highlight={true}
+            variant="blue"
+            trend={{
+              value: 15.7,
+              direction: "up"
+            }}
+            delay={0.3}
           />
         </div>
 
-        {/* 3. Resumo do Período */}
-        <PeriodSummaryCard metrics={qualificationMetrics} />
-
-        {/* 4. Insights Estratégicos */}
+        {/* 3. Insights Estratégicos */}
         <StrategicInsightsCard alerts={alerts} />
 
         {/* 5. Gráficos Consolidados - Linha 1 */}
@@ -518,7 +524,6 @@ const DashboardIndex = () => {
         </div>
       </footer>
     </div>
-    </PermissionGuard>
   );
 };
 

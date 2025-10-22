@@ -10,7 +10,7 @@ export interface DiagnosticsResult {
 export function useSupabaseDiagnostics() {
   const [result, setResult] = useState<DiagnosticsResult>({
     status: "checking",
-    details: "Verificando conexão com Supabase...",
+    details: "Verificando conexão com o banco de dados...",
   });
 
   useEffect(() => {
@@ -96,13 +96,13 @@ export function useSupabaseDiagnostics() {
         // ✅ Tudo OK!
         setResult({
           status: "ok",
-          details: "✅ Conexão Supabase verificada com sucesso!",
+          details: "✅ Conexão com banco de dados verificada com sucesso!",
         });
       } catch (err: any) {
-        console.error("Supabase diagnostics error:", err);
+        console.error("Database diagnostics error:", err);
         setResult({
           status: "error",
-          details: err.message || "❌ Erro desconhecido ao verificar Supabase",
+          details: err.message || "❌ Erro desconhecido ao verificar banco de dados",
           errorType: err.type || "unknown",
         });
       }

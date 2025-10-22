@@ -8,51 +8,64 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dash Premium Dark Theme */
-    --background: 222 47% 6%;
-    --foreground: 0 0% 98%;
+    /* Tema Claro Moderno - Branco com Azul/Roxo */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 15%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 15%;
 
-    --popover: 222 47% 6%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 15%;
 
     /* Neon Blue - Primary */
-    --primary: 199 100% 50%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --primary-start: 199 100% 63%;
     --primary-end: 217 91% 50%;
 
-    /* Lilac - Secondary */
-    --secondary: 271 91% 65%;
+    /* Sky Blue - Secondary */
+    --secondary: 199 89% 48%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 222 20% 20%;
-    --muted-foreground: 222 10% 65%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    /* Accent - Success Green */
-    --accent: 142 71% 45%;
+    /* Accent - Success (Azul Claro) */
+    --accent: 199 89% 48%;
     --accent-foreground: 0 0% 100%;
 
-    /* Gold - Premium */
-    --gold: 45 100% 51%;
-    --gold-foreground: 222 47% 11%;
+    /* Gold - Premium (Azul Dourado) */
+    --gold: 210 100% 56%;
+    --gold-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    /* Tons de Azul - Padrao Zion */
+    --orange: 210 100% 56%;
+    --orange-foreground: 0 0% 100%;
+    
+    --teal: 199 89% 48%;
+    --teal-foreground: 0 0% 100%;
+    
+    --purple: 217 91% 60%;
+    --purple-foreground: 0 0% 100%;
+    
+    --cyan: 189 94% 43%;
+    --cyan-foreground: 0 0% 100%;
+
+    --destructive: 217 91% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 20% 15%;
-    --input: 222 20% 15%;
-    --ring: 199 100% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
 
     --radius: 12px;
 
-    /* Apple Glassmorphism */
-    --glass-light: 0 0% 100% / 0.05;
-    --glass-medium: 0 0% 100% / 0.1;
-    --glass-heavy: 0 0% 100% / 0.18;
-    --glass-ultra: 0 0% 100% / 0.25;
+    /* Apple Glassmorphism - Tema Claro */
+    --glass-light: 255 255 255 / 0.6;
+    --glass-medium: 255 255 255 / 0.8;
+    --glass-heavy: 255 255 255 / 0.9;
+    --glass-ultra: 255 255 255 / 0.95;
     
     /* Apple Blur */
     --blur-sm: 10px;
@@ -60,15 +73,20 @@ All colors MUST be HSL.
     --blur-lg: 40px;
     --blur-xl: 60px;
     
-    /* Premium Gradients */
+    /* Premium Gradients - Tons de Azul Zion */
     --gradient-neon-blue: linear-gradient(135deg, hsl(var(--primary-start)), hsl(var(--primary-end)));
-    --gradient-gold: linear-gradient(135deg, hsl(45 100% 51%), hsl(43 96% 46%));
-    --gradient-emerald: linear-gradient(135deg, hsl(142 71% 45% / 0.15), hsl(142 71% 35% / 0.08));
+    --gradient-gold: linear-gradient(135deg, hsl(210 100% 56%), hsl(217 91% 50%));
+    --gradient-emerald: linear-gradient(135deg, hsl(199 89% 48% / 0.15), hsl(189 94% 43% / 0.08));
     --gradient-blue: linear-gradient(135deg, hsl(199 100% 50% / 0.15), hsl(217 91% 50% / 0.08));
-    --gradient-amber: linear-gradient(135deg, hsl(43 96% 56% / 0.15), hsl(43 96% 46% / 0.08));
+    --gradient-amber: linear-gradient(135deg, hsl(210 100% 56% / 0.15), hsl(217 91% 50% / 0.08));
     --gradient-gray: linear-gradient(135deg, hsl(222 20% 26% / 0.15), hsl(222 20% 16% / 0.08));
-    --gradient-purple: linear-gradient(135deg, hsl(271 91% 65% / 0.15), hsl(271 91% 55% / 0.08));
-    --gradient-rose: linear-gradient(135deg, hsl(330 81% 60% / 0.15), hsl(330 81% 50% / 0.08));
+    --gradient-purple: linear-gradient(135deg, hsl(217 91% 60% / 0.15), hsl(199 89% 48% / 0.08));
+    --gradient-rose: linear-gradient(135deg, hsl(199 89% 48% / 0.15), hsl(189 94% 43% / 0.08));
+    
+    /* Novos Gradientes - Tons de Azul */
+    --gradient-orange: linear-gradient(135deg, hsl(210 100% 56% / 0.15), hsl(217 91% 50% / 0.08));
+    --gradient-teal: linear-gradient(135deg, hsl(199 89% 48% / 0.15), hsl(189 94% 43% / 0.08));
+    --gradient-cyan: linear-gradient(135deg, hsl(189 94% 43% / 0.15), hsl(199 100% 50% / 0.08));
   }
 }
 
@@ -81,8 +99,14 @@ All colors MUST be HSL.
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
     
-    /* Apple-style dark gradient */
-    background: linear-gradient(180deg, rgb(10, 10, 20) 0%, rgb(18, 18, 30) 50%, rgb(10, 10, 20) 100%);
+    /* Gradiente Claro Moderno - Branco com Azul/Roxo */
+    background: linear-gradient(135deg, 
+      #ffffff 0%,           /* Branco puro */
+      #f0f4ff 25%,          /* Azul muito claro */
+      #e8f0fe 50%,          /* Azul claro */
+      #f3f0ff 75%,          /* Roxo muito claro */
+      #ffffff 100%          /* Branco puro */
+    );
     background-attachment: fixed;
     min-height: 100vh;
     
@@ -180,5 +204,35 @@ All colors MUST be HSL.
 
   .shadow-glow-gold {
     box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+  }
+
+  /* Fade in up animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  /* Pulse glow animation */
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 198, 255, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 198, 255, 0.4);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
   }
 }

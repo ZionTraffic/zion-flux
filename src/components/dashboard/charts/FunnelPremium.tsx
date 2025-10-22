@@ -24,9 +24,10 @@ interface BowlProps {
   topWidth: number;
   bottomWidth: number;
   height: number;
+  gradientId?: string;
 }
 
-function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
+function Bowl({ x, y, topWidth, bottomWidth, height, gradientId = 'bowlGradient3D' }: BowlProps) {
   const sideOffset = (topWidth - bottomWidth) / 2;
   
   // Path com curvatura 3D mais pronunciada
@@ -48,7 +49,7 @@ function Bowl({ x, y, topWidth, bottomWidth, height }: BowlProps) {
       {/* Corpo do bowl com gradiente 3D */}
       <path 
         d={bodyPath} 
-        fill="url(#bowlGradient3D)" 
+        fill={`url(#${gradientId})`}
         stroke="rgba(0,0,0,0.4)" 
         strokeWidth="2"
         filter="url(#glow)"
@@ -128,13 +129,22 @@ export function FunnelPremium({
         className="overflow-visible"
       >
         <defs>
-          {/* Gradiente 3D com 5 stops (efeito profundidade real) */}
+          {/* Gradiente 3D Azul Principal */}
           <linearGradient id="bowlGradient3D" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#87CEEB" stopOpacity="1"/> {/* Azul claro topo */}
-            <stop offset="25%" stopColor="#60C5F5" stopOpacity="1"/> {/* Azul médio-claro */}
-            <stop offset="50%" stopColor="#3A9FD8" stopOpacity="1"/> {/* Azul médio */}
-            <stop offset="75%" stopColor="#1E7BB8" stopOpacity="1"/> {/* Azul médio-escuro */}
-            <stop offset="100%" stopColor="#0A5A8A" stopOpacity="1"/> {/* Azul escuro base */}
+            <stop offset="0%" stopColor="#60a5fa" stopOpacity="1"/> {/* Azul claro topo */}
+            <stop offset="25%" stopColor="#3b82f6" stopOpacity="1"/> {/* Azul vibrante */}
+            <stop offset="50%" stopColor="#2563eb" stopOpacity="1"/> {/* Azul médio */}
+            <stop offset="75%" stopColor="#1d4ed8" stopOpacity="1"/> {/* Azul médio-escuro */}
+            <stop offset="100%" stopColor="#1e40af" stopOpacity="1"/> {/* Azul escuro base */}
+          </linearGradient>
+
+          {/* Gradiente 3D Azul Escuro para último estágio */}
+          <linearGradient id="bowlGradientDark" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1e40af" stopOpacity="1"/> {/* Azul escuro topo */}
+            <stop offset="25%" stopColor="#1e3a8a" stopOpacity="1"/> {/* Azul muito escuro */}
+            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="1"/> {/* Azul muito escuro */}
+            <stop offset="75%" stopColor="#172554" stopOpacity="1"/> {/* Azul profundo */}
+            <stop offset="100%" stopColor="#0f172a" stopOpacity="1"/> {/* Azul quase preto */}
           </linearGradient>
 
           {/* Gradiente para o topo do bowl */}
@@ -253,15 +263,15 @@ export function FunnelPremium({
           {formatValue(stages[1].value)}
         </text>
 
-        {/* Estágio 3 (Base) */}
-        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} />
+        {/* Estágio 3 (Base) - AZUL ESCURO */}
+        <Bowl x={x3} y={y3} topWidth={botW} bottomWidth={botW * 0.85} height={stageH} gradientId="bowlGradientDark" />
         {/* Sombra inferior do bowl 3 */}
         <ellipse 
           cx={W / 2} 
           cy={y3 + stageH} 
           rx={(botW * 0.85) / 2} 
           ry="4" 
-          fill="rgba(0,0,0,0.4)"
+          fill="rgba(15,23,42,0.5)"
           filter="blur(4px)"
         />
         <text

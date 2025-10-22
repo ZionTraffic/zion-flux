@@ -10,6 +10,7 @@ interface GenerateInviteRequest {
   email: string;
   role: string;
   workspace_id: string;
+  permissions?: string[];
 }
 
 serve(async (req) => {
@@ -71,7 +72,8 @@ serve(async (req) => {
     const body = await req.json();
     console.log('📨 Request body:', body);
     
-    const { email, role, workspace_id }: GenerateInviteRequest = body;
+    const { email, role, workspace_id, permissions } = body as GenerateInviteRequest;
+    console.log('📝 Request data:', { email, role, workspace_id, permissions: permissions?.length || 0 });
 
     // Validações
     if (!email || !role || !workspace_id) {
@@ -135,6 +137,7 @@ serve(async (req) => {
         role,
         token: inviteToken,
         invited_by: user.id,
+        permissions: permissions ? JSON.stringify(permissions) : null,
       })
       .select()
       .single();

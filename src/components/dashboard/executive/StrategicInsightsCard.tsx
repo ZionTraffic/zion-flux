@@ -29,25 +29,7 @@ export const StrategicInsightsCard = ({ alerts }: StrategicInsightsCardProps) =>
   };
 
   if (positiveInsights.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="glass rounded-2xl p-8 border border-border/50 shadow-premium"
-        style={{ background: 'var(--gradient-emerald)' }}
-      >
-        <div className="text-center">
-          <span className="text-5xl mb-4 block">✨</span>
-          <h3 className="text-xl font-bold text-emerald-400 mb-2">
-            Excelente trabalho!
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Continue assim. Seus resultados estão consistentes.
-          </p>
-        </div>
-      </motion.div>
-    );
+    return null;
   }
 
   return (

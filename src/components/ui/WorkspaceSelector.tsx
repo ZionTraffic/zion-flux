@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface Workspace {
   id: string;
@@ -14,6 +16,8 @@ interface WorkspaceSelectorProps {
 
 export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps) {
   const { workspaces, isLoading, error, refetch } = useWorkspaces();
+  const { hasCustomPermissions } = usePermissions();
+  const { isOwner, isAdmin } = useUserRole();
 
   // O hook já faz o fetch inicial. Evite refetch em toda renderização para não travar em loading.
 
@@ -44,6 +48,25 @@ export function WorkspaceSelector({ current, onChange }: WorkspaceSelectorProps)
       </div>
     );
   }
+
+  // Esconder seletor para usuários com permissões customizadas (não owners/admins)
+  const shouldHideSelector = hasCustomPermissions() && !isOwner && !isAdmin;
+  
+  if (shouldHideSelector) {
+    // Mostrar apenas o nome do workspace atual, sem possibilidade de trocar
+    const currentWorkspace = workspaces.find(w => w.id === current);
+    return (
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-muted-foreground font-medium">
+          Workspace:
+        </label>
+        <span className="text-sm font-medium text-foreground">
+          {currentWorkspace?.name || 'Carregando...'}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3">
       <label className="text-sm text-muted-foreground font-medium">

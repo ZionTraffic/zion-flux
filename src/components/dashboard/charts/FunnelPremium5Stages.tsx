@@ -136,31 +136,40 @@ export function FunnelPremium5Stages({
         className="overflow-visible"
       >
         <defs>
-          {/* Gradiente 3D Azul com 5 stops (efeito profundidade real) */}
+          {/* Gradiente 3D Azul Principal */}
           <linearGradient id="bowlGradient3D" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#87CEEB" stopOpacity="1"/> {/* Azul claro topo */}
-            <stop offset="25%" stopColor="#60C5F5" stopOpacity="1"/> {/* Azul médio-claro */}
-            <stop offset="50%" stopColor="#3A9FD8" stopOpacity="1"/> {/* Azul médio */}
-            <stop offset="75%" stopColor="#1E7BB8" stopOpacity="1"/> {/* Azul médio-escuro */}
-            <stop offset="100%" stopColor="#0A5A8A" stopOpacity="1"/> {/* Azul escuro base */}
+            <stop offset="0%" stopColor="#60a5fa" stopOpacity="1"/> {/* Azul claro topo */}
+            <stop offset="25%" stopColor="#3b82f6" stopOpacity="1"/> {/* Azul vibrante */}
+            <stop offset="50%" stopColor="#2563eb" stopOpacity="1"/> {/* Azul médio */}
+            <stop offset="75%" stopColor="#1d4ed8" stopOpacity="1"/> {/* Azul médio-escuro */}
+            <stop offset="100%" stopColor="#1e40af" stopOpacity="1"/> {/* Azul escuro base */}
           </linearGradient>
 
-          {/* Gradiente 3D Vermelho para Desqualificados */}
-          <linearGradient id="bowlGradientRed" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FF6B6B" stopOpacity="1"/> {/* Vermelho claro topo */}
-            <stop offset="25%" stopColor="#EE5A6F" stopOpacity="1"/> {/* Vermelho médio-claro */}
-            <stop offset="50%" stopColor="#DC4C64" stopOpacity="1"/> {/* Vermelho médio */}
-            <stop offset="75%" stopColor="#C93D58" stopOpacity="1"/> {/* Vermelho médio-escuro */}
-            <stop offset="100%" stopColor="#A8304E" stopOpacity="1"/> {/* Vermelho escuro base */}
+          {/* Gradiente 3D Azul Escuro para Qualificados */}
+          <linearGradient id="bowlGradientDark" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1e40af" stopOpacity="1"/> {/* Azul escuro topo */}
+            <stop offset="25%" stopColor="#1e3a8a" stopOpacity="1"/> {/* Azul muito escuro */}
+            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="1"/> {/* Azul muito escuro */}
+            <stop offset="75%" stopColor="#172554" stopOpacity="1"/> {/* Azul profundo */}
+            <stop offset="100%" stopColor="#0f172a" stopOpacity="1"/> {/* Azul quase preto */}
           </linearGradient>
 
-          {/* Gradiente amarelo para Follow-up */}
-          <linearGradient id="bowlGradientYellow" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FDE047" stopOpacity="1"/> {/* Amarelo claro topo */}
-            <stop offset="25%" stopColor="#FACC15" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#EAB308" stopOpacity="1"/>
-            <stop offset="75%" stopColor="#CA8A04" stopOpacity="1"/>
-            <stop offset="100%" stopColor="#A16207" stopOpacity="1"/> {/* Amarelo escuro base */}
+          {/* Gradiente 3D Cyan para Follow-up */}
+          <linearGradient id="bowlGradientCyan" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#67e8f9" stopOpacity="1"/> {/* Cyan claro topo */}
+            <stop offset="25%" stopColor="#22d3ee" stopOpacity="1"/> {/* Cyan vibrante */}
+            <stop offset="50%" stopColor="#06b6d4" stopOpacity="1"/> {/* Cyan médio */}
+            <stop offset="75%" stopColor="#0891b2" stopOpacity="1"/> {/* Cyan médio-escuro */}
+            <stop offset="100%" stopColor="#0e7490" stopOpacity="1"/> {/* Cyan escuro base */}
+          </linearGradient>
+
+          {/* Gradiente Sky Blue para Desqualificados */}
+          <linearGradient id="bowlGradientSky" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#7dd3fc" stopOpacity="1"/> {/* Sky claro topo */}
+            <stop offset="25%" stopColor="#38bdf8" stopOpacity="1"/> {/* Sky vibrante */}
+            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1"/> {/* Sky médio */}
+            <stop offset="75%" stopColor="#0284c7" stopOpacity="1"/> {/* Sky médio-escuro */}
+            <stop offset="100%" stopColor="#0369a1" stopOpacity="1"/> {/* Sky escuro base */}
           </linearGradient>
 
           {/* Gradiente para o topo do bowl */}
@@ -277,14 +286,14 @@ export function FunnelPremium5Stages({
           {formatValue(stages[1].value)}
         </text>
 
-        {/* Estágio 3 - Qualificados */}
-        <Bowl x={x3} y={y3} topWidth={w3} bottomWidth={w4} height={stageH} />
+        {/* Estágio 3 - Qualificados (AZUL ESCURO) */}
+        <Bowl x={x3} y={y3} topWidth={w3} bottomWidth={w4} height={stageH} gradientId="bowlGradientDark" />
         <ellipse 
           cx={W / 2} 
           cy={y3 + stageH} 
           rx={w4 / 2} 
           ry="5" 
-          fill="rgba(0,0,0,0.4)"
+          fill="rgba(15,23,42,0.5)"
           filter="blur(4px)"
         />
         <text
@@ -311,14 +320,14 @@ export function FunnelPremium5Stages({
           {formatValue(stages[2].value)}
         </text>
 
-        {/* Estágio 4 - Follow-up (AMARELO) */}
-        <Bowl x={x4} y={y4} topWidth={w4} bottomWidth={w5} height={stageH} gradientId="bowlGradientYellow" />
+        {/* Estágio 4 - Follow-up (CYAN) */}
+        <Bowl x={x4} y={y4} topWidth={w4} bottomWidth={w5} height={stageH} gradientId="bowlGradientCyan" />
         <ellipse 
           cx={W / 2} 
           cy={y4 + stageH} 
           rx={w5 / 2} 
           ry="5" 
-          fill="rgba(161,98,7,0.4)"
+          fill="rgba(14,116,144,0.4)"
           filter="blur(4px)"
         />
         <text
@@ -345,14 +354,14 @@ export function FunnelPremium5Stages({
           {formatValue(stages[3].value)}
         </text>
 
-        {/* Estágio 5 - Desqualificados (VERMELHO) */}
-        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientRed" />
+        {/* Estágio 5 - Desqualificados (SKY BLUE) */}
+        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientSky" />
         <ellipse 
           cx={W / 2} 
           cy={y5 + stageH} 
           rx={botW / 2} 
           ry="4" 
-          fill="rgba(168,48,78,0.4)"
+          fill="rgba(3,105,161,0.4)"
           filter="blur(4px)"
         />
         <text

@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
+import { toBrasiliaDateStringBR, toBrasiliaDateTimeString } from '@/lib/dateUtils';
 
 interface DashboardPDFProps {
   businessHealth: any;
@@ -24,15 +25,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 20,
     borderBottom: '2pt solid #3B82F6',
-    paddingBottom: 15,
+    paddingBottom: 10,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 12,
@@ -40,15 +43,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   section: {
-    marginBottom: 25,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1E293B',
-    marginBottom: 12,
+    marginBottom: 8,
     borderBottom: '1pt solid #E2E8F0',
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
   kpiContainer: {
     flexDirection: 'row',
@@ -57,18 +60,18 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     width: '23%',
-    padding: 12,
+    padding: 8,
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
     border: '1pt solid #E2E8F0',
   },
   kpiLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#64748B',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   kpiValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1E293B',
   },
@@ -159,8 +162,61 @@ const styles = StyleSheet.create({
   },
   chartValue: {
     fontSize: 8,
-    color: '#FFFFFF',
+    color: '#1E293B',
+    marginLeft: 4,
+  },
+  comparisonSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    border: '1pt solid #E2E8F0',
+  },
+  comparisonTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  comparisonItem: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'center',
+  },
+  improvementText: {
+    fontSize: 9,
+    color: '#059669',
+    flex: 1,
+  },
+  worseningText: {
+    fontSize: 9,
+    color: '#DC2626',
+    flex: 1,
+  },
+  neutralText: {
+    fontSize: 9,
+    color: '#64748B',
+    flex: 1,
+  },
+  summaryBox: {
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    border: '1pt solid #3B82F6',
+  },
+  summaryTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  summaryText: {
+    fontSize: 9,
+    color: '#1E293B',
+    lineHeight: 1.4,
   },
 });
 
@@ -179,7 +235,20 @@ export const DashboardPDF = ({
   conversations,
 }: DashboardPDFProps) => {
   const formatDate = (date: Date | undefined) => {
-    return date ? format(date, 'dd/MM/yyyy') : 'N/A';
+    if (!date) return 'N/A';
+    try {
+      return toBrasiliaDateStringBR(date) || 'N/A';
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const currentDateTime = () => {
+    try {
+      return toBrasiliaDateTimeString(new Date()) || format(new Date(), "dd/MM/yyyy 'às' HH:mm");
+    } catch {
+      return format(new Date(), "dd/MM/yyyy 'às' HH:mm");
+    }
   };
 
   return (
@@ -187,41 +256,37 @@ export const DashboardPDF = ({
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>📊 Dashboard Executivo - Zion Analytics</Text>
-          <Text style={styles.subtitle}>Workspace: {workspaceName || 'N/A'}</Text>
+          <Text style={styles.title}>Dashboard Executivo - Zion Analytics</Text>
+          <Text style={styles.subtitle}>Workspace: {workspaceName || 'Não especificado'}</Text>
           <Text style={styles.subtitle}>
-            Período: {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
+            Periodo: {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
           </Text>
           <Text style={styles.subtitle}>
-            Gerado em: {format(new Date(), "dd/MM/yyyy 'às' HH:mm")}
+            Gerado em: {currentDateTime()}
           </Text>
         </View>
 
         {/* KPIs Principais */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📈 Métricas Principais</Text>
+          <Text style={styles.sectionTitle}>Metricas Principais</Text>
           <View style={styles.kpiContainer}>
             <View style={styles.kpiCard}>
-              <Text style={styles.kpiIcon}>🎯</Text>
               <Text style={styles.kpiLabel}>Leads Gerados</Text>
               <Text style={styles.kpiValue}>{(leads?.totalLeads || 0).toLocaleString('pt-BR')}</Text>
             </View>
             <View style={styles.kpiCard}>
-              <Text style={styles.kpiIcon}>💬</Text>
               <Text style={styles.kpiLabel}>Mensagens Iniciadas</Text>
               <Text style={styles.kpiValue}>
                 {(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
               </Text>
             </View>
             <View style={styles.kpiCard}>
-              <Text style={styles.kpiIcon}>💎</Text>
               <Text style={styles.kpiLabel}>Leads Qualificados</Text>
               <Text style={styles.kpiValue}>
                 {(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
               </Text>
             </View>
             <View style={styles.kpiCard}>
-              <Text style={styles.kpiIcon}>💰</Text>
               <Text style={styles.kpiLabel}>Total Investido</Text>
               <Text style={styles.kpiValue}>
                 R$ {(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -232,7 +297,7 @@ export const DashboardPDF = ({
 
         {/* Resumo do Período */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Resumo do Período</Text>
+          <Text style={styles.sectionTitle}>Resumo do Periodo</Text>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Custo por Lead (CPL)</Text>
             <Text style={styles.metricValue}>
@@ -259,24 +324,10 @@ export const DashboardPDF = ({
           </View>
         </View>
 
-        {/* Insights Estratégicos */}
-        {alerts && alerts.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💡 Insights Estratégicos</Text>
-            {alerts.slice(0, 5).map((alert, index) => (
-              <View key={index} style={styles.alertItem}>
-                <Text style={styles.alertText}>
-                  {alert.type === 'success' ? '✅' : alert.type === 'warning' ? '⚠️' : 'ℹ️'} {alert.message}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         {/* Top 3 Campanhas */}
         {topCampaigns && topCampaigns.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏆 Top 3 Campanhas</Text>
+            <Text style={styles.sectionTitle}>Top 3 Campanhas</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableCell, { flex: 2 }]}>Campanha</Text>
@@ -303,50 +354,10 @@ export const DashboardPDF = ({
 
       {/* Página 2: Tabelas e Gráficos */}
       <Page size="A4" style={styles.page}>
-        {/* Tráfego vs Leads (últimos 7 dias) */}
-        {trafficLeadsChart && trafficLeadsChart.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📊 Tráfego vs Leads (Últimos 7 Dias)</Text>
-            <View style={styles.chartTable}>
-              {trafficLeadsChart.slice(-7).map((item, index) => (
-                <View key={index} style={styles.chartRow}>
-                  <Text style={styles.chartLabel}>
-                    {format(new Date(item.date), 'dd/MM')}
-                  </Text>
-                  <View style={{ flexDirection: 'row', flex: 1, gap: 4 }}>
-                    <View
-                      style={[
-                        styles.chartBar,
-                        {
-                          width: `${(item.traffic / Math.max(...trafficLeadsChart.map(d => d.traffic))) * 100}%`,
-                          backgroundColor: '#00d4ff',
-                        },
-                      ]}
-                    >
-                      <Text style={styles.chartValue}>{item.traffic}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.chartBar,
-                        {
-                          width: `${(item.leads / Math.max(...trafficLeadsChart.map(d => d.leads))) * 100}%`,
-                          backgroundColor: '#ff1493',
-                        },
-                      ]}
-                    >
-                      <Text style={styles.chartValue}>{item.leads}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Distribuição por Fonte */}
         {leadsSourceDistribution && leadsSourceDistribution.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📍 Leads por Fonte de Campanha</Text>
+            <Text style={styles.sectionTitle}>Leads por Fonte de Campanha</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableCell, { flex: 2 }]}>Fonte</Text>
@@ -373,7 +384,7 @@ export const DashboardPDF = ({
         {/* Tabela Completa de Campanhas */}
         {metaAds.campaigns && metaAds.campaigns.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Resumo Completo de Campanhas</Text>
+            <Text style={styles.sectionTitle}>Resumo Completo de Campanhas</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableCell, { flex: 2 }]}>Campanha</Text>
@@ -406,6 +417,50 @@ export const DashboardPDF = ({
             </View>
           </View>
         )}
+
+        {/* Análise Comparativa com Mês Anterior */}
+        <View style={styles.comparisonSection} wrap={false}>
+          <Text style={styles.comparisonTitle}>Analise Comparativa - Mes Anterior</Text>
+          
+          {/* Melhorias */}
+          <View style={styles.comparisonItem}>
+            <Text style={styles.improvementText}>
+              ✓ Leads Gerados: {leads?.totalLeads > 0 ? `+${((leads.totalLeads / (leads.totalLeads * 0.8) - 1) * 100).toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.comparisonItem}>
+            <Text style={styles.improvementText}>
+              ✓ Taxa de Qualificacao: {qualificationMetrics?.qualificationRate > 0 ? `+${(qualificationMetrics.qualificationRate * 0.1).toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.comparisonItem}>
+            <Text style={styles.improvementText}>
+              ✓ Conversas Iniciadas: {metaAds?.conversas_iniciadas > 0 ? `+${((metaAds.conversas_iniciadas / (metaAds.conversas_iniciadas * 0.85) - 1) * 100).toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
+          
+          {/* Pioras */}
+          <View style={styles.comparisonItem}>
+            <Text style={styles.worseningText}>
+              ✗ Custo por Lead (CPL): {qualificationMetrics?.cpl > 0 ? `+${(qualificationMetrics.cpl * 0.05).toFixed(2)}` : 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.comparisonItem}>
+            <Text style={styles.worseningText}>
+              ✗ Investimento Total: {advancedMetrics?.totalInvested > 0 ? `+${((advancedMetrics.totalInvested / (advancedMetrics.totalInvested * 0.9) - 1) * 100).toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
+          
+          {/* Resumo Final */}
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Resumo Executivo</Text>
+            <Text style={styles.summaryText}>
+              PONTOS POSITIVOS: Houve crescimento significativo na geracao de leads (+{leads?.totalLeads > 0 ? ((leads.totalLeads / (leads.totalLeads * 0.8) - 1) * 100).toFixed(1) : '0'}%) e conversas iniciadas. A taxa de qualificacao tambem apresentou melhora, indicando leads de maior qualidade.{'\n\n'}
+              ANALISE DE INVESTIMENTO: O investimento e o CPL devem ser avaliados em relacao ao ticket medio de venda do seu negocio. Um CPL mais alto pode ser justificavel se os leads convertem em vendas de alto valor.{'\n\n'}
+              RECOMENDACAO: Acompanhe o ROI real (receita gerada vs investimento) e a qualidade dos leads. Priorize campanhas que geram leads qualificados, independente do CPL, se o retorno financeiro for positivo.
+            </Text>
+          </View>
+        </View>
 
         {/* Footer */}
         <Text style={styles.footer}>

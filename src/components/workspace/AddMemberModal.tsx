@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Copy, Link as LinkIcon } from 'lucide-react';
+import { Copy, Link as LinkIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PendingInvitesList } from './PendingInvitesList';
@@ -44,11 +44,111 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
   const [error, setError] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [inviteDetails, setInviteDetails] = useState<any>(null);
+  const [hasTemplate, setHasTemplate] = useState(false);
+
+  // Carregar template salvo quando workspace mudar
+  useEffect(() => {
+    if (workspaceId) {
+      const templateKey = `permission_template_${workspaceId}`;
+      const savedTemplate = localStorage.getItem(templateKey);
+      
+      if (savedTemplate) {
+        try {
+          const template = JSON.parse(savedTemplate);
+          setRole(template.role || 'member');
+          setSelectedPermissions(template.permissions || [...DEFAULT_PERMISSIONS_BY_ROLE.member]);
+          setHasTemplate(true);
+          
+          toast.info(`Template carregado para ${template.workspaceName}`, {
+            description: `${template.permissions?.length || 0} permissões configuradas`
+          });
+        } catch (error) {
+          console.error('Erro ao carregar template:', error);
+          setHasTemplate(false);
+        }
+      } else {
+        setHasTemplate(false);
+      }
+    }
+  }, [workspaceId]);
+
+  const handleSavePermissions = async () => {
+    try {
+      // Validar se workspace está selecionado
+      if (!workspaceId) {
+        toast.error('Selecione um workspace primeiro');
+        return;
+      }
+
+      // Validar se email está preenchido
+      if (!email.trim()) {
+        toast.error('Digite o email do usuário');
+        return;
+      }
+
+      // Validar se há permissões selecionadas
+      if (selectedPermissions.length === 0) {
+        toast.error('Selecione pelo menos uma permissão');
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Gerar convite com permissões customizadas
+      const { data, error: functionError } = await supabase.functions.invoke('generate-invite-link', {
+        body: {
+          email: email.toLowerCase().trim(),
+          role: role,
+          workspace_id: workspaceId,
+          permissions: selectedPermissions
+        }
+      });
+
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        throw functionError;
+      }
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      console.log('Convite gerado com permissões customizadas:', data);
+
+      // Salvar template também
+      const templateKey = `permission_template_${workspaceId}`;
+      const template = {
+        role,
+        permissions: selectedPermissions,
+        savedAt: new Date().toISOString(),
+        workspaceName: workspaces.find(w => w.id === workspaceId)?.name || 'Workspace'
+      };
+
+      localStorage.setItem(templateKey, JSON.stringify(template));
+      
+      toast.success('Usuário cadastrado! Link de convite gerado.');
+      
+      handleClose();
+      
+      // Forçar atualização da lista de usuários sem recarregar a página
+      setTimeout(() => {
+        // Disparar evento customizado para atualizar a lista
+        window.dispatchEvent(new CustomEvent('refreshUserList'));
+      }, 500);
+      
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      toast.error('Erro ao adicionar usuário');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleClose = () => {
     setWorkspaceId(currentWorkspaceId || '');
     setEmail('');
     setRole('member');
+    setSelectedPermissions([...DEFAULT_PERMISSIONS_BY_ROLE.member] as PermissionKey[]);
     setError(null);
     setGeneratedLink(null);
     setInviteDetails(null);
@@ -92,7 +192,8 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         body: {
           email: validation.email,
           role: validation.role,
-          workspace_id: validation.workspace_id
+          workspace_id: validation.workspace_id,
+          permissions: selectedPermissions
         }
       });
 
@@ -241,13 +342,24 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
               </div>
             )}
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleClose}>
-                Cancelar
+            <div className="flex gap-2 justify-between">
+              <Button 
+                variant={hasTemplate ? "default" : "secondary"}
+                onClick={handleSavePermissions}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+{hasTemplate ? 'Cadastrar com Template' : 'Cadastrar Usuário'}
               </Button>
-              <Button onClick={handleGenerateLink} disabled={isLoading}>
-                {isLoading ? 'Gerando...' : 'Gerar Link de Convite'}
-              </Button>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleGenerateLink} disabled={isLoading}>
+                  {isLoading ? 'Gerando...' : 'Gerar Link de Convite'}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 

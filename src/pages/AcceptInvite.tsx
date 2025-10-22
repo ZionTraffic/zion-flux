@@ -39,7 +39,7 @@ export default function AcceptInvite() {
       
       const { data, error } = await supabase
         .from('pending_invites')
-        .select('*, workspaces(name)')
+        .select('*, workspaces(name), permissions')
         .eq('token', token)
         .is('used_at', null)
         .gt('expires_at', new Date().toISOString())

@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
+import { PERMISSIONS } from "@/types/permissions";
 
 const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
@@ -51,6 +53,20 @@ const Configuracoes = () => {
     const current = searchParams.get("tab") || "workspaces";
     setActiveTab(current);
   }, [searchParams]);
+
+  // Listener para atualizar lista de usuários
+  useEffect(() => {
+    const handleRefreshUserList = () => {
+      // Recarregar membros do workspace
+      window.location.reload();
+    };
+
+    window.addEventListener('refreshUserList', handleRefreshUserList);
+    
+    return () => {
+      window.removeEventListener('refreshUserList', handleRefreshUserList);
+    };
+  }, []);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -80,7 +96,16 @@ const Configuracoes = () => {
         onWorkspaceChange={handleWorkspaceChange}
       />
 
-      <main className="container mx-auto px-6 py-8 space-y-8">
+      <PermissionGuard 
+        permission={PERMISSIONS.SETTINGS_VIEW}
+        fallback={
+          <AccessDenied 
+            title="Acesso às Configurações Negado"
+            message="Você não tem permissão para acessar as configurações."
+          />
+        }
+      >
+        <main className="container mx-auto px-6 py-8 space-y-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
@@ -92,7 +117,6 @@ const Configuracoes = () => {
           value={activeTab}
           onValueChange={(val) => {
             setActiveTab(val);
-            setSearchParams({ tab: val });
           }}
           className="space-y-6"
         >
@@ -187,7 +211,12 @@ const Configuracoes = () => {
           <TabsContent value="users" className="space-y-4">
             <Card className="p-6 glass border border-border/50">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
+                <div>
+                  <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Workspace atual: <strong>{workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Carregando...'}</strong>
+                  </p>
+                </div>
                 {isOwner && (
                   <Button 
                     variant="default" 
@@ -199,6 +228,23 @@ const Configuracoes = () => {
                   </Button>
                 )}
               </div>
+              
+              {isOwner && (
+                <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-2">
+                    <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+                      ℹ️
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Dica:</strong> Os usuários são específicos por workspace. Para ver usuários de outro workspace, 
+                        use o seletor de workspace no topo da página.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 {membersLoading ? (
                   <div className="text-center py-4 text-muted-foreground">
@@ -358,8 +404,8 @@ const Configuracoes = () => {
                       <span className="text-2xl">🗄️</span>
                     </div>
                     <div>
-                      <p className="font-medium">Supabase</p>
-                      <p className="text-sm text-muted-foreground">Banco de dados e autenticação</p>
+                      <p className="font-medium">Banco de Dados</p>
+                      <p className="text-sm text-muted-foreground">Sistema de dados e autenticação</p>
                     </div>
                   </div>
                   <Badge variant="outline" className="bg-green-500/10 text-green-400">Conectado</Badge>
@@ -493,6 +539,7 @@ const Configuracoes = () => {
           </p>
         </div>
       </footer>
+      </PermissionGuard>
     </div>
   );
 };

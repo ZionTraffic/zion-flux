@@ -95,35 +95,59 @@ Deno.serve(async (req) => {
     console.log('✅ accept-workspace-invite: Service role key configured:', !!supabaseServiceRoleKey);
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Add user to workspace using admin client (bypasses RLS)
-    console.log('🔧 accept-workspace-invite: About to insert into membros_workspace using admin client');
-    console.log('📝 accept-workspace-invite: Insert data:', { 
-      workspace_id: invite.workspace_id, 
-      user_id: user_id, 
-      role: invite.role 
+    // Add user to workspace using admin client + RPC (garante roles/settings)
+    console.log('🔧 accept-workspace-invite: About to call add_workspace_member RPC');
+    console.log('📝 accept-workspace-invite: RPC payload:', {
+      workspace_id: invite.workspace_id,
+      user_id,
+      role: invite.role,
     });
-    
-    const { error: memberError } = await supabaseAdmin
-      .from('membros_workspace')
-      .insert({
-        workspace_id: invite.workspace_id,
-        user_id: user_id,
-        role: invite.role,
-      });
 
-    if (memberError) {
-      // Check if user is already a member
-      if (memberError.code === '23505') { // Unique violation
-        console.log('⚠️ accept-workspace-invite: User already member of workspace');
-      } else {
-        console.error('❌ accept-workspace-invite: Error adding member - Full error details:', JSON.stringify(memberError, null, 2));
-        console.error('❌ accept-workspace-invite: Error code:', memberError.code);
-        console.error('❌ accept-workspace-invite: Error message:', memberError.message);
-        console.error('❌ accept-workspace-invite: Error hint:', memberError.hint);
-        throw memberError;
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('add_workspace_member', {
+      p_workspace_id: invite.workspace_id,
+      p_user_id: user_id,
+      p_role: invite.role,
+      p_set_default_workspace: true,
+    });
+
+    if (rpcError) {
+      console.error('❌ accept-workspace-invite: Error calling add_workspace_member RPC:', rpcError);
+      throw rpcError;
+    }
+
+    console.log('✅ accept-workspace-invite: add_workspace_member RPC response:', rpcResult);
+
+    // Process custom permissions if they exist
+    if (invite.permissions) {
+      try {
+        console.log('🔐 accept-workspace-invite: Processing custom permissions');
+        const customPermissions = JSON.parse(invite.permissions);
+        
+        if (Array.isArray(customPermissions) && customPermissions.length > 0) {
+          // Insert custom permissions
+          const permissionInserts = customPermissions.map(permission => ({
+            workspace_id: invite.workspace_id,
+            user_id: user_id,
+            permission_key: permission,
+            granted: true
+          }));
+
+          const { error: permissionsError } = await supabaseAdmin
+            .from('user_permissions')
+            .insert(permissionInserts, { onConflict: 'workspace_id,user_id,permission_key' })
+            .select();
+
+          if (permissionsError) {
+            console.error('❌ accept-workspace-invite: Error inserting permissions:', permissionsError);
+            // Don't fail the entire process, just log the error
+          } else {
+            console.log('✅ accept-workspace-invite: Custom permissions added successfully');
+          }
+        }
+      } catch (permError) {
+        console.error('❌ accept-workspace-invite: Error parsing permissions:', permError);
+        // Don't fail the entire process
       }
-    } else {
-      console.log('✅ accept-workspace-invite: User added to workspace successfully');
     }
 
     // Mark invite as used

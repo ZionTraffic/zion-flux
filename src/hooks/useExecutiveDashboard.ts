@@ -337,16 +337,16 @@ export function useExecutiveDashboard(
     };
   }, [metaAds.totals?.spend, leads.kpis]);
 
-  // DADOS PARA GRÁFICO: TRÁFEGO VS LEADS POR DIA
+  // DADOS PARA GRÁFICO: CLIQUES DE SAÍDA (CONVERSAS) VS LEADS POR DIA
   const trafficLeadsChart: TrafficLeadData[] = useMemo(() => {
     const dailyMap = new Map<string, TrafficLeadData>();
     
-    // Iterar sobre dados diários de tráfego (Meta Ads)
+    // Iterar sobre dados diários de conversas (Cliques de Saída)
     metaAds.daily?.forEach(day => {
       const dateKey = day.date;
       dailyMap.set(dateKey, {
         date: day.date,
-        traffic: day.clicks || 0,
+        traffic: day.conversas_iniciadas || day.clicks || 0, // Usar conversas como "cliques de saída"
         leads: 0,
       });
     });

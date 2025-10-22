@@ -200,7 +200,7 @@ const Qualificacao = () => {
       label: "Total de Leads",
       value: kpis.totalLeads.toString(),
       icon: "👥",
-      variant: 'emerald' as const,
+      variant: 'blue' as const,
       delay: 0,
     },
     {

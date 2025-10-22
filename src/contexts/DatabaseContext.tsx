@@ -59,7 +59,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Erro ao carregar configurações de banco:', error);
-      setCurrentDatabase('asf');
+      // Não setar database padrão se houver erro - deixa undefined
     } finally {
       setIsLoading(false);
     }

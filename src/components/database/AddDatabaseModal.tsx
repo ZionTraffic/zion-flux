@@ -81,7 +81,7 @@ export function AddDatabaseModal({ open, onOpenChange, onSuccess }: AddDatabaseM
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="url">URL do Supabase</Label>
+            <Label htmlFor="url">URL do Banco de Dados</Label>
             <Input
               id="url"
               placeholder="https://xxxxx.supabase.co"

@@ -26,7 +26,7 @@ export function useSupabaseConnectionTest(workspaceId: string) {
 
   useEffect(() => {
     async function runConnectionTest() {
-      console.log('🔍 Iniciando teste de conexão Supabase...');
+      console.log('🔍 Iniciando teste de conexão com banco de dados...');
       console.log('📍 Workspace ID:', workspaceId);
       
       const result: ConnectionTestResult = {

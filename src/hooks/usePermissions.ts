@@ -13,13 +13,28 @@ export interface UserPermission {
 export function usePermissions() {
   const { supabase } = useDatabase();
   const { currentWorkspaceId } = useWorkspace();
-  const { role } = useUserRole();
-  const [permissions, setPermissions] = useState<Set<PermissionKey>>(new Set());
+  const { role, isOwner } = useUserRole();
+  const [permissions, setPermissions] = useState<Set<PermissionKey>>(
+    // Inicializar com permissões de owner se for owner
+    isOwner ? new Set(DEFAULT_PERMISSIONS_BY_ROLE.owner) : new Set()
+  );
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = async () => {
+    // Se for owner, dar todas as permissões imediatamente e não fazer consultas
+    if (isOwner || role === 'owner') {
+      setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.owner));
+      setLoading(false);
+      return;
+    }
+
     if (!currentWorkspaceId) {
-      setPermissions(new Set());
+      // Se não tem workspace mas tem role, usar permissões padrão
+      if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
+        setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
+      } else {
+        setPermissions(new Set());
+      }
       setLoading(false);
       return;
     }
@@ -31,46 +46,60 @@ export function usePermissions() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         setPermissions(new Set());
+        setLoading(false);
         return;
       }
 
-      const { data: result, error } = await supabase.rpc('get_user_permissions', {
-        p_workspace_id: currentWorkspaceId,
-        p_user_id: userData.user.id
-      });
+      // Usar query SQL direta para evitar problemas de TypeScript
+      const { data: customPermissions, error } = await supabase
+        .rpc('get_user_permissions', {
+          p_workspace_id: currentWorkspaceId,
+          p_user_id: userData.user.id
+        });
 
       if (error) {
-        logger.error('Error fetching user permissions', error);
+        console.warn('Error fetching user permissions, using default for role:', role, error);
         // Fallback para permissões padrão do role
-        if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
-          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
-        }
-        return;
-      }
-
-      // Type assertion para o resultado da RPC
-      const permissionResult = result as any;
-      
-      if (!permissionResult?.success) {
-        logger.error('RPC error:', permissionResult?.error);
-        // Fallback para permissões padrão do role
-        if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
-          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
-        }
-        return;
-      }
-
-      // Se há permissões customizadas definidas, usar apenas elas (mesmo que vazias)
-      if (permissionResult.has_custom_permissions) {
-        const customPermissions = permissionResult.permissions || [];
-        setPermissions(new Set(customPermissions));
-      } else {
-        // Se não há permissões customizadas, usar padrões do role
         if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
           setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
         } else {
           setPermissions(new Set());
         }
+        setLoading(false);
+        return;
+      }
+
+      // Type assertion para o resultado
+      const result = customPermissions as any;
+      
+      if (!result?.success) {
+        // Se não conseguiu buscar ou não tem permissões customizadas, usar padrões do role
+        if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
+          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
+        } else {
+          setPermissions(new Set());
+        }
+        return;
+      }
+
+      // Debug log
+      console.log('🔐 Permissions Debug:', {
+        role,
+        result,
+        currentWorkspaceId,
+        userId: userData.user.id
+      });
+
+      // Se há permissões customizadas definidas, usar apenas elas
+      if (result.has_custom_permissions) {
+        const grantedPermissions = result.permissions || [];
+        console.log('✅ Using custom permissions:', grantedPermissions);
+        setPermissions(new Set(grantedPermissions));
+      } else {
+        // Se não há permissões customizadas, usar padrões do role
+        const defaultPerms = role && DEFAULT_PERMISSIONS_BY_ROLE[role] ? DEFAULT_PERMISSIONS_BY_ROLE[role] : [];
+        console.log('📋 Using default permissions for role:', role, defaultPerms);
+        setPermissions(new Set(defaultPerms));
       }
     } catch (error) {
       logger.error('Error in fetchPermissions', error);
@@ -113,12 +142,27 @@ export function usePermissions() {
     PERMISSIONS.REPORTS_EXPORT,
   ]);
 
+  const hasCustomPermissions = () => {
+    // Se o usuário é owner/admin, não tem permissões customizadas (usa padrões)
+    if (role === 'owner' || role === 'admin') return false;
+    
+    // Se tem permissões diferentes das padrões do role, tem customizadas
+    const defaultPerms = role && DEFAULT_PERMISSIONS_BY_ROLE[role] ? DEFAULT_PERMISSIONS_BY_ROLE[role] : [];
+    const currentPerms = Array.from(permissions);
+    
+    // Comparar se as permissões atuais são diferentes das padrões
+    if (currentPerms.length !== defaultPerms.length) return true;
+    
+    return !defaultPerms.every(perm => currentPerms.includes(perm));
+  };
+
   return {
     permissions: Array.from(permissions),
     loading,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
+    hasCustomPermissions,
     refetch: fetchPermissions,
     
     // Funções de conveniência

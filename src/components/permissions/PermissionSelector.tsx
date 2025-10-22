@@ -153,9 +153,32 @@ export function PermissionSelector({
         ))}
       </div>
 
-      <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
-        <strong>Dica:</strong> Use os botões de role padrão para aplicar rapidamente um conjunto comum de permissões, 
-        depois ajuste individualmente conforme necessário.
+      {/* Opção para bloquear troca de workspace */}
+      <div className="mt-6 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+        <div className="flex items-start gap-3">
+          <div className="text-amber-600 dark:text-amber-400 mt-0.5">
+            🔒
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+              Controle de Workspace
+            </h4>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+              Usuários com permissões customizadas não podem trocar de workspace por segurança.
+            </p>
+            <div className="text-xs text-amber-600 dark:text-amber-400">
+              ✓ Seletor de workspace será ocultado<br/>
+              ✓ Usuário verá apenas o workspace atual<br/>
+              ✓ Owners e Admins sempre podem trocar
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 p-4 rounded-lg bg-muted/30 border border-border/50">
+        <p className="text-sm text-muted-foreground">
+          <strong>Dica:</strong> Use os botões de role padrão para aplicar rapidamente um conjunto comum de permissões, depois ajuste individualmente conforme necessário.
+        </p>
       </div>
     </div>
   );

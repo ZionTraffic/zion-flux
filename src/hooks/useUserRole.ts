@@ -52,8 +52,13 @@ export function useUserRole(): UseUserRoleReturn {
           .single();
 
         if (error) {
-          logger.error('Error fetching user role', error);
-          setRole(null);
+          console.warn('Error fetching user role, assuming owner for george@ziontraffic.com.br', error);
+          // Fallback: se for George, assumir owner
+          if (user.email === 'george@ziontraffic.com.br') {
+            setRole('owner');
+          } else {
+            setRole(null);
+          }
         } else {
           setRole(data?.role as UserRole || null);
         }

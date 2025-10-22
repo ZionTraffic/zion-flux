@@ -11,39 +11,56 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
   const option: EChartsOption = {
     title: {
       text: title,
-      left: 'left',
+      left: 'center',
+      top: '2%',
       textStyle: {
-        color: '#e5e7eb',
+        color: '#1e293b',
         fontSize: 18,
-        fontWeight: 600,
+        fontWeight: 700,
       },
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(10, 15, 31, 0.95)',
-      borderColor: 'rgba(0, 198, 255, 0.3)',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#e2e8f0',
       borderWidth: 1,
       textStyle: {
-        color: '#e5e7eb',
+        color: '#1e293b',
+        fontSize: 13,
       },
       formatter: (params: any) => {
         const param = params[0];
         const formattedValue = valueType === 'currency' 
           ? `R$ ${param.value.toLocaleString('pt-BR')}`
           : param.value.toLocaleString('pt-BR');
-        return `${param.name}<br/>${formattedValue}`;
+        return `<div style="padding: 4px;">
+          <strong>${param.name}</strong><br/>
+          <span style="color: #64748b;">Valor:</span> <strong>${formattedValue}</strong>
+        </div>`;
       },
+    },
+    grid: {
+      top: '15%',
+      bottom: '15%',
+      left: '10%',
+      right: '5%',
     },
     xAxis: {
       type: 'category',
       data: data.map(d => d.day),
       axisLine: {
         lineStyle: {
-          color: 'rgba(229, 231, 235, 0.1)',
+          color: '#e2e8f0',
+          width: 2,
         },
       },
       axisLabel: {
-        show: false, // Esconder labels do eixo X pois agora estão dentro das barras
+        show: true,
+        color: '#475569',
+        fontSize: 11,
+        fontWeight: 600,
+        rotate: 45,
+        interval: 0,
       },
     },
     yAxis: {
@@ -53,12 +70,14 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
       },
       splitLine: {
         lineStyle: {
-          color: 'rgba(229, 231, 235, 0.05)',
+          color: '#e2e8f0',
+          type: 'dashed',
         },
       },
       axisLabel: {
-        color: '#9ca3af',
-        fontSize: 11,
+        color: '#64748b',
+        fontSize: 12,
+        fontWeight: 600,
         formatter: (value: number) => {
           if (valueType === 'currency') {
             return `R$ ${value.toLocaleString('pt-BR')}`;
@@ -81,19 +100,20 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
         data: data.map(d => d.value),
         label: {
           show: true,
-          position: 'inside',
-          rotate: 90,
+          position: 'top',
           formatter: (params: any) => {
-            const dayLabel = data[params.dataIndex]?.day || '';
-            return dayLabel;
+            const formattedValue = valueType === 'currency' 
+              ? `R$ ${params.value.toLocaleString('pt-BR')}`
+              : params.value.toLocaleString('pt-BR');
+            return formattedValue;
           },
-          color: '#ffffff',
+          color: '#1e293b',
           fontSize: 11,
           fontWeight: 700,
           fontFamily: 'Inter, system-ui, sans-serif',
         },
         itemStyle: {
-          borderRadius: [8, 8, 0, 0],
+          borderRadius: [10, 10, 0, 0],
           color: {
             type: 'linear',
             x: 0,
@@ -101,10 +121,14 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: '#00c6ff' },
-              { offset: 1, color: '#0072ff' },
+              { offset: 0, color: '#3b82f6' },
+              { offset: 0.5, color: '#2563eb' },
+              { offset: 1, color: '#1d4ed8' },
             ],
           },
+          shadowBlur: 10,
+          shadowColor: 'rgba(59, 130, 246, 0.3)',
+          shadowOffsetY: 4,
         },
         emphasis: {
           itemStyle: {
@@ -115,14 +139,17 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: '#00d4ff' },
-                { offset: 1, color: '#0080ff' },
+                { offset: 0, color: '#60a5fa' },
+                { offset: 0.5, color: '#3b82f6' },
+                { offset: 1, color: '#2563eb' },
               ],
             },
+            shadowBlur: 15,
+            shadowColor: 'rgba(59, 130, 246, 0.5)',
           },
         },
-        barWidth: '60%',
-        animationDuration: 1000,
+        barWidth: '50%',
+        animationDuration: 800,
         animationEasing: 'cubicOut',
       },
     ],

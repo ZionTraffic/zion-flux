@@ -172,7 +172,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Conectado ao Supabase</p>
+                <p>Conectado ao Banco de Dados</p>
               </TooltipContent>
             </Tooltip>
 

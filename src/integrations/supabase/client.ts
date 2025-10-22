@@ -11,9 +11,19 @@ const ASF_KEY = import.meta.env.VITE_SUPABASE_ASF_ANON_KEY as string | undefined
 const SUPABASE_URL = ENV_DEFAULT_URL || ASF_URL || '';
 const SUPABASE_PUBLISHABLE_KEY = ENV_DEFAULT_KEY || ASF_KEY || '';
 
+// Cache para evitar múltiplas instâncias
+const clientCache = new Map<string, ReturnType<typeof createClient<Database>>>();
+
 // Export function to create Supabase clients dynamically
-export const createSupabaseClient = (url: string, anonKey: string, storageKey?: string) => {
-  return createClient<Database>(url, anonKey, {
+export const createSupabaseClient = (url: string, anonKey: string, storageKey: string = 'sb-auth-token') => {
+  const cacheKey = `${url}-${storageKey}`;
+  
+  // Retornar instância em cache se existir
+  if (clientCache.has(cacheKey)) {
+    return clientCache.get(cacheKey)!;
+  }
+  
+  const client = createClient<Database>(url, anonKey, {
     auth: {
       storage: localStorage,
       persistSession: true,
@@ -21,6 +31,9 @@ export const createSupabaseClient = (url: string, anonKey: string, storageKey?: 
       storageKey,
     },
   });
+  
+  clientCache.set(cacheKey, client);
+  return client;
 };
 
 // Default client (for backward compatibility)

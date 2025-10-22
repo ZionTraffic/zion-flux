@@ -15,16 +15,22 @@ interface ActionCardProps {
 
 const variantConfig = {
   trafego: {
-    gradient: 'linear-gradient(135deg, #0d47a1 0%, #0a3c8a 100%)',
-    color: 'text-blue-400',
+    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+    color: 'text-blue-100',
+    border: 'border-blue-500/20',
+    shadow: '0 8px 24px 0 rgba(37, 99, 235, 0.2)',
   },
   qualificacao: {
-    gradient: 'linear-gradient(135deg, #1b5e20 0%, #155d1e 100%)',
-    color: 'text-emerald-400',
+    gradient: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)',
+    color: 'text-sky-100',
+    border: 'border-sky-500/20',
+    shadow: '0 8px 24px 0 rgba(3, 105, 161, 0.2)',
   },
   analise: {
-    gradient: 'linear-gradient(135deg, #4a148c 0%, #3b1070 100%)',
-    color: 'text-purple-400',
+    gradient: 'linear-gradient(135deg, #075985 0%, #0284c7 100%)',
+    color: 'text-cyan-100',
+    border: 'border-cyan-500/20',
+    shadow: '0 8px 24px 0 rgba(2, 132, 199, 0.2)',
   },
 };
 
@@ -45,44 +51,63 @@ export const ActionCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="glass rounded-2xl p-6 border border-border/50 shadow-premium card-hover cursor-pointer"
-      style={{ background: config.gradient }}
+      className={`relative overflow-hidden rounded-2xl p-6 ${config.border} card-hover cursor-pointer`}
+      style={{ 
+        background: config.gradient,
+        boxShadow: config.shadow,
+      }}
       onClick={() => navigate(linkTo)}
     >
-      <div className="flex items-start justify-between mb-4">
-        <span className="text-4xl">{icon}</span>
-        {alert && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-xs">
-            <AlertCircle className="h-3 w-3" />
-            <span>{alert}</span>
-          </div>
-        )}
+      {/* Liquid Glass Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.5) 1px, transparent 0)',
+          backgroundSize: '32px 32px'
+        }} />
       </div>
 
-      <h3 className={`text-xl font-bold mb-4 ${config.color}`}>
-        {title}
-      </h3>
+      {/* Animated Gradient Overlay */}
+      <div className="absolute inset-0 opacity-10" style={{
+        background: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), transparent 70%)',
+        animation: 'pulse 4s ease-in-out infinite'
+      }} />
 
-      <div className="space-y-3 mb-6">
-        {metrics.map((metric, index) => (
-          <div key={index} className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{metric.label}</span>
-            <span className="text-lg font-semibold text-foreground">{metric.value}</span>
-          </div>
-        ))}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-4">
+          <span className="text-4xl drop-shadow-lg">{icon}</span>
+          {alert && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
+              <AlertCircle className="h-3 w-3" />
+              <span>{alert}</span>
+            </div>
+          )}
+        </div>
+
+        <h3 className={`text-xl font-bold mb-4 ${config.color} drop-shadow-lg`}>
+          {title}
+        </h3>
+
+        <div className="space-y-3 mb-6">
+          {metrics.map((metric, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <span className="text-sm text-white/80">{metric.label}</span>
+              <span className="text-lg font-semibold text-white drop-shadow-md">{metric.value}</span>
+            </div>
+          ))}
+        </div>
+
+        <Button 
+          variant="ghost" 
+          className="w-full group bg-white/10 hover:bg-white/20 text-white border-white/20"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(linkTo);
+          }}
+        >
+          Ver Detalhes
+          <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+        </Button>
       </div>
-
-      <Button 
-        variant="ghost" 
-        className="w-full group"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(linkTo);
-        }}
-      >
-        Ver Detalhes
-        <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-      </Button>
     </motion.div>
   );
 };

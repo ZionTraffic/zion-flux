@@ -16,40 +16,59 @@ interface KpiCardProps {
 export const KpiCard = ({ label, value, icon, trend, gradient, delay }: KpiCardProps) => {
   return (
     <div 
-      className={`glass rounded-apple-lg p-6 border border-border/50 card-hover shadow-apple-lg animate-apple-slide-up`}
+      className="relative overflow-hidden rounded-2xl p-6 border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 bg-card animate-apple-slide-up group"
       style={{ 
         animationDelay: `${delay}s`,
-        background: `linear-gradient(135deg, ${gradient})`,
       }}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="text-3xl opacity-80">
-          {icon}
-        </div>
-        {trend && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-            trend.isPositive 
-              ? 'bg-accent/10 text-accent' 
-              : 'bg-destructive/10 text-destructive'
-          }`}>
-            {trend.isPositive ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            <span>{Math.abs(trend.value)}%</span>
+      {/* Background gradient sutil */}
+      <div 
+        className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
+        style={{ 
+          background: `linear-gradient(135deg, ${gradient})`,
+        }}
+      />
+
+      {/* Conteúdo */}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-4">
+          <div 
+            className="flex items-center justify-center w-12 h-12 rounded-xl text-2xl"
+            style={{ 
+              background: `linear-gradient(135deg, ${gradient})`,
+              boxShadow: `0 4px 12px ${gradient.split(',')[0].replace(')', ', 0.3)')}`,
+            }}
+          >
+            {icon}
           </div>
-        )}
+          {trend && trend.isPositive && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <TrendingUp className="h-3 w-3" />
+              <span>+{Math.abs(trend.value)}%</span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {label}
+          </h3>
+          <p className="text-3xl font-bold tracking-tight text-foreground">
+            {value}
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-1">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          {label}
-        </h3>
-        <p className="text-3xl font-bold tracking-tight">
-          {value}
-        </p>
-      </div>
+      {/* Borda animada no hover */}
+      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+        style={{ 
+          background: `linear-gradient(135deg, ${gradient})`,
+          WebkitMaskImage: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+          padding: '1px',
+        }}
+      />
     </div>
   );
 };

@@ -85,21 +85,39 @@ Deno.serve(async (req) => {
 
     console.log(`✅ Workspace created: ${workspace.id}`);
 
-    // Adicionar usuário como owner
-    const { error: memberError } = await targetClient
-      .from('membros_workspace')
-      .insert([{
+    // ID do usuário master George
+    const MASTER_USER_ID = 'd71b327c-bb1e-4e0c-bfcc-aae29917b391';
+    
+    // Preparar lista de owners (usuário atual + George se for diferente)
+    const ownersToAdd = [
+      {
         workspace_id: workspace.id,
         user_id: user.id,
         role: 'owner',
-      }]);
+      }
+    ];
+    
+    // Adicionar George como owner se não for o usuário atual
+    if (user.id !== MASTER_USER_ID) {
+      ownersToAdd.push({
+        workspace_id: workspace.id,
+        user_id: MASTER_USER_ID,
+        role: 'owner',
+      });
+      console.log(`📌 Adding master user George as owner to workspace ${workspace.id}`);
+    }
+
+    // Adicionar owners
+    const { error: memberError } = await targetClient
+      .from('membros_workspace')
+      .insert(ownersToAdd);
 
     if (memberError) {
-      console.error('❌ Error adding member:', memberError);
+      console.error('❌ Error adding members:', memberError);
       throw memberError;
     }
 
-    console.log(`✅ User ${user.id} added as owner to workspace ${workspace.id}`);
+    console.log(`✅ ${ownersToAdd.length} owner(s) added to workspace ${workspace.id}`);
 
     return new Response(
       JSON.stringify({ data: workspace }),

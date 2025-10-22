@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MIN_DATA_DATE } from '@/lib/constants';
+import { toBrasiliaDateString } from '@/lib/dateUtils';
 
 export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
@@ -72,26 +73,6 @@ export const useLeadsFromConversations = (
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper to parse dates from started_at (text field)
-  const parseStartedAt = (startedAt: string): Date | null => {
-    if (!startedAt) return null;
-    
-    // Try ISO format first (YYYY-MM-DD or full ISO)
-    if (startedAt.includes('-') && /^\d{4}-/.test(startedAt)) {
-      return new Date(startedAt);
-    }
-    
-    // Try Brazilian format (DD/MM/YYYY)
-    if (startedAt.includes('/')) {
-      const [day, month, year] = startedAt.split('/');
-      if (day && month && year) {
-        return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-      }
-    }
-    
-    return null;
-  };
-
   const fetchLeads = useCallback(async () => {
     if (!workspaceId) return;
     
@@ -113,7 +94,8 @@ export const useLeadsFromConversations = (
         .maybeSingle();
 
       const tableName = ws?.slug === 'asf' ? 'conversas_asf' : ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
-      const dateField = tableName === 'historico_conversas' ? 'started_at' : 'created_at';
+      // SEMPRE usar created_at como campo de data de entrada do lead
+      const dateField = 'created_at';
       const workspaceField = tableName === 'historico_conversas' ? 'workspace_id' : 'id_workspace';
 
       // Fetch conversations with minimum date filter
@@ -127,25 +109,15 @@ export const useLeadsFromConversations = (
 
       if (fetchError) throw fetchError;
 
-      // Helper para normalizar qualquer valor de data para 'YYYY-MM-DD'
-      const toDateStr = (value: any): string | null => {
-        if (!value) return null;
-        try {
-          // Se vier string 'YYYY-MM-DD HH:MM:SS+TZ' ou 'YYYY-MM-DDTHH:MM:SSZ'
-          const d = new Date(value);
-          if (isNaN(d.getTime())) return null;
-          return d.toISOString().split('T')[0]; // normaliza em UTC
-        } catch {
-          return null;
-        }
-      };
+      // Usar função utilitária para converter datas para horário de Brasília
+      const toDateStr = toBrasiliaDateString;
 
       // Filter by date in JavaScript - apply MIN_DATA_DATE and user filters
       let filteredData = data || [];
       
       // Aplicar filtro de data mínima do sistema
       filteredData = filteredData.filter(conv => {
-        const dateValue = conv.created_at || conv.started_at;
+        const dateValue = conv.created_at; // SEMPRE usar created_at
         const convDate = toDateStr(dateValue);
         if (!convDate) return false;
         return convDate >= MIN_DATA_DATE;
@@ -161,7 +133,7 @@ export const useLeadsFromConversations = (
           : null;
         
         filteredData = filteredData.filter((conv) => {
-          const dateValue = conv.created_at || conv.started_at;
+          const dateValue = conv.created_at; // SEMPRE usar created_at
           const convDate = toDateStr(dateValue);
           if (!convDate) return false;
           if (startStr && convDate < startStr) return false;
@@ -185,28 +157,13 @@ export const useLeadsFromConversations = (
       filteredData.forEach((conversation) => {
         const stage = mapTagToStage(conversation.tag);
         
-        // Use created_at if available, otherwise parse started_at
-        let enteredAt = new Date().toISOString();
-        if (conversation.created_at) {
-          enteredAt = conversation.created_at;
-        } else if (conversation.started_at) {
-          const parsedDate = parseStartedAt(conversation.started_at);
-          enteredAt = parsedDate ? parsedDate.toISOString() : new Date().toISOString();
-        }
+        // SEMPRE usar created_at como data de entrada do lead
+        const enteredAt = conversation.created_at || new Date().toISOString();
         
-        // Calcular reference_date usando APENAS a data de ENTRADA
+        // Calcular reference_date usando APENAS created_at
         // NUNCA usar updated_at - queremos saber quando o lead ENTROU, não quando foi movido
-        let referenceDate: string;
         const createdStr = toDateStr(conversation.created_at);
-        if (createdStr) {
-          referenceDate = createdStr;
-        } else if (conversation.started_at) {
-          const parsedDate = parseStartedAt(conversation.started_at);
-          referenceDate = parsedDate ? parsedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-        } else {
-          // Fallback final
-          referenceDate = new Date().toISOString().split('T')[0];
-        }
+        const referenceDate = createdStr || new Date().toISOString().split('T')[0];
         
         const lead: LeadFromConversation = {
           id: conversation.id,

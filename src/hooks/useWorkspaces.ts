@@ -36,7 +36,12 @@ export function useWorkspaces() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sessão não encontrada');
+      if (!session) {
+        console.log('❌ No session found');
+        throw new Error('Sessão não encontrada');
+      }
+
+      console.log('👤 User session:', { userId: session.user.id, email: session.user.email });
 
       // 1) Buscar apenas os IDs das workspaces do usuário
       const { data: memberRows, error: memberError } = await supabase
@@ -49,8 +54,14 @@ export function useWorkspaces() {
         throw memberError;
       }
 
+      console.log('🏢 Debug Workspaces - Member rows:', memberRows);
+      console.log('🏢 Member rows length:', memberRows?.length || 0);
+
       const workspaceIds = (memberRows || []).map((r: any) => r.workspace_id);
+      console.log('🏢 Workspace IDs:', workspaceIds);
+      
       if (workspaceIds.length === 0) {
+        console.log('❌ No workspace IDs found, setting empty array');
         setWorkspaces([]);
         return;
       }
