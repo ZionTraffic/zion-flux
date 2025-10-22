@@ -214,7 +214,7 @@ const Qualificacao = () => {
       label: "Qualificados",
       value: kpis.qualifiedLeads.toString(),
       icon: "✅",
-      variant: 'purple' as const,
+      variant: 'blue' as const,
       delay: 0.2,
     },
   ];

@@ -74,7 +74,6 @@ export const ActionCard = ({
 
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
-          <span className="text-4xl drop-shadow-lg">{icon}</span>
           {alert && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
               <AlertCircle className="h-3 w-3" />
@@ -83,7 +82,7 @@ export const ActionCard = ({
           )}
         </div>
 
-        <h3 className={`text-xl font-bold mb-4 ${config.color} drop-shadow-lg`}>
+        <h3 className={`text-xl font-bold mb-6 ${config.color} drop-shadow-lg`}>
           {title}
         </h3>
 

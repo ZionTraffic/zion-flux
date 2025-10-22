@@ -47,11 +47,8 @@ export const MoneyKpiCard = ({
         background: variantGradients[variant],
       }}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="text-4xl opacity-90">
-          {icon}
-        </div>
-        {trend && (
+      {trend && (
+        <div className="flex justify-end mb-4">
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
             trend.isPositive 
               ? 'bg-accent/10 text-accent' 
@@ -64,8 +61,8 @@ export const MoneyKpiCard = ({
             )}
             <span>{Math.abs(trend.value)}%</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="space-y-1">
         <h3 className="text-sm font-medium text-muted-foreground">

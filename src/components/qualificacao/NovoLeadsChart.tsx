@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { motion } from "framer-motion";
 
 interface NovoLeadsChartProps {
@@ -6,6 +6,9 @@ interface NovoLeadsChartProps {
 }
 
 export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
+  // Calcular total de leads
+  const totalLeads = data.reduce((sum, item) => sum + item.value, 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -13,12 +16,18 @@ export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
       transition={{ duration: 0.6 }}
       className="glass rounded-2xl p-6 border border-border/50 shadow-premium"
     >
-      <h3 className="text-foreground text-lg font-bold mb-6 text-center">
-        Novos Leads (Por Dia)
-      </h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-foreground text-lg font-bold">
+          Novos Leads (Por Dia)
+        </h3>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20">
+          <span className="text-sm font-semibold text-muted-foreground">Total:</span>
+          <span className="text-xl font-bold text-blue-600">{totalLeads}</span>
+        </div>
+      </div>
 
       <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
           {/* Gradiente azul vibrante 3D */}
           <defs>
             <linearGradient id="neonBlue" x1="0" y1="0" x2="0" y2="1">
@@ -34,9 +43,9 @@ export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
           {/* Eixo X */}
           <XAxis
             dataKey="day"
-            stroke="#64748b"
-            fontSize={12}
-            fontWeight={600}
+            stroke="#94a3b8"
+            fontSize={11}
+            fontWeight={500}
             tickMargin={10}
             height={50}
             angle={-45}
@@ -45,10 +54,11 @@ export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
 
           {/* Eixo Y */}
           <YAxis 
-            stroke="#64748b" 
-            fontSize={12}
-            fontWeight={600}
+            stroke="#94a3b8" 
+            fontSize={11}
+            fontWeight={500}
             tickMargin={5}
+            allowDecimals={false}
           />
 
           {/* Tooltip */}
@@ -73,7 +83,17 @@ export default function NovoLeadsChart({ data }: NovoLeadsChartProps) {
             animationEasing="ease-out"
             filter="url(#shadow)"
             maxBarSize={60}
-          />
+          >
+            <LabelList 
+              dataKey="value" 
+              position="top" 
+              style={{ 
+                fill: '#1e293b', 
+                fontSize: '11px', 
+                fontWeight: 700 
+              }} 
+            />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </motion.div>

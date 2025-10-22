@@ -73,26 +73,8 @@ export function EnhancedKpiCard({
       />
 
       <div className="relative z-10">
-        {/* Icon and Trend */}
-        <div className="flex items-start justify-between mb-4">
-          <div 
-            className={cn("flex items-center justify-center w-12 h-12 rounded-xl text-2xl", styles.iconBg)}
-            style={{
-              boxShadow: `0 4px 12px ${styles.shadow.replace('shadow-', 'rgba(').replace('/30', ', 0.3)')}`,
-            }}
-          >
-            <span>{icon}</span>
-          </div>
-          {trend && trend.direction === "up" && (
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              <span>↗</span>
-              <span>+{trend.value}%</span>
-            </div>
-          )}
-        </div>
-
         {/* Label */}
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">{label}</p>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">{label}</p>
 
         {/* Value */}
         <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>

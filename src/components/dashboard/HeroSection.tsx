@@ -62,9 +62,12 @@ export function HeroSection({
             <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg">
               {greeting()}, {userName?.split('@')[0] || 'Usuário'}! 👋
             </h1>
-            <p className="text-blue-100 text-lg">
-              Workspace: <span className="font-semibold text-white">{workspaceName || 'Carregando...'}</span>
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-white/90 text-base font-medium">Workspace:</span>
+              <span className="px-3 py-1 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold text-base">
+                {workspaceName || 'Carregando...'}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
             {getTrendIcon()}

@@ -213,8 +213,8 @@ const Configuracoes = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Workspace atual: <strong>{workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Carregando...'}</strong>
+                  <p className="text-sm text-foreground mt-2">
+                    Workspace atual: <strong className="text-blue-600 dark:text-blue-400">{workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Carregando...'}</strong>
                   </p>
                 </div>
                 {isOwner && (
@@ -230,14 +230,14 @@ const Configuracoes = () => {
               </div>
               
               {isOwner && (
-                <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-2">
-                    <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-blue-300 dark:border-blue-700 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-0.5">
                       ℹ️
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Dica:</strong> Os usuários são específicos por workspace. Para ver usuários de outro workspace, 
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100 leading-relaxed">
+                        <strong className="text-base">💡 Dica:</strong> Os usuários são específicos por workspace. Para ver usuários de outro workspace, 
                         use o seletor de workspace no topo da página.
                       </p>
                     </div>

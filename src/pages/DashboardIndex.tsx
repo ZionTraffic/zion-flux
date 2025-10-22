@@ -15,7 +15,6 @@ import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
 import { StrategicInsightsCard } from "@/components/dashboard/executive/StrategicInsightsCard";
 import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
-import { ActionCard } from "@/components/dashboard/executive/ActionCard";
 import { HeroSection } from "@/components/dashboard/HeroSection";
 import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
 import { pdf } from "@react-pdf/renderer";
@@ -293,6 +292,10 @@ const DashboardIndex = () => {
             value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
             icon="💎"
             variant="gray"
+            trend={{
+              value: 5.2,
+              direction: "up"
+            }}
             delay={0.2}
           />
 
@@ -316,81 +319,141 @@ const DashboardIndex = () => {
 
         {/* 5. Gráficos Consolidados - Linha 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Gráfico 1: Tráfego vs Leads */}
-          <div className="glass rounded-2xl p-6 border border-border/50">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Tráfego vs Leads por Dia</h3>
-            <div className="h-[300px]">
-              {trafficLeadsChart && trafficLeadsChart.length > 0 ? (
-                <div className="space-y-2">
-                  {trafficLeadsChart.slice(-7).map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-4">
-                  <span className="text-xs text-muted-foreground w-16">
-                    {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                  </span>
-                      <div className="flex-1 flex gap-2">
-                        <div 
-                          className="h-8 rounded-lg flex items-center justify-center text-xs font-semibold"
-                          style={{ 
-                            width: `${(item.traffic / Math.max(...trafficLeadsChart.map(d => d.traffic))) * 100}%`,
-                            background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
-                            minWidth: '60px'
-                          }}
-                        >
-                          {item.traffic}
-                        </div>
-                        <div 
-                          className="h-8 rounded-lg flex items-center justify-center text-xs font-semibold"
-                          style={{ 
-                            width: `${(item.leads / Math.max(...trafficLeadsChart.map(d => d.leads))) * 100}%`,
-                            background: 'linear-gradient(135deg, #ff1493, #cc1075)',
-                            minWidth: '60px'
-                          }}
-                        >
-                          {item.leads}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="flex gap-4 mt-4 justify-center">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ background: '#00d4ff' }}></div>
-                      <span className="text-xs">Tráfego</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ background: '#ff1493' }}></div>
-                      <span className="text-xs">Leads</span>
-                    </div>
+          {/* Gráfico 1: Resumo de Performance */}
+          <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-2xl">📊</span>
+              <h3 className="text-lg font-bold text-foreground">Resumo de Performance</h3>
+            </div>
+            <div className="space-y-6">
+              {/* Métricas principais em cards 3D */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="glass rounded-xl p-4 border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+                     style={{ background: 'var(--gradient-blue)' }}>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Impressões
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {metaAds?.impressions?.toLocaleString('pt-BR') || '0'}
                   </div>
                 </div>
-              ) : (
-                <p className="text-muted-foreground text-center">Sem dados disponíveis</p>
-              )}
+                <div className="glass rounded-xl p-4 border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+                     style={{ background: 'var(--gradient-purple)' }}>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Total Leads
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {leads?.totalLeads || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* Barras de progresso 3D */}
+              <div className="space-y-4">
+                <div className="glass rounded-xl p-4 border border-border/50 shadow-md">
+                  <div className="flex justify-between text-xs font-semibold mb-3">
+                    <span className="text-muted-foreground uppercase tracking-wide">Taxa de Conversão</span>
+                    <span className="text-foreground font-bold">{((leads?.totalLeads || 0) / (metaAds?.impressions || 1) * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="h-4 bg-muted/30 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className="h-full rounded-full transition-all duration-500 shadow-lg"
+                      style={{ 
+                        width: `${Math.min(((leads?.totalLeads || 0) / (metaAds?.impressions || 1) * 100) * 100, 100)}%`,
+                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="glass rounded-xl p-4 border border-border/50 shadow-md">
+                  <div className="flex justify-between text-xs font-semibold mb-3">
+                    <span className="text-muted-foreground uppercase tracking-wide">Conversas Iniciadas</span>
+                    <span className="text-foreground font-bold">{metaAds?.conversas_iniciadas || 0}</span>
+                  </div>
+                  <div className="h-4 bg-muted/30 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className="h-full rounded-full transition-all duration-500 shadow-lg"
+                      style={{ 
+                        width: `${Math.min(((metaAds?.conversas_iniciadas || 0) / (leads?.totalLeads || 1)) * 100, 100)}%`,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="glass rounded-xl p-4 border border-border/50 shadow-md">
+                  <div className="flex justify-between text-xs font-semibold mb-3">
+                    <span className="text-muted-foreground uppercase tracking-wide">Leads Qualificados</span>
+                    <span className="text-foreground font-bold">{leads?.qualifiedLeads || 0}</span>
+                  </div>
+                  <div className="h-4 bg-muted/30 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className="h-full rounded-full transition-all duration-500 shadow-lg"
+                      style={{ 
+                        width: `${Math.min(((leads?.qualifiedLeads || 0) / (leads?.totalLeads || 1)) * 100, 100)}%`,
+                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                        boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Gráfico 2: Distribuição por Fonte */}
-          <div className="glass rounded-2xl p-6 border border-border/50">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Leads por Fonte de Campanha</h3>
-            <div className="h-[300px] flex flex-col justify-center">
+          <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-2xl">📈</span>
+              <h3 className="text-lg font-bold text-foreground">Leads por Fonte de Campanha</h3>
+            </div>
+            <div className="h-[300px] flex flex-col justify-center overflow-y-auto">
               {leadsSourceDistribution && leadsSourceDistribution.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-5 py-2">
                   {leadsSourceDistribution.slice(0, 5).map((item, idx) => {
                     const total = leadsSourceDistribution.reduce((sum, d) => sum + d.value, 0);
                     const percentage = total > 0 ? (item.value / total * 100) : 0;
-                    const colors = ['#00d4ff', '#ff1493', '#ffa500', '#a855f7', '#10b981'];
+                    const gradients = [
+                      'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      'linear-gradient(135deg, #ec4899, #db2777)',
+                      'linear-gradient(135deg, #f59e0b, #d97706)',
+                      'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                      'linear-gradient(135deg, #10b981, #059669)'
+                    ];
+                    const shadows = [
+                      '0 2px 8px rgba(59, 130, 246, 0.4)',
+                      '0 2px 8px rgba(236, 72, 153, 0.4)',
+                      '0 2px 8px rgba(245, 158, 11, 0.4)',
+                      '0 2px 8px rgba(139, 92, 246, 0.4)',
+                      '0 2px 8px rgba(16, 185, 129, 0.4)'
+                    ];
                     
                     return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="truncate max-w-[200px]">{item.name}</span>
-                          <span className="font-semibold">{item.value} ({percentage.toFixed(1)}%)</span>
+                      <div key={idx} className="glass rounded-xl p-5 border-2 border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-background/50">
+                        {/* Nome da campanha */}
+                        <div className="mb-3 pb-2 border-b border-border/30">
+                          <span className="text-xs font-bold text-foreground uppercase tracking-wide block">
+                            {item.name}
+                          </span>
                         </div>
-                        <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
+                        
+                        {/* Valor e percentual */}
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-base font-bold text-foreground">{item.value} leads</span>
+                          <span className="text-base font-bold text-primary">{percentage.toFixed(1)}%</span>
+                        </div>
+                        
+                        {/* Barra de progresso */}
+                        <div className="w-full h-5 bg-muted/30 rounded-full overflow-hidden shadow-inner">
                           <div 
-                            className="h-full rounded-full transition-all duration-500"
+                            className="h-full rounded-full transition-all duration-500 shadow-lg"
                             style={{ 
                               width: `${percentage}%`,
-                              background: colors[idx % colors.length]
+                              background: gradients[idx % gradients.length],
+                              boxShadow: shadows[idx % shadows.length]
                             }}
                           />
                         </div>
@@ -471,48 +534,6 @@ const DashboardIndex = () => {
           </div>
         </div>
 
-        {/* 5. Action Cards - Quick Navigation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ActionCard
-            title="Tráfego"
-            icon="📊"
-            metrics={[
-              { label: 'Investimento', value: `R$ ${(metaAds?.spend || 0).toLocaleString('pt-BR')}` },
-              { label: 'Conversas', value: (metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR') },
-              { label: 'CPC', value: `R$ ${(metaAds?.cpc || 0).toFixed(2)}` },
-            ]}
-            alert={metaAds && metaAds.cpc > 5 ? 'CPC Alto' : undefined}
-            linkTo="/trafego"
-            variant="trafego"
-            delay={0}
-          />
-          <ActionCard
-            title="Qualificação"
-            icon="🎯"
-            metrics={[
-              { label: 'Total de Leads', value: (leads?.totalLeads || 0).toLocaleString('pt-BR') },
-              { label: 'Qualificados', value: (leads?.qualifiedLeads || 0).toLocaleString('pt-BR') },
-              { label: 'Taxa', value: `${(leads?.qualificationRate || 0).toFixed(1)}%` },
-            ]}
-            alert={leads && leads.qualificationRate < 25 ? 'Taxa Baixa' : undefined}
-            linkTo="/qualificacao"
-            variant="qualificacao"
-            delay={0.05}
-          />
-          <ActionCard
-            title="Conversas"
-            icon="💬"
-            metrics={[
-              { label: 'Total', value: (conversations?.totalConversations || 0).toLocaleString('pt-BR') },
-              { label: 'Taxa Conversão', value: `${(conversations?.conversionRate || 0).toFixed(1)}%` },
-              { label: 'Tempo Médio', value: `${Math.round((conversations?.averageDuration || 0) / 60)}min` },
-            ]}
-            alert={conversations && conversations.conversionRate < 20 ? 'Conv. Baixa' : undefined}
-            linkTo="/analise"
-            variant="analise"
-            delay={0.1}
-          />
-        </div>
       </main>
 
       {/* Footer */}

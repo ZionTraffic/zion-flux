@@ -136,7 +136,7 @@ export const AnalisePDF = ({
 
   const sentimentLabel = (sentiment: string) => {
     if (sentiment === "positive") return "Positivo";
-    if (sentiment === "neutral") return "Neutro";
+    if (sentiment === "neutral") return "";
     return "Negativo";
   };
 
