@@ -10,6 +10,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
+import { useLeadsFromConversations } from "@/hooks/useLeadsFromConversations";
 import { PeriodSummaryCard } from "@/components/dashboard/executive/PeriodSummaryCard";
 import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
 import { StrategicInsightsCard } from "@/components/dashboard/executive/StrategicInsightsCard";
@@ -20,6 +21,7 @@ import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
 import { AtendimentosKpiCards } from "@/components/dashboard/AtendimentosKpiCards";
 import { CSATAnalystTable } from "@/components/dashboard/CSATAnalystTable";
 import { useAtendimentosMetrics } from "@/hooks/useAtendimentosMetrics";
+import { useCSATData } from "@/hooks/useCSATData";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
@@ -46,6 +48,27 @@ const DashboardIndex = () => {
 
   // Hook para métricas de atendimento
   const atendimentosMetrics = useAtendimentosMetrics(currentWorkspaceId);
+  
+  // Hook para dados de CSAT
+  const csatData = useCSATData(currentWorkspaceId);
+  
+  // Debug: Log workspace info
+  useEffect(() => {
+    if (currentWorkspaceId && workspaceDb) {
+      console.log('🏢 DEBUG Dashboard - Workspace atual:', {
+        id: currentWorkspaceId,
+        database: workspaceDb,
+        name: workspaceName,
+      });
+    }
+  }, [currentWorkspaceId, workspaceDb, workspaceName]);
+
+  // Hook para dados de leads por stage (T1-T4)
+  const leadsData = useLeadsFromConversations(
+    currentWorkspaceId || '',
+    dateRange?.from,
+    dateRange?.to
+  );
 
   const {
     businessHealth,
@@ -142,8 +165,12 @@ const DashboardIndex = () => {
           metaAds={metaAds}
           dateRange={dateRange || { from: undefined, to: undefined }}
           workspaceName={workspaceName || 'Workspace'}
+          workspaceSlug={workspaceDb}
           leads={leads}
           conversations={conversations}
+          csatData={csatData.data}
+          atendimentosMetrics={atendimentosMetrics}
+          leadsDataByStage={leadsData.charts?.funnelData}
         />
       ).toBlob();
 
@@ -270,52 +297,34 @@ const DashboardIndex = () => {
         {/* Enhanced KPIs with Trends */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <EnhancedKpiCard
-            label="Leads Gerados"
-            value={(leads?.totalLeads || 0).toLocaleString('pt-BR')}
+            label="T1 - SEM RESPOSTA"
+            value={(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
             icon="🎯"
             variant="blue"
-            trend={{
-              value: 12.5,
-              direction: "up"
-            }}
             delay={0}
           />
 
           <EnhancedKpiCard
-            label="Mensagens Iniciadas"
-            value={(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+            label="T2 - RESPONDIDO"
+            value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
             icon="💬"
             variant="blue"
-            trend={{
-              value: 8.3,
-              direction: "up"
-            }}
             delay={0.1}
           />
 
           <EnhancedKpiCard
-            label="Leads Qualificados"
-            value={(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+            label="T3 - PAGO IA"
+            value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
             icon="💎"
             variant="gray"
-            trend={{
-              value: 5.2,
-              direction: "up"
-            }}
             delay={0.2}
           />
 
           <EnhancedKpiCard
-            label="Total Investido"
-            value={`R$ ${(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { 
-              minimumFractionDigits: 2 
-            })}`}
+            label="T4 - TRANSFERIDO"
+            value={(leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')}
             icon="💰"
             variant="blue"
-            trend={{
-              value: 15.7,
-              direction: "up"
-            }}
             delay={0.3}
           />
         </div>
@@ -327,12 +336,13 @@ const DashboardIndex = () => {
               atendimentosHoje={atendimentosMetrics.atendimentosHoje}
               atendimentosIA={atendimentosMetrics.atendimentosIA}
               percentualIA={atendimentosMetrics.percentualIA}
+              atendimentosTransferidos={atendimentosMetrics.atendimentosTransferidos}
               isLoading={atendimentosMetrics.isLoading}
             />
 
             <CSATAnalystTable
-              data={atendimentosMetrics.csatPorAnalista}
-              isLoading={atendimentosMetrics.isLoading}
+              data={csatData.data}
+              isLoading={csatData.isLoading}
             />
           </>
         )}
@@ -340,7 +350,8 @@ const DashboardIndex = () => {
         {/* 3. Insights Estratégicos */}
         <StrategicInsightsCard alerts={alerts} />
 
-        {/* 5. Gráficos Consolidados - Linha 1 */}
+        {/* 5. Gráficos Consolidados - Linha 1 - OCULTO PARA SIEG */}
+        {workspaceDb !== 'sieg' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico 1: Resumo de Performance */}
           <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
@@ -490,6 +501,7 @@ const DashboardIndex = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* 7. Tabela de Campanhas - OCULTO PARA SIEG */}
         {workspaceDb !== 'sieg' && (

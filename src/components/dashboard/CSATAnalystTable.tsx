@@ -2,6 +2,9 @@ interface CSATData {
   analista: string;
   csatMedio: number;
   totalAtendimentos: number;
+  satisfeito?: number;
+  poucoSatisfeito?: number;
+  insatisfeito?: number;
 }
 
 interface CSATAnalystTableProps {
@@ -27,36 +30,6 @@ export function CSATAnalystTable({ data, isLoading = false }: CSATAnalystTablePr
     );
   }
 
-  const getCSATColor = (csat: number) => {
-    if (csat >= 4.5) return 'text-emerald-600 bg-emerald-500/10';
-    if (csat >= 4.0) return 'text-blue-600 bg-blue-500/10';
-    if (csat >= 3.5) return 'text-amber-600 bg-amber-500/10';
-    return 'text-red-600 bg-red-500/10';
-  };
-
-  const getCSATIcon = (csat: number) => {
-    if (csat >= 4.5) return (
-      <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-      </svg>
-    );
-    if (csat >= 4.0) return (
-      <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    );
-    if (csat >= 3.5) return (
-      <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    );
-    return (
-      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    );
-  };
-
   return (
     <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
       <div className="flex items-center gap-2 mb-6">
@@ -79,31 +52,22 @@ export function CSATAnalystTable({ data, isLoading = false }: CSATAnalystTablePr
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Ranking
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Analista
-                </th>
-                <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  CSAT Médio
-                </th>
-                <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Atendimentos
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item, index) => (
-                <tr 
-                  key={item.analista}
-                  className="border-b border-border/30 hover:bg-muted/5 transition-colors"
-                >
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
+          <div className="space-y-4">
+            {data.map((item, index) => {
+              const total = item.totalAtendimentos;
+              const satisfeito = item.satisfeito || 0;
+              const poucoSatisfeito = item.poucoSatisfeito || 0;
+              const insatisfeito = item.insatisfeito || 0;
+              
+              const percSatisfeito = total > 0 ? (satisfeito / total) * 100 : 0;
+              const percPoucoSatisfeito = total > 0 ? (poucoSatisfeito / total) * 100 : 0;
+              const percInsatisfeito = total > 0 ? (insatisfeito / total) * 100 : 0;
+
+              return (
+                <div key={item.analista} className="border border-border/30 rounded-lg p-4 hover:bg-muted/5 transition-colors">
+                  {/* Header com nome e ranking */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
                       {index === 0 && <span className="text-xl font-bold text-amber-500">#1</span>}
                       {index === 1 && <span className="text-xl font-bold text-gray-400">#2</span>}
                       {index === 2 && <span className="text-xl font-bold text-amber-700">#3</span>}
@@ -112,30 +76,69 @@ export function CSATAnalystTable({ data, isLoading = false }: CSATAnalystTablePr
                           {index + 1}º
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="font-semibold text-foreground">
-                      {item.analista}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-center gap-2">
-                      {getCSATIcon(item.csatMedio)}
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${getCSATColor(item.csatMedio)}`}>
-                        {item.csatMedio.toFixed(2)}
+                      <span className="font-semibold text-foreground text-lg">
+                        {item.analista}
                       </span>
                     </div>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className="text-sm font-semibold text-foreground">
-                      {item.totalAtendimentos}
+                    <span className="text-sm text-muted-foreground">
+                      {total} atendimentos
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  {/* Barra de progresso com 3 categorias */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 h-8 rounded-lg overflow-hidden bg-muted/20">
+                      {/* Satisfeito - Verde */}
+                      {percSatisfeito > 0 && (
+                        <div 
+                          className="h-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold transition-all"
+                          style={{ width: `${percSatisfeito}%` }}
+                        >
+                          {percSatisfeito >= 15 && `${satisfeito}`}
+                        </div>
+                      )}
+                      
+                      {/* Pouco Satisfeito - Azul */}
+                      {percPoucoSatisfeito > 0 && (
+                        <div 
+                          className="h-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold transition-all"
+                          style={{ width: `${percPoucoSatisfeito}%` }}
+                        >
+                          {percPoucoSatisfeito >= 15 && `${poucoSatisfeito}`}
+                        </div>
+                      )}
+                      
+                      {/* Insatisfeito - Vermelho */}
+                      {percInsatisfeito > 0 && (
+                        <div 
+                          className="h-full bg-red-500 flex items-center justify-center text-white text-xs font-bold transition-all"
+                          style={{ width: `${percInsatisfeito}%` }}
+                        >
+                          {percInsatisfeito >= 15 && `${insatisfeito}`}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Labels com valores */}
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        Satisfeito: {satisfeito} ({percSatisfeito.toFixed(0)}%)
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        Pouco: {poucoSatisfeito} ({percPoucoSatisfeito.toFixed(0)}%)
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        Insatisfeito: {insatisfeito} ({percInsatisfeito.toFixed(0)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -144,20 +147,16 @@ export function CSATAnalystTable({ data, isLoading = false }: CSATAnalystTablePr
         <p className="text-xs text-muted-foreground mb-2 font-semibold">Legenda:</p>
         <div className="flex flex-wrap gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-600"></div>
-            <span className="text-muted-foreground">Excelente (≥ 4.5)</span>
+            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span className="text-muted-foreground">Satisfeito</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-            <span className="text-muted-foreground">Bom (≥ 4.0)</span>
+            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+            <span className="text-muted-foreground">Pouco Satisfeito</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-600"></div>
-            <span className="text-muted-foreground">Regular (≥ 3.5)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-600"></div>
-            <span className="text-muted-foreground">Precisa melhorar (&lt; 3.5)</span>
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <span className="text-muted-foreground">Insatisfeito</span>
           </div>
         </div>
       </div>

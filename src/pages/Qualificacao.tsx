@@ -17,15 +17,18 @@ import NovoLeadsChart from "@/components/qualificacao/NovoLeadsChart";
 import LeadsQualificadosChart from "@/components/qualificacao/LeadsQualificadosChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
+import { supabase } from "@/integrations/supabase/client";
 import { pdf } from "@react-pdf/renderer";
 import { QualificacaoPDF } from "@/components/reports/QualificacaoPDF";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 const Qualificacao = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { currentDatabase } = useDatabase();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [workspaceSlug, setWorkspaceSlug] = useState<string>('');
   
   // Date range state - default to last 90 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -41,6 +44,19 @@ const Qualificacao = () => {
     dateRange?.to
   );
 
+  // Buscar workspace slug
+  useEffect(() => {
+    const fetchWorkspaceSlug = async () => {
+      if (!currentWorkspaceId) return;
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('slug')
+        .eq('id', currentWorkspaceId)
+        .maybeSingle();
+      setWorkspaceSlug(ws?.slug || '');
+    };
+    fetchWorkspaceSlug();
+  }, [currentWorkspaceId]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -273,7 +289,10 @@ const Qualificacao = () => {
         <LeadsQualificadosChart data={charts?.dailyQualified || []} />
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <FunnelPremium5Stages 
-            stages={charts.funnelData as [any, any, any, any, any]} 
+            stages={workspaceSlug === 'sieg' 
+              ? [...charts.funnelData, { id: 'hidden', label: '', value: 0 }] as [any, any, any, any, any]
+              : charts.funnelData as [any, any, any, any, any]
+            } 
             coinsCount={16} 
             showCoins={true} 
           />

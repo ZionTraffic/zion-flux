@@ -14,8 +14,12 @@ interface DashboardPDFProps {
   metaAds: any;
   dateRange: { from?: Date; to?: Date };
   workspaceName: string | null;
+  workspaceSlug?: string | null;
   leads: any;
   conversations: any;
+  csatData?: any[];
+  atendimentosMetrics?: any;
+  leadsDataByStage?: any[];
 }
 
 const styles = StyleSheet.create({
@@ -231,9 +235,14 @@ export const DashboardPDF = ({
   metaAds,
   dateRange,
   workspaceName,
+  workspaceSlug,
   leads,
   conversations,
+  csatData,
+  atendimentosMetrics,
+  leadsDataByStage,
 }: DashboardPDFProps) => {
+  const isSieg = workspaceSlug === 'sieg';
   const formatDate = (date: Date | undefined) => {
     if (!date) return 'N/A';
     try {
@@ -266,32 +275,67 @@ export const DashboardPDF = ({
           </Text>
         </View>
 
-        {/* KPIs Principais */}
+        {/* KPIs Principais - DINÂMICO POR WORKSPACE */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Metricas Principais</Text>
+          <Text style={styles.sectionTitle}>
+            {isSieg ? 'Funil de Atendimento (T1-T4)' : 'Metricas Principais'}
+          </Text>
           <View style={styles.kpiContainer}>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Leads Gerados</Text>
-              <Text style={styles.kpiValue}>{(leads?.totalLeads || 0).toLocaleString('pt-BR')}</Text>
-            </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Mensagens Iniciadas</Text>
-              <Text style={styles.kpiValue}>
-                {(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
-              </Text>
-            </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Leads Qualificados</Text>
-              <Text style={styles.kpiValue}>
-                {(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
-              </Text>
-            </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Total Investido</Text>
-              <Text style={styles.kpiValue}>
-                R$ {(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
+            {isSieg ? (
+              <>
+                {/* SIEG: Mostrar T1-T4 */}
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>T1 - Sem Resposta</Text>
+                  <Text style={styles.kpiValue}>
+                    {(leadsDataByStage?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>T2 - Respondido</Text>
+                  <Text style={styles.kpiValue}>
+                    {(leadsDataByStage?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>T3 - Pago IA</Text>
+                  <Text style={styles.kpiValue}>
+                    {(leadsDataByStage?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>T4 - Transferido</Text>
+                  <Text style={styles.kpiValue}>
+                    {(leadsDataByStage?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* OUTROS WORKSPACES: KPIs padrão */}
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Leads Gerados</Text>
+                  <Text style={styles.kpiValue}>{(leads?.totalLeads || 0).toLocaleString('pt-BR')}</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Mensagens Iniciadas</Text>
+                  <Text style={styles.kpiValue}>
+                    {(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Leads Qualificados</Text>
+                  <Text style={styles.kpiValue}>
+                    {(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Total Investido</Text>
+                  <Text style={styles.kpiValue}>
+                    R$ {(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -324,8 +368,69 @@ export const DashboardPDF = ({
           </View>
         </View>
 
-        {/* Top 3 Campanhas */}
-        {topCampaigns && topCampaigns.length > 0 && (
+        {/* Métricas de Atendimento - APENAS SIEG */}
+        {isSieg && atendimentosMetrics && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Metricas de Atendimento</Text>
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Atendimentos Hoje</Text>
+              <Text style={styles.metricValue}>
+                {(atendimentosMetrics.atendimentosHoje || 0).toLocaleString('pt-BR')}
+              </Text>
+            </View>
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Atendimentos por IA</Text>
+              <Text style={styles.metricValue}>
+                {(atendimentosMetrics.atendimentosIA || 0).toLocaleString('pt-BR')}
+              </Text>
+            </View>
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Percentual IA</Text>
+              <Text style={styles.metricValue}>
+                {(atendimentosMetrics.percentualIA || 0).toFixed(1)}%
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* CSAT por Analista - APENAS SIEG */}
+        {isSieg && csatData && csatData.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>CSAT por Analista (Periodo Filtrado)</Text>
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableCell, { flex: 2 }]}>Analista</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Atend.</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Satisf.</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Pouco</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Insatisf.</Text>
+              </View>
+              {csatData.slice(0, 10).map((analista, index) => (
+                <View key={index} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>
+                    {index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : ''}
+                    {analista.analista}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                    {analista.totalAtendimentos}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', color: '#059669' }]}>
+                    {analista.satisfeito || 0}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', color: '#3B82F6' }]}>
+                    {analista.poucoSatisfeito || 0}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', color: '#DC2626' }]}>
+                    {analista.insatisfeito || 0}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Top 3 Campanhas - APENAS OUTROS WORKSPACES */}
+        {!isSieg && topCampaigns && topCampaigns.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Top 3 Campanhas</Text>
             <View style={styles.table}>

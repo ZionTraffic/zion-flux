@@ -4,6 +4,7 @@ interface EnhancedKpiCardProps {
   label: string;
   value: string | number;
   icon: string;
+  description?: string;
   trend?: {
     value: number;
     direction: "up" | "down" | "stable";
@@ -29,6 +30,7 @@ export function EnhancedKpiCard({
   label,
   value,
   icon,
+  description,
   trend,
   variant = "blue",
   delay = 0,
@@ -74,7 +76,12 @@ export function EnhancedKpiCard({
 
       <div className="relative z-10">
         {/* Label */}
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">{label}</p>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">{label}</p>
+
+        {/* Description */}
+        {description && (
+          <p className="text-xs text-muted-foreground/70 mb-3 leading-relaxed">{description}</p>
+        )}
 
         {/* Value */}
         <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>

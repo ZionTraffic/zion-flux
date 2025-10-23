@@ -17,6 +17,12 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
     'Topo de Funil': '#3b82f6',  // Azul
     'Meio de Funil': '#14b8a6',  // Teal
     'Fundo de Funil': '#8b5cf6', // Roxo
+    // Cores específicas para Sieg Financeiro
+    'T1 - Sem Resposta': '#3b82f6',  // Azul
+    'T2 - Respondido': '#14b8a6',    // Teal
+    'T3 - Pago IA': '#8b5cf6',       // Roxo
+    'T4 - Transferido': '#10b981',   // Verde
+    'T5 - Desqualificado': '#ef4444', // Vermelho
   };
 
   const option: EChartsOption = {
@@ -98,13 +104,15 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
           show: true,
           position: 'outside',
           formatter: '{b}\n{d}%',
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 'bold',
           color: '#1e293b',
-          lineHeight: 18,
+          lineHeight: 16,
           textBorderColor: '#ffffff',
           textBorderWidth: 2,
-          distanceToLabelLine: 5,
+          distanceToLabelLine: 8,
+          overflow: 'break',
+          width: 80,
         },
         emphasis: {
           label: {
@@ -123,9 +131,10 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         },
         labelLine: {
           show: true,
-          length: 20,
-          length2: 15,
+          length: 25,
+          length2: 20,
           smooth: true,
+          minTurnAngle: 90,
           lineStyle: {
             color: '#94a3b8',
             width: 2,

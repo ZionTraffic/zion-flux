@@ -150,8 +150,9 @@ serve(async (req) => {
       );
     }
 
-    // Gerar URL de convite
-    const inviteUrl = `https://app.ziontraffic.com.br/accept-invite?token=${inviteToken}`;
+    // Gerar URL de convite - usar variável de ambiente ou localhost
+    const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
+    const inviteUrl = `${appUrl}/accept-invite?token=${inviteToken}`;
 
     console.log('✅ Invite created successfully');
 

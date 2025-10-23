@@ -6,6 +6,7 @@ interface AtendimentosMetrics {
   atendimentosHoje: number;
   atendimentosIA: number;
   percentualIA: number;
+  atendimentosTransferidos: number;
   csatPorAnalista: {
     analista: string;
     csatMedio: number;
@@ -19,6 +20,7 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
     atendimentosHoje: 0,
     atendimentosIA: 0,
     percentualIA: 0,
+    atendimentosTransferidos: 0,
     csatPorAnalista: [],
     isLoading: true,
   });
@@ -29,6 +31,7 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
         atendimentosHoje: 0,
         atendimentosIA: 0,
         percentualIA: 0,
+        atendimentosTransferidos: 0,
         csatPorAnalista: [],
         isLoading: false,
       });
@@ -109,10 +112,13 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
         csatPorAnalista: csatPorAnalista.length
       });
 
+      const totalTransferidos = result?.atendimentosTransferidos || 0;
+
       setMetrics({
         atendimentosHoje: totalHoje,
         atendimentosIA: totalIA,
         percentualIA,
+        atendimentosTransferidos: totalTransferidos,
         csatPorAnalista,
         isLoading: false,
       });
@@ -122,6 +128,7 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
         atendimentosHoje: 0,
         atendimentosIA: 0,
         percentualIA: 0,
+        atendimentosTransferidos: 0,
         csatPorAnalista: [],
         isLoading: false,
       });

@@ -22,39 +22,74 @@ export interface KanbanColumn {
 }
 
 // Map tag to stage
-const mapTagToStage = (tag: string | null): LeadStage => {
+const mapTagToStage = (tag: string | null, workspaceSlug?: string): LeadStage => {
   if (!tag) return 'novo_lead';
   
   const normalizedTag = tag.toLowerCase().trim();
+  const isSieg = workspaceSlug === 'sieg';
   
-  // T1 - Novo Lead
-  if (normalizedTag.includes('t1') || normalizedTag.includes('novo lead')) return 'novo_lead';
-  
-  // T2 - Qualificando
-  if (normalizedTag.includes('t2') || normalizedTag.includes('qualificando')) return 'qualificacao';
-  
-  // T5 - Desqualificados (DEVE VIR ANTES DE "QUALIFICADO")
-  if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
-  
-  // T3 + T4 - Qualificados (soma de ambos)
-  if (normalizedTag.includes('t3') || normalizedTag.includes('qualificado')) return 'qualificados';
-  if (normalizedTag.includes('t4') || normalizedTag.includes('agendamento')) return 'qualificados';
-  
-  // Follow-up Concluído
-  if (normalizedTag.includes('follow up') || normalizedTag.includes('follow-up')) return 'followup';
+  if (isSieg) {
+    // SIEG FINANCEIRO - Regras específicas
+    // T1 - SEM RESPOSTA: Lead entrou mas não respondeu nenhuma mensagem da IA
+    if (normalizedTag.includes('t1') || normalizedTag.includes('sem resposta')) return 'novo_lead';
+    
+    // T2 - RESPONDIDO: Disparo enviado e cliente respondeu à IA (interação inicial)
+    if (normalizedTag.includes('t2') || normalizedTag.includes('respondido')) return 'qualificacao';
+    
+    // T3 - PAGO IA: Cliente confirmou pagamento ou enviou comprovante para a IA
+    if (normalizedTag.includes('t3') || normalizedTag.includes('pago ia') || normalizedTag.includes('pago')) return 'qualificados';
+    
+    // T4 - TRANSFERIDO: Cliente foi transferido para atendimento humano da SIEG
+    if (normalizedTag.includes('t4') || normalizedTag.includes('transferido')) return 'followup';
+    
+    // T5 - Desqualificados
+    if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
+  } else {
+    // OUTROS WORKSPACES - Regras padrão
+    // T1 - Novo Lead
+    if (normalizedTag.includes('t1') || normalizedTag.includes('novo lead')) return 'novo_lead';
+    
+    // T2 - Qualificando
+    if (normalizedTag.includes('t2') || normalizedTag.includes('qualificando')) return 'qualificacao';
+    
+    // T5 - Desqualificados (DEVE VIR ANTES DE "QUALIFICADO")
+    if (normalizedTag.includes('t5') || normalizedTag.includes('desqualificado')) return 'descartados';
+    
+    // T3 + T4 - Qualificados (soma de ambos)
+    if (normalizedTag.includes('t3') || normalizedTag.includes('qualificado')) return 'qualificados';
+    if (normalizedTag.includes('t4') || normalizedTag.includes('agendamento')) return 'qualificados';
+    
+    // Follow-up Concluído
+    if (normalizedTag.includes('follow up') || normalizedTag.includes('follow-up')) return 'followup';
+  }
   
   return 'novo_lead'; // default
 };
 
 // Map stage back to tag
-const mapStageToTag = (stage: LeadStage): string => {
-  switch (stage) {
-    case 'novo_lead': return 'T1 - Novo Lead';
-    case 'qualificacao': return 'T2 - Qualificando';
-    case 'qualificados': return 'T3 - Qualificado';
-    case 'descartados': return 'T5 - Desqualificado';
-    case 'followup': return 'Follow-up Concluído';
-    default: return 'T1 - Novo Lead';
+const mapStageToTag = (stage: LeadStage, workspaceSlug?: string): string => {
+  const isSieg = workspaceSlug === 'sieg';
+  
+  if (isSieg) {
+    // SIEG FINANCEIRO - Labels específicos
+    switch (stage) {
+      case 'novo_lead': return 'T1 - Sem Resposta';
+      case 'qualificacao': return 'T2 - Respondido';
+      case 'qualificados': return 'T3 - Pago IA';
+      case 'followup': return 'T4 - Transferido';
+      case 'descartados': return 'T5 - Desqualificado';
+      default: return 'T1 - Sem Resposta';
+    }
+  } else {
+    // OUTROS WORKSPACES - Labels padrão
+    switch (stage) {
+      case 'novo_lead': return 'T1 - Novo Lead';
+      case 'qualificacao': return 'T2 - Qualificando';
+      case 'qualificados': return 'T3 - Qualificado';
+      case 'descartados': return 'T5 - Desqualificado';
+      case 'followup': return 'Follow-up Concluído';
+      default: return 'T1 - Novo Lead';
+    }
   }
 };
 
@@ -155,7 +190,7 @@ export const useLeadsFromConversations = (
       };
 
       filteredData.forEach((conversation) => {
-        const stage = mapTagToStage(conversation.tag);
+        const stage = mapTagToStage(conversation.tag, ws?.slug);
         
         // SEMPRE usar created_at como data de entrada do lead
         const enteredAt = conversation.created_at || new Date().toISOString();
@@ -284,11 +319,35 @@ export const useLeadsFromConversations = (
     return result;
   })();
 
+  // Buscar workspace slug para labels condicionais
+  const [workspaceSlug, setWorkspaceSlug] = useState<string>('');
+  
+  useEffect(() => {
+    const fetchWorkspaceSlug = async () => {
+      if (!workspaceId) return;
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('slug')
+        .eq('id', workspaceId)
+        .maybeSingle();
+      setWorkspaceSlug(ws?.slug || '');
+    };
+    fetchWorkspaceSlug();
+  }, [workspaceId]);
+
+  const isSieg = workspaceSlug === 'sieg';
+
   const stageDistribution = columns.map((col) => ({
-    name: col.stage === 'novo_lead' ? 'Novo Lead' :
-          col.stage === 'qualificacao' ? 'Qualificando' :
-          col.stage === 'qualificados' ? 'Qualificados' :
-          col.stage === 'descartados' ? 'Desqualificados' : 'Follow-up',
+    name: isSieg 
+      ? (col.stage === 'novo_lead' ? 'T1 - Sem Resposta' :
+         col.stage === 'qualificacao' ? 'T2 - Respondido' :
+         col.stage === 'qualificados' ? 'T3 - Pago IA' :
+         col.stage === 'followup' ? 'T4 - Transferido' :
+         col.stage === 'descartados' ? 'T5 - Desqualificado' : 'T1 - Sem Resposta')
+      : (col.stage === 'novo_lead' ? 'Novo Lead' :
+         col.stage === 'qualificacao' ? 'Qualificando' :
+         col.stage === 'qualificados' ? 'Qualificados' :
+         col.stage === 'descartados' ? 'Desqualificados' : 'Follow-up'),
     value: col.leads.length,
   }));
 
@@ -321,7 +380,12 @@ export const useLeadsFromConversations = (
     return result;
   })();
 
-  const funnelData = [
+  const funnelData = isSieg ? [
+    { id: 'novo_lead', label: 'T1 - Sem Resposta', value: columns.find(c => c.stage === 'novo_lead')?.leads.length || 0 },
+    { id: 'qualificacao', label: 'T2 - Respondido', value: columns.find(c => c.stage === 'qualificacao')?.leads.length || 0 },
+    { id: 'qualificados', label: 'T3 - Pago IA', value: columns.find(c => c.stage === 'qualificados')?.leads.length || 0 },
+    { id: 'followup', label: 'T4 - Transferido', value: columns.find(c => c.stage === 'followup')?.leads.length || 0 },
+  ] : [
     { id: 'novo_lead', label: 'Novo Lead', value: columns.find(c => c.stage === 'novo_lead')?.leads.length || 0 },
     { id: 'qualificacao', label: 'Qualificando', value: columns.find(c => c.stage === 'qualificacao')?.leads.length || 0 },
     { id: 'qualificados', label: 'Qualificados', value: columns.find(c => c.stage === 'qualificados')?.leads.length || 0 },

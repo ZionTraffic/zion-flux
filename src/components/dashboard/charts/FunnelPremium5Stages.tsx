@@ -84,9 +84,12 @@ export function FunnelPremium5Stages({
   coinsCount = 16,
   showCoins = true,
 }: FunnelPremium5StagesProps) {
+  // Detectar se é Sieg (4 estágios) ou outros (5 estágios)
+  const isSieg = !stages[4]?.label;
+  
   // Dimensões do viewBox
   const W = 600;
-  const H = 600;
+  const H = isSieg ? 480 : 600; // Menor altura para 4 estágios
 
   // Proporções fixas para 5 estágios
   const w1 = 480;  // Novo Lead
@@ -96,11 +99,11 @@ export function FunnelPremium5Stages({
   const w5 = 180;  // Follow-up Concluído
   const botW = 140; // Base final
 
-  const stageH = 70; // Altura de cada estágio
-  const gap = 18;     // Espaço entre estágios
+  const stageH = isSieg ? 85 : 70; // Estágios maiores para 4 estágios
+  const gap = isSieg ? 22 : 18;     // Mais espaço entre estágios
 
   // Posições Y
-  const y1 = 50;
+  const y1 = isSieg ? 40 : 50;
   const y2 = y1 + stageH + gap;
   const y3 = y2 + stageH + gap;
   const y4 = y3 + stageH + gap;
@@ -114,15 +117,19 @@ export function FunnelPremium5Stages({
   const x5 = (W - w5) / 2;
 
   // Memoize coin positions to prevent flickering on re-renders
+  // Usar x4 e y4 para Sieg (4 estágios), x5 e y5 para outros
+  const coinBaseX = isSieg ? x4 + w4 / 2 : x5 + botW / 2;
+  const coinBaseY = isSieg ? y4 : y5;
+  
   const coins = useMemo(() => 
     Array.from({ length: coinsCount }).map((_, i) => ({
       key: `coin-${i}`,
-      cx: x5 + botW / 2 + (Math.random() * 60 - 30),
+      cx: coinBaseX + (Math.random() * 60 - 30),
       size: 14 + Math.random() * 6,
       delay: i * 0.15 + Math.random() * 0.6,
       rotate: Math.random() * 360,
     })), 
-    [coinsCount, x5, botW]
+    [coinsCount, coinBaseX]
   );
 
   return (
@@ -214,7 +221,7 @@ export function FunnelPremium5Stages({
 
           {/* ClipPath para moedas saindo da base */}
           <clipPath id="funnelOutput">
-            <rect x={x5} y={y5 + stageH - 10} width={botW} height="200" />
+            <rect x={isSieg ? x4 - 30 : x5} y={coinBaseY + stageH - 10} width={isSieg ? w4 : botW} height="200" />
           </clipPath>
         </defs>
 
@@ -354,39 +361,43 @@ export function FunnelPremium5Stages({
           {formatValue(stages[3].value)}
         </text>
 
-        {/* Estágio 5 - Desqualificados (SKY BLUE) */}
-        <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientSky" />
-        <ellipse 
-          cx={W / 2} 
-          cy={y5 + stageH} 
-          rx={botW / 2} 
-          ry="4" 
-          fill="rgba(3,105,161,0.4)"
-          filter="blur(4px)"
-        />
-        <text
-          x={W / 2}
-          y={y5 + stageH / 2 - 8}
-          textAnchor="middle"
-          fill="white"
-          fontSize="16"
-          fontWeight="600"
-          opacity="0.92"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
-        >
-          {stages[4].label}
-        </text>
-        <text
-          x={W / 2}
-          y={y5 + stageH / 2 + 12}
-          textAnchor="middle"
-          fill="white"
-          fontSize="22"
-          fontWeight="700"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
-        >
-          {formatValue(stages[4].value)}
-        </text>
+        {/* Estágio 5 - Desqualificados (SKY BLUE) - Oculto se label vazio (Sieg) */}
+        {stages[4]?.label && (
+          <>
+            <Bowl x={x5} y={y5} topWidth={w5} bottomWidth={botW} height={stageH} gradientId="bowlGradientSky" />
+            <ellipse 
+              cx={W / 2} 
+              cy={y5 + stageH} 
+              rx={botW / 2} 
+              ry="4" 
+              fill="rgba(3,105,161,0.4)"
+              filter="blur(4px)"
+            />
+            <text
+              x={W / 2}
+              y={y5 + stageH / 2 - 8}
+              textAnchor="middle"
+              fill="white"
+              fontSize="16"
+              fontWeight="600"
+              opacity="0.92"
+              style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+            >
+              {stages[4].label}
+            </text>
+            <text
+              x={W / 2}
+              y={y5 + stageH / 2 + 12}
+              textAnchor="middle"
+              fill="white"
+              fontSize="22"
+              fontWeight="700"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
+            >
+              {formatValue(stages[4].value)}
+            </text>
+          </>
+        )}
 
         {/* Moedas animadas saindo da base */}
         {showCoins && (
@@ -394,9 +405,9 @@ export function FunnelPremium5Stages({
             {coins.map((coin) => (
               <motion.g
                 key={coin.key}
-                initial={{ opacity: 0, y: y5 + stageH - 10 }}
+                initial={{ opacity: 0, y: coinBaseY + stageH - 10 }}
                 animate={{
-                  y: [y5 + stageH - 10, y5 + stageH + 70, y5 + stageH + 140, y5 + stageH + 200],
+                  y: [coinBaseY + stageH - 10, coinBaseY + stageH + 70, coinBaseY + stageH + 140, coinBaseY + stageH + 200],
                   opacity: [0, 1, 1, 0],
                   rotate: [0, coin.rotate, coin.rotate * 2],
                   x: [0, 0, 0, 0],
