@@ -211,12 +211,12 @@ const Conversas = () => {
                               <Badge 
                                 variant="outline" 
                                 className={
-                                  conversation.csat === 'Satisfeito' ? 'text-emerald-400 border-emerald-400' :
-                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'text-blue-400 border-blue-400' :
-                                  'text-red-400 border-red-400'
+                                  conversation.csat === 'Satisfeito' ? 'text-emerald-500 border-emerald-500 bg-emerald-500/10' :
+                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'text-blue-500 border-blue-500 bg-blue-500/10' :
+                                  'text-red-500 border-red-500 bg-red-500/10'
                                 }
                               >
-                                CSAT: {conversation.csat}
+                                {conversation.csat}
                               </Badge>
                             )}
                             {conversation.analista && (
