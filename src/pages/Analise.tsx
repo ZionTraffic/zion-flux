@@ -210,9 +210,9 @@ const Conversas = () => {
                             {conversation.csat && conversation.csat !== '-' && (
                               <Badge 
                                 className={
-                                  conversation.csat === 'Satisfeito' ? 'bg-emerald-500 text-white border-0' :
-                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'bg-blue-500 text-white border-0' :
-                                  'bg-red-500 text-white border-0'
+                                  conversation.csat === 'Satisfeito' ? 'bg-emerald-500 hover:bg-emerald-500 text-white border-0' :
+                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'bg-blue-500 hover:bg-blue-500 text-white border-0' :
+                                  'bg-red-500 hover:bg-red-500 text-white border-0'
                                 }
                               >
                                 {conversation.csat}
