@@ -6,6 +6,7 @@ interface HeroSectionProps {
   totalInvested?: number;
   conversionRate?: number;
   trend?: "up" | "down" | "stable";
+  hideStats?: boolean;
 }
 
 export function HeroSection({ 
@@ -14,7 +15,8 @@ export function HeroSection({
   totalLeads = 0, 
   totalInvested = 0, 
   conversionRate = 0,
-  trend = "stable"
+  trend = "stable",
+  hideStats = false
 }: HeroSectionProps) {
   const greeting = () => {
     const hour = new Date().getHours();
@@ -89,7 +91,8 @@ export function HeroSection({
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - OCULTO PARA SIEG */}
+        {!hideStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <p className="text-sm text-blue-100 mb-1">Total de Leads</p>
@@ -104,6 +107,7 @@ export function HeroSection({
             <p className="text-2xl font-bold text-white">{conversionRate.toFixed(1)}%</p>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

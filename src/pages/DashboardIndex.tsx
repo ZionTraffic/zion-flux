@@ -272,6 +272,7 @@ const DashboardIndex = () => {
             totalInvested={advancedMetrics?.totalInvested || 0}
             conversionRate={leads?.qualificationRate || 0}
             trend="up"
+            hideStats={workspaceDb === 'sieg'}
           />
         )}
 
