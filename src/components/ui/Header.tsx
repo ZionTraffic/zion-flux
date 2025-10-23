@@ -1,3 +1,4 @@
+import React from "react";
 import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSelector } from "./WorkspaceSelector";
@@ -40,8 +41,22 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     canViewAnalysis 
   } = usePermissions();
 
+  // Verificar se é o usuário master
+  const [isMasterUser, setIsMasterUser] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMasterUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email === 'george@ziontraffic.com.br') {
+        setIsMasterUser(true);
+        console.log('🔓 MASTER USER - Mostrando todos os itens do menu');
+      }
+    };
+    checkMasterUser();
+  }, []);
+
   // Debug: Log para verificar se o Header está sendo renderizado
-  console.log('[Header] Renderizando Header', { currentWorkspace, location: location.pathname });
+  console.log('[Header] Renderizando Header', { currentWorkspace, location: location.pathname, isMasterUser });
 
   const handleLogout = async () => {
     try {
@@ -92,7 +107,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   ];
 
   // Filter menu items based on user permissions
-  const menuItems = allMenuItems.filter(item => {
+  // Master user sempre vê todos os itens
+  const menuItems = isMasterUser ? allMenuItems : allMenuItems.filter(item => {
     switch (item.label) {
       case 'Dashboard':
         return canViewDashboard();
