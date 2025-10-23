@@ -20,7 +20,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       
       // ACESSO IRRESTRITO PARA GEORGE - MASTER DO SISTEMA
       if (session?.user?.email === 'george@ziontraffic.com.br') {
-        console.log('🔓 MASTER ACCESS GRANTED: george@ziontraffic.com.br - ACESSO TOTAL');
+        console.log('[AUTH] MASTER ACCESS GRANTED: george@ziontraffic.com.br - ACESSO TOTAL');
       }
     });
 

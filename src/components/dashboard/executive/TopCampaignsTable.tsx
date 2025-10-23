@@ -14,7 +14,14 @@ interface TopCampaignsTableProps {
 }
 
 export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTableProps) => {
-  const medals = ['🥇', '🥈', '🥉'];
+  const getRankBadge = (index: number) => {
+    const badges = [
+      { color: 'bg-amber-500', text: '#1' },
+      { color: 'bg-gray-400', text: '#2' },
+      { color: 'bg-amber-700', text: '#3' }
+    ];
+    return badges[index];
+  };
 
   return (
     <motion.div
@@ -25,7 +32,10 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
     >
       <div className="mb-6">
         <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
-          🏆 Top 3 Campanhas
+          <svg className="w-6 h-6 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          Top 3 Campanhas
         </h3>
         <p className="text-xs text-muted-foreground">
           Melhor custo-benefício por CPL
@@ -43,7 +53,9 @@ export const TopCampaignsTable = ({ campaigns, worstCampaign }: TopCampaignsTabl
               className="glass rounded-lg p-4 border border-border/50 hover:border-primary/50 transition-colors"
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0">{medals[index]}</span>
+                <div className={`${getRankBadge(index).color} text-white font-bold text-sm px-3 py-1 rounded-full shrink-0`}>
+                  {getRankBadge(index).text}
+                </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-foreground truncate mb-2">
                     {campaign.name}

@@ -25,11 +25,23 @@ export const SmartAlertsCard = ({ alerts }: SmartAlertsCardProps) => {
   const getAlertLabel = (type: Alert['type']) => {
     switch (type) {
       case 'critical':
-        return { emoji: '🔴', text: 'CRÍTICO' };
+        return { 
+          icon: <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>,
+          color: 'text-red-500',
+          text: 'CRÍTICO' 
+        };
       case 'warning':
-        return { emoji: '🟡', text: 'ATENÇÃO' };
+        return { 
+          icon: <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>,
+          color: 'text-amber-500',
+          text: 'ATENÇÃO' 
+        };
       case 'opportunity':
-        return { emoji: '🟢', text: 'OPORTUNIDADE' };
+        return { 
+          icon: <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>,
+          color: 'text-emerald-500',
+          text: 'OPORTUNIDADE' 
+        };
     }
   };
 
@@ -102,7 +114,10 @@ export const SmartAlertsCard = ({ alerts }: SmartAlertsCardProps) => {
                 {getAlertIcon(alert.type)}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold">{label.emoji} {label.text}</span>
+                    <span className={`text-xs font-bold flex items-center gap-1 ${label.color}`}>
+                      {label.icon}
+                      {label.text}
+                    </span>
                   </div>
                   <h4 className="font-semibold text-foreground mb-1">
                     {alert.title}

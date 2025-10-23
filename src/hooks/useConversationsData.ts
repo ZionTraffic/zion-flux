@@ -218,13 +218,20 @@ export function useConversationsData(workspaceId: string) {
         const dateField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "created_at" : "created_at";
         const workspaceField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "id_workspace" : "id_workspace";
 
+        console.log('[useConversationsData] Buscando conversas:', { tableName, workspaceId, dateField });
+
         const { data: conversationsData, error: conversationsError } = await (supabase.from as any)(tableName)
           .select("*")
           .eq(workspaceField, workspaceId)
           .gte(dateField, `${MIN_DATA_DATE}T00:00:00`)
           .order(dateField, { ascending: false });
 
-        if (conversationsError) throw conversationsError;
+        if (conversationsError) {
+          console.error('[useConversationsData] Erro ao buscar conversas:', conversationsError);
+          throw conversationsError;
+        }
+
+        console.log('[useConversationsData] Conversas encontradas:', conversationsData?.length || 0);
 
         // 2. Para cada conversa, buscar dados complementares
         const enrichedConversations = await Promise.all(

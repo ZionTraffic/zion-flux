@@ -48,10 +48,26 @@ Deno.serve(async (req) => {
 
     // Verify the authenticated user matches the user_id
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user || user.id !== user_id) {
-      console.error('❌ accept-workspace-invite: Auth verification failed', authError);
+    if (authError) {
+      console.error('[accept-workspace-invite] Auth error:', authError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Erro de autenticação: ' + authError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!user) {
+      console.error('[accept-workspace-invite] No user found in session');
+      return new Response(
+        JSON.stringify({ error: 'Usuário não encontrado na sessão. Por favor, faça login novamente.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (user.id !== user_id) {
+      console.error('[accept-workspace-invite] User ID mismatch', { session_user: user.id, provided_user: user_id });
+      return new Response(
+        JSON.stringify({ error: 'ID de usuário não corresponde à sessão' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -104,8 +120,8 @@ Deno.serve(async (req) => {
     });
 
     const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('add_workspace_member', {
-      p_workspace_id: invite.workspace_id,
-      p_user_id: user_id,
+      p_workspace_id: invite.workspace_id.toString(),
+      p_user_id: user_id.toString(),
       p_role: invite.role,
       p_set_default_workspace: true,
     });

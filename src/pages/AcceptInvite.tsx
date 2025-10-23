@@ -111,17 +111,25 @@ export default function AcceptInvite() {
       });
 
       if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
+        if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
+          console.log('[AcceptInvite] Email já cadastrado, tentando fazer login...');
+          
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: inviteData.email,
             password
           });
 
           if (signInError) {
-            toast.error('Email já cadastrado. Use a senha correta para entrar.');
+            console.error('[AcceptInvite] Erro ao fazer login:', signInError);
+            setIsProcessing(false);
+            toast.error(
+              'Este email já está cadastrado. Por favor, use a senha da sua conta existente para aceitar o convite.',
+              { duration: 5000 }
+            );
             return;
           }
 
+          console.log('[AcceptInvite] Login realizado com sucesso');
           // Atualizar authData com os dados do login
           authData = signInData;
         } else {
@@ -134,6 +142,17 @@ export default function AcceptInvite() {
         throw new Error('Erro ao criar usuário');
       }
 
+      // Aguardar um pouco para garantir que a sessão está estabelecida
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Obter sessão atualizada
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Sessão não estabelecida. Por favor, faça login novamente.');
+      }
+
+      console.log('[AcceptInvite] Chamando Edge Function com sessão válida');
+
       // Call edge function to add user to workspace (bypasses RLS)
       const { data: inviteResult, error: inviteAcceptError } = await supabase.functions.invoke(
         'accept-workspace-invite',
@@ -143,11 +162,21 @@ export default function AcceptInvite() {
       );
 
       if (inviteAcceptError || !inviteResult?.success) {
-        console.error('Erro ao aceitar convite:', inviteAcceptError);
-        throw new Error(inviteAcceptError?.message || 'Erro ao processar convite');
+        console.error('[AcceptInvite] Erro ao aceitar convite:', inviteAcceptError);
+        
+        // Se falhou ao adicionar ao workspace, deletar o usuário criado
+        try {
+          console.log('[AcceptInvite] Revertendo criação de usuário...');
+          await supabase.auth.admin.deleteUser(userId);
+          console.log('[AcceptInvite] Usuário revertido com sucesso');
+        } catch (deleteError) {
+          console.error('[AcceptInvite] Erro ao reverter usuário:', deleteError);
+        }
+        
+        throw new Error(inviteAcceptError?.message || 'Erro ao processar convite. Por favor, tente novamente.');
       }
 
-      console.log('✅ Convite aceito com sucesso:', inviteResult);
+      console.log('[AcceptInvite] Convite aceito com sucesso:', inviteResult);
 
       toast.success(`Bem-vindo ao workspace ${inviteData.workspaces.name}!`);
       
@@ -188,6 +217,12 @@ export default function AcceptInvite() {
           </p>
         </div>
 
+        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <p className="text-sm text-blue-400">
+            ℹ️ <strong>Importante:</strong> Se este email já estiver cadastrado no sistema, use a senha da sua conta existente para aceitar o convite.
+          </p>
+        </div>
+
         <form onSubmit={handleAcceptInvite} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">Nome Completo</Label>
@@ -204,7 +239,7 @@ export default function AcceptInvite() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Defina sua senha</Label>
+            <Label htmlFor="password">Defina sua senha (ou use a senha existente)</Label>
             <Input
               id="password"
               type="password"

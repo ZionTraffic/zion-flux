@@ -24,9 +24,21 @@ export function HeroSection({
   };
 
   const getTrendIcon = () => {
-    if (trend === "up") return <span className="text-2xl text-green-500">📈</span>;
-    if (trend === "down") return <span className="text-2xl text-red-500">📉</span>;
-    return <span className="text-2xl text-blue-500">📊</span>;
+    if (trend === "up") return (
+      <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>
+    );
+    if (trend === "down") return (
+      <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+      </svg>
+    );
+    return (
+      <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    );
   };
 
   const getTrendColor = () => {
@@ -59,8 +71,8 @@ export function HeroSection({
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg">
-              {greeting()}, {userName?.split('@')[0] || 'Usuário'}! 👋
+            <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg flex items-center gap-2">
+              {greeting()}, {userName?.split('@')[0] || 'Usuário'}!
             </h1>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-white/90 text-base font-medium">Workspace:</span>

@@ -12,21 +12,21 @@ export const BusinessHealthCard = ({ health, metrics }: BusinessHealthCardProps)
     switch (health.status) {
       case 'healthy':
         return {
-          emoji: '🟢',
+          icon: <div className="w-4 h-4 rounded-full bg-emerald-500"></div>,
           label: 'NEGÓCIO SAUDÁVEL',
           gradient: 'var(--gradient-emerald)',
           textColor: 'text-emerald-400',
         };
       case 'warning':
         return {
-          emoji: '🟡',
+          icon: <div className="w-4 h-4 rounded-full bg-amber-500"></div>,
           label: 'ATENÇÃO NECESSÁRIA',
           gradient: 'var(--gradient-amber)',
           textColor: 'text-amber-400',
         };
       case 'critical':
         return {
-          emoji: '🔴',
+          icon: <div className="w-4 h-4 rounded-full bg-rose-500"></div>,
           label: 'SITUAÇÃO CRÍTICA',
           gradient: 'linear-gradient(135deg, #3d1f2d 0%, #2a1621 100%)',
           textColor: 'text-rose-400',

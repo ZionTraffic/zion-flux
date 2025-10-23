@@ -40,6 +40,9 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     canViewAnalysis 
   } = usePermissions();
 
+  // Debug: Log para verificar se o Header está sendo renderizado
+  console.log('[Header] Renderizando Header', { currentWorkspace, location: location.pathname });
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -117,7 +120,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   
   return (
     <TooltipProvider>
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-medium">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left Section: Logo + Navigation */}
           <div className="flex items-center gap-3 lg:gap-6">

@@ -28,12 +28,15 @@ export function AutoRedirect() {
   }, []);
 
   useEffect(() => {
+    // Não fazer nada enquanto está carregando o email do usuário
+    if (userEmail === null) return;
+
     // MASTER ACCESS: George nunca é redirecionado
     if (userEmail === 'george@ziontraffic.com.br') {
       return;
     }
 
-    // Não fazer nada enquanto está carregando
+    // Não fazer nada enquanto está carregando permissões
     if (roleLoading || permissionsLoading) return;
 
     // Owners têm acesso a tudo, não precisam de redirecionamento
@@ -56,7 +59,7 @@ export function AutoRedirect() {
       const firstAccessibleRoute = routes.find(r => r.canAccess());
       
       if (firstAccessibleRoute) {
-        console.log(`🔀 Redirecting to ${firstAccessibleRoute.path} - no permission for ${location.pathname}`);
+        console.log(`[REDIRECT] Redirecting to ${firstAccessibleRoute.path} - no permission for ${location.pathname}`);
         navigate(firstAccessibleRoute.path, { replace: true });
       } else {
         // Usuário não tem acesso a nenhuma página
@@ -64,7 +67,7 @@ export function AutoRedirect() {
         navigate('/no-access', { replace: true });
       }
     }
-  }, [location.pathname, roleLoading, permissionsLoading, isOwner, canViewDashboard, canViewTraffic, canViewQualification, canViewAnalysis, navigate]);
+  }, [location.pathname, roleLoading, permissionsLoading, isOwner, canViewDashboard, canViewTraffic, canViewQualification, canViewAnalysis, navigate, userEmail]);
 
   return null; // Este componente não renderiza nada
 }

@@ -17,6 +17,9 @@ import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFu
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { HeroSection } from "@/components/dashboard/HeroSection";
 import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
+import { AtendimentosKpiCards } from "@/components/dashboard/AtendimentosKpiCards";
+import { CSATAnalystTable } from "@/components/dashboard/CSATAnalystTable";
+import { useAtendimentosMetrics } from "@/hooks/useAtendimentosMetrics";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
@@ -40,6 +43,9 @@ const DashboardIndex = () => {
     from.setDate(from.getDate() - 90);
     return { from, to };
   });
+
+  // Hook para métricas de atendimento
+  const atendimentosMetrics = useAtendimentosMetrics(currentWorkspaceId);
 
   const {
     businessHealth,
@@ -314,6 +320,23 @@ const DashboardIndex = () => {
           />
         </div>
 
+        {/* Métricas de Atendimento - APENAS PARA SIEG */}
+        {workspaceDb === 'sieg' && (
+          <>
+            <AtendimentosKpiCards
+              atendimentosHoje={atendimentosMetrics.atendimentosHoje}
+              atendimentosIA={atendimentosMetrics.atendimentosIA}
+              percentualIA={atendimentosMetrics.percentualIA}
+              isLoading={atendimentosMetrics.isLoading}
+            />
+
+            <CSATAnalystTable
+              data={atendimentosMetrics.csatPorAnalista}
+              isLoading={atendimentosMetrics.isLoading}
+            />
+          </>
+        )}
+
         {/* 3. Insights Estratégicos */}
         <StrategicInsightsCard alerts={alerts} />
 
@@ -468,8 +491,8 @@ const DashboardIndex = () => {
           </div>
         </div>
 
-
-        {/* 7. Tabela de Campanhas */}
+        {/* 7. Tabela de Campanhas - OCULTO PARA SIEG */}
+        {workspaceDb !== 'sieg' && (
         <div className="glass rounded-2xl p-6 border border-border/50">
           <h3 className="text-lg font-semibold mb-4 text-foreground">Resumo por Campanha</h3>
           <div className="overflow-x-auto">
@@ -523,8 +546,10 @@ const DashboardIndex = () => {
             </table>
           </div>
         </div>
+        )}
 
-        {/* 8. Top Campaigns */}
+        {/* 8. Top Campaigns - OCULTO PARA SIEG */}
+        {workspaceDb !== 'sieg' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-3">
             <TopCampaignsTable 
@@ -533,6 +558,7 @@ const DashboardIndex = () => {
             />
           </div>
         </div>
+        )}
 
       </main>
 

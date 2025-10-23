@@ -41,7 +41,9 @@ export const StrategicInsightsCard = ({ alerts }: StrategicInsightsCardProps) =>
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">💡</span>
+          <svg className="w-8 h-8 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 11.7V16h-4v-2.3C8.48 12.63 7 11.53 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.53-1.48 3.63-3 4.7z"/>
+          </svg>
           <div>
             <h3 className="text-xl font-bold text-foreground">
               Insights Estratégicos
@@ -67,7 +69,12 @@ export const StrategicInsightsCard = ({ alerts }: StrategicInsightsCardProps) =>
                 {getInsightIcon()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-emerald-400">🟢 OPORTUNIDADE</span>
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                      OPORTUNIDADE
+                    </span>
                   </div>
                   <h4 className="font-semibold text-foreground mb-1">
                     {alert.title}
