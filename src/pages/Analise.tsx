@@ -205,11 +205,25 @@ const Conversas = () => {
                     <div className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
-                            <Badge variant="outline" className={scoreColor}>
-                              {qualityScore}% Score
-                            </Badge>
+                            {conversation.csat && conversation.csat !== '-' && (
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  conversation.csat === 'Satisfeito' ? 'text-emerald-400 border-emerald-400' :
+                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'text-blue-400 border-blue-400' :
+                                  'text-red-400 border-red-400'
+                                }
+                              >
+                                CSAT: {conversation.csat}
+                              </Badge>
+                            )}
+                            {conversation.analista && (
+                              <Badge variant="outline" className="text-purple-400 border-purple-400">
+                                {conversation.analista}
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground">{conversation.product || "Sem produto"}</p>
                           <p className="text-xs text-muted-foreground">{conversation.phone}</p>

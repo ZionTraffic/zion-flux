@@ -31,6 +31,8 @@ export interface ConversationData {
   stageAfter: string | null;
   qualified: boolean;
   messages: Message[];
+  csat?: string; // CSAT do atendimento (Satisfeito, Pouco Satisfeito, Insatisfeito)
+  analista?: string; // Nome do analista responsável
 }
 
 export interface ConversationsStats {
@@ -321,7 +323,9 @@ export function useConversationsData(workspaceId: string) {
               adSuggestions: analysis?.ad_suggestions || [],
               stageAfter: analysis?.stage_after || conversation.tag,
               qualified: analysis?.qualified || conversation.tag?.includes("Qualificando") || false,
-              messages
+              messages,
+              csat: conversation.csat, // CSAT do atendimento
+              analista: conversation.analista // Nome do analista
             };
           });
 
