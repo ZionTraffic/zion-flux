@@ -33,18 +33,47 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         setUserEmail(user.email);
 
+        // VERIFICAR SE HÁ WORKSPACE SALVO NO LOCALSTORAGE
+        const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
+        console.log(`🔍 Workspace salvo no localStorage:`, savedWorkspaceId);
+
         // ACESSO IRRESTRITO PARA GEORGE - MASTER DO SISTEMA
         if (user.email === 'george@ziontraffic.com.br') {
-          console.log('🔓 MASTER ACCESS: george@ziontraffic.com.br - Carregando workspace ASF Finance');
-          setCurrentWorkspaceIdState('01d0cff7-2de1-4731-af0d-ee62f5ba974b');
+          const georgeWorkspaceId = savedWorkspaceId || '01d0cff7-2de1-4731-af0d-ee62f5ba974b';
+          console.log('🔓 MASTER ACCESS: george@ziontraffic.com.br - Carregando workspace:', georgeWorkspaceId);
+          setCurrentWorkspaceIdState(georgeWorkspaceId);
           setUserRole('owner');
-          // Não precisa setar database - DatabaseContext já gerencia isso
-          localStorage.setItem('currentWorkspaceId', '01d0cff7-2de1-4731-af0d-ee62f5ba974b');
+          localStorage.setItem('currentWorkspaceId', georgeWorkspaceId);
           setIsLoading(false);
           return;
         }
 
-        // Buscar diretamente a primeira workspace do usuário
+        // PRIORIDADE 1: Tentar carregar workspace salvo no localStorage
+        if (savedWorkspaceId) {
+          console.log(`🔄 Tentando restaurar workspace salvo:`, savedWorkspaceId);
+          
+          const { data: savedMembership, error: savedError } = await supabase
+            .from('membros_workspace')
+            .select('workspace_id, role, workspaces(name, database)')
+            .eq('user_id', user.id)
+            .eq('workspace_id', savedWorkspaceId)
+            .maybeSingle();
+          
+          if (!savedError && savedMembership) {
+            console.log('✅ Workspace salvo restaurado com sucesso:', savedWorkspaceId);
+            setCurrentWorkspaceIdState(savedWorkspaceId);
+            setUserRole(savedMembership.role || null);
+            const dbKey = (savedMembership as any).workspaces?.database || 'asf';
+            setDatabase(dbKey);
+            setIsLoading(false);
+            return;
+          } else {
+            console.log('⚠️ Workspace salvo não encontrado ou sem acesso, buscando alternativa');
+            localStorage.removeItem('currentWorkspaceId');
+          }
+        }
+
+        // PRIORIDADE 2: Buscar primeira workspace disponível
         console.log(`🔍 Buscando workspaces para usuário:`, user.email);
         
         const { data: firstMembership, error: membershipError } = await supabase
