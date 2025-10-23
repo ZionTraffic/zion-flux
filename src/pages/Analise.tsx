@@ -209,11 +209,10 @@ const Conversas = () => {
                             <h3 className="font-semibold text-lg">{conversation.leadName}</h3>
                             {conversation.csat && conversation.csat !== '-' && (
                               <Badge 
-                                variant="outline" 
                                 className={
-                                  conversation.csat === 'Satisfeito' ? 'text-emerald-500 border-emerald-500 bg-emerald-500/10' :
-                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'text-blue-500 border-blue-500 bg-blue-500/10' :
-                                  'text-red-500 border-red-500 bg-red-500/10'
+                                  conversation.csat === 'Satisfeito' ? 'bg-emerald-500 text-white border-0' :
+                                  conversation.csat === 'Pouco Satisfeito' || conversation.csat === 'Pouco' ? 'bg-blue-500 text-white border-0' :
+                                  'bg-red-500 text-white border-0'
                                 }
                               >
                                 {conversation.csat}
