@@ -241,11 +241,6 @@ const Conversas = () => {
                               );
                             }}
                           />
-                          {conversation.sentiment && conversation.sentiment !== "neutral" && (
-                            <Badge className={sentimentColors[conversation.sentiment]}>
-                              {conversation.sentiment === "positive" ? "😊 Positivo" : "😞 Negativo"}
-                            </Badge>
-                          )}
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">{conversation.summary}</p>
