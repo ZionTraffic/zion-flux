@@ -59,17 +59,24 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
     },
     legend: {
       orient: 'horizontal',
-      bottom: '5%',
+      bottom: '2%',
       left: 'center',
       textStyle: {
         color: '#475569',
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 500,
       },
-      itemWidth: 16,
-      itemHeight: 16,
-      itemGap: 24,
+      itemWidth: 14,
+      itemHeight: 14,
+      itemGap: 20,
       icon: 'circle',
+      formatter: (name: string) => {
+        const item = data.find(d => d.name === name);
+        if (!item) return name;
+        const total = data.reduce((sum, d) => sum + d.value, 0);
+        const percent = ((item.value / total) * 100).toFixed(1);
+        return `${name} (${percent}%)`;
+      },
     },
     series: [
       {
@@ -103,16 +110,32 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         label: {
           show: true,
           position: 'outside',
-          formatter: '{b}\n{d}%',
-          fontSize: 11,
+          formatter: (params: any) => {
+            // Mostrar apenas se percentual > 3%
+            if (params.percent < 3) return '';
+            return `{b|${params.name}}\n{c|${params.percent.toFixed(1)}%}`;
+          },
+          fontSize: 12,
           fontWeight: 'bold',
           color: '#1e293b',
-          lineHeight: 16,
+          lineHeight: 18,
           textBorderColor: '#ffffff',
           textBorderWidth: 2,
-          distanceToLabelLine: 8,
-          overflow: 'break',
-          width: 80,
+          distanceToLabelLine: 10,
+          rich: {
+            b: {
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: '#1e293b',
+              lineHeight: 18,
+            },
+            c: {
+              fontSize: 13,
+              fontWeight: 'bold',
+              color: '#3b82f6',
+              lineHeight: 18,
+            }
+          }
         },
         emphasis: {
           label: {
@@ -131,10 +154,11 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         },
         labelLine: {
           show: true,
-          length: 25,
-          length2: 20,
+          length: 30,
+          length2: 25,
           smooth: true,
           minTurnAngle: 90,
+          maxSurfaceAngle: 80,
           lineStyle: {
             color: '#94a3b8',
             width: 2,
