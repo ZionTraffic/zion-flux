@@ -220,14 +220,14 @@ const Qualificacao = () => {
       delay: 0,
     },
     {
-      label: "Recuperados IA",
+      label: "% Qualificados",
       value: `${Math.ceil(kpis.qualificationRate * 10) / 10}%`,
       icon: "📊",
       variant: 'blue' as const,
       delay: 0.1,
     },
     {
-      label: "Qualificados",
+      label: "Total de Leads Qualificados",
       value: kpis.qualifiedLeads.toString(),
       icon: "✅",
       variant: 'blue' as const,
