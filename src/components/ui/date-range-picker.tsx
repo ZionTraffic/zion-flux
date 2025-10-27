@@ -103,9 +103,13 @@ export function DateRangePicker({
         break;
       case 'last7':
         from.setDate(from.getDate() - 7);
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'last30':
         from.setDate(from.getDate() - 30);
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case 'thisMonth':
         from.setDate(1);

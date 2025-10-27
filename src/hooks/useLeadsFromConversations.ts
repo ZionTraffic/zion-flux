@@ -142,23 +142,48 @@ export const useLeadsFromConversations = (
       let hasMore = true;
 
       while (hasMore) {
+        console.log('🔍 Query params:', { startDate, endDate, tableName, workspaceId });
+        
         let query = (workspaceSupabase.from as any)(tableName)
           .select('*')
           .eq(workspaceField, workspaceId)
-          .gte(dateField, MIN_DATA_DATE)
           .order(dateField, { ascending: false })
           .range(from, from + pageSize - 1);
 
         // Aplicar filtros de data diretamente na query, garantindo intervalo inclusivo
         if (startDate) {
-          const startDateStr = toBrasiliaDateString(startDate);
-          const effectiveStart = startDateStr && startDateStr > MIN_DATA_DATE ? startDateStr : MIN_DATA_DATE;
+          // Usar data local sem conversão de timezone
+          const year = startDate.getFullYear();
+          const month = String(startDate.getMonth() + 1).padStart(2, '0');
+          const day = String(startDate.getDate()).padStart(2, '0');
+          const startDateStr = `${year}-${month}-${day}`;
+          // Usar o startDate fornecido, sem limitação de MIN_DATA_DATE
+          const effectiveStart = `${startDateStr}T00:00:00`;
+          console.log('🔍 Fetching leads with filters:', { 
+            workspaceId, 
+            startDate: startDate.toISOString(), 
+            startDateStr, 
+            effectiveStart,
+            tableName 
+          });
           query = query.gte(dateField, effectiveStart);
+        } else {
+          // Se não houver startDate, usar MIN_DATA_DATE
+          query = query.gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
         }
         if (endDate) {
-          const endDateObj = new Date(endDate);
-          const endDateWithTime = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate(), 23, 59, 59, 999);
-          query = query.lte(dateField, endDateWithTime.toISOString());
+          // Usar data local sem conversão de timezone
+          const year = endDate.getFullYear();
+          const month = String(endDate.getMonth() + 1).padStart(2, '0');
+          const day = String(endDate.getDate()).padStart(2, '0');
+          const endDateStr = `${year}-${month}-${day}`;
+          const endDateWithTime = `${endDateStr}T23:59:59.999`;
+          console.log('🔍 End date filter:', { 
+            endDate: endDate.toISOString(), 
+            endDateStr,
+            endDateWithTime 
+          });
+          query = query.lte(dateField, endDateWithTime);
         }
 
         const { data: pageData, error: fetchError } = await query;
