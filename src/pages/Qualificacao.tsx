@@ -220,8 +220,8 @@ const Qualificacao = () => {
       delay: 0,
     },
     {
-      label: "Taxa de Qualificação",
-      value: `${kpis.qualificationRate.toFixed(1)}%`,
+      label: "Recuperados IA",
+      value: `${Math.ceil(kpis.qualificationRate * 10) / 10}%`,
       icon: "📊",
       variant: 'blue' as const,
       delay: 0.1,
@@ -278,7 +278,7 @@ const Qualificacao = () => {
         <NovoLeadsChart data={charts?.dailyLeads || []} />
         <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
           <DonutChart 
-            data={charts?.stageDistribution || []} 
+            data={(charts?.stageDistribution || []).filter(item => !item.name.includes('Desqualificado'))} 
             title="Distribuição por Estágio" 
           />
         </div>

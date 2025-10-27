@@ -15,7 +15,7 @@ interface AtendimentosMetrics {
   isLoading: boolean;
 }
 
-export function useAtendimentosMetrics(workspaceId: string | null) {
+export function useAtendimentosMetrics(workspaceId: string | null, startDate?: Date, endDate?: Date) {
   const [metrics, setMetrics] = useState<AtendimentosMetrics>({
     atendimentosHoje: 0,
     atendimentosIA: 0,
@@ -39,7 +39,7 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
     }
 
     fetchMetrics();
-  }, [workspaceId]);
+  }, [workspaceId, startDate, endDate]);
 
   async function fetchMetrics() {
     try {
@@ -69,25 +69,20 @@ export function useAtendimentosMetrics(workspaceId: string | null) {
         tableName 
       });
 
-      const hoje = getCurrentBrasiliaDate();
-      console.log('[Atendimentos] Data de hoje (Brasília):', hoje);
-
-      // Calcular período do mês
-      const mesAtual = new Date().getMonth() + 1;
-      const anoAtual = new Date().getFullYear();
-      const primeiroDiaMes = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`;
-      const ultimoDiaMes = new Date(anoAtual, mesAtual, 0).getDate();
-      const ultimoDiaMesStr = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${ultimoDiaMes}`;
-
-      console.log('[Atendimentos] Período CSAT:', { primeiroDiaMes, ultimoDiaMesStr });
+      // Se não houver filtro de data, buscar dados gerais (todo o período)
+      // Se houver filtro, buscar apenas do período selecionado
+      const dataInicio = startDate ? startDate.toISOString().split('T')[0] : '2025-10-01';
+      const dataFim = endDate ? endDate.toISOString().split('T')[0] : getCurrentBrasiliaDate();
+      
+      console.log('[Atendimentos] Período de busca:', { dataInicio, dataFim, temFiltro: !!startDate });
 
       // Usar função RPC para bypass RLS
       const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)('get_atendimentos_metrics', {
         p_workspace_id: workspaceId,
         p_table_name: tableName,
-        p_data_hoje: hoje,
-        p_primeiro_dia_mes: primeiroDiaMes,
-        p_ultimo_dia_mes: ultimoDiaMesStr
+        p_data_hoje: dataFim,
+        p_primeiro_dia_mes: dataInicio,
+        p_ultimo_dia_mes: dataFim
       });
 
       if (rpcError) {

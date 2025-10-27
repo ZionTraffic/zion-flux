@@ -10,10 +10,30 @@ interface CSATData {
 interface CSATAnalystTableProps {
   data: CSATData[];
   isLoading?: boolean;
+  dateRange?: { from?: Date; to?: Date };
 }
 
-export function CSATAnalystTable({ data, isLoading = false }: CSATAnalystTableProps) {
-  const mesAtual = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAnalystTableProps) {
+  // Formatar período baseado no filtro de data
+  const getPeriodoLabel = () => {
+    if (!dateRange?.from && !dateRange?.to) {
+      return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+    
+    if (dateRange.from && dateRange.to) {
+      const fromStr = dateRange.from.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const toStr = dateRange.to.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return `${fromStr} - ${toStr}`;
+    }
+    
+    if (dateRange.from) {
+      return `desde ${dateRange.from.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+    }
+    
+    return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+  
+  const mesAtual = getPeriodoLabel();
 
   if (isLoading) {
     return (

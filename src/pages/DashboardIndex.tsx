@@ -46,11 +46,11 @@ const DashboardIndex = () => {
     return { from, to };
   });
 
-  // Hook para métricas de atendimento
-  const atendimentosMetrics = useAtendimentosMetrics(currentWorkspaceId);
+  // Hook para métricas de atendimento (com filtro de data)
+  const atendimentosMetrics = useAtendimentosMetrics(currentWorkspaceId, dateRange?.from, dateRange?.to);
   
-  // Hook para dados de CSAT
-  const csatData = useCSATData(currentWorkspaceId);
+  // Hook para dados de CSAT (com filtro de data)
+  const csatData = useCSATData(currentWorkspaceId, dateRange?.from, dateRange?.to);
   
   // Debug: Log workspace info
   useEffect(() => {
@@ -344,6 +344,7 @@ const DashboardIndex = () => {
             <CSATAnalystTable
               data={csatData.data}
               isLoading={csatData.isLoading}
+              dateRange={dateRange}
             />
           </>
         )}
@@ -445,9 +446,9 @@ const DashboardIndex = () => {
               <span className="text-2xl">📈</span>
               <h3 className="text-lg font-bold text-foreground">Leads por Fonte de Campanha</h3>
             </div>
-            <div className="h-[300px] flex flex-col justify-center overflow-y-auto">
+            <div className="h-[400px] flex flex-col justify-center overflow-y-auto">
               {leadsSourceDistribution && leadsSourceDistribution.length > 0 ? (
-                <div className="space-y-5 py-2">
+                <div className="space-y-6 py-2">
                   {leadsSourceDistribution.slice(0, 5).map((item, idx) => {
                     const total = leadsSourceDistribution.reduce((sum, d) => sum + d.value, 0);
                     const percentage = total > 0 ? (item.value / total * 100) : 0;
@@ -467,30 +468,32 @@ const DashboardIndex = () => {
                     ];
                     
                     return (
-                      <div key={idx} className="glass rounded-xl p-5 border-2 border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-background/50">
+                      <div key={idx} className="glass rounded-xl p-6 border-2 border-border/50 shadow-lg hover:shadow-2xl transition-all duration-300 bg-background/50 hover:scale-[1.02]">
                         {/* Nome da campanha */}
-                        <div className="mb-3 pb-2 border-b border-border/30">
-                          <span className="text-xs font-bold text-foreground uppercase tracking-wide block">
+                        <div className="mb-4 pb-3 border-b-2 border-border/40">
+                          <span className="text-sm font-extrabold text-foreground uppercase tracking-wider block leading-relaxed">
                             {item.name}
                           </span>
                         </div>
                         
                         {/* Valor e percentual */}
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-base font-bold text-foreground">{item.value} leads</span>
-                          <span className="text-base font-bold text-primary">{percentage.toFixed(1)}%</span>
+                        <div className="flex items-center justify-between mb-5">
+                          <span className="text-2xl font-bold text-foreground">{item.value} <span className="text-base text-muted-foreground">leads</span></span>
+                          <span className="text-3xl font-extrabold text-primary">{percentage.toFixed(1)}%</span>
                         </div>
                         
                         {/* Barra de progresso */}
-                        <div className="w-full h-5 bg-muted/30 rounded-full overflow-hidden shadow-inner">
+                        <div className="w-full h-7 bg-muted/30 rounded-full overflow-hidden shadow-inner">
                           <div 
-                            className="h-full rounded-full transition-all duration-500 shadow-lg"
+                            className="h-full rounded-full transition-all duration-500 shadow-lg flex items-center justify-end pr-3"
                             style={{ 
                               width: `${percentage}%`,
                               background: gradients[idx % gradients.length],
                               boxShadow: shadows[idx % shadows.length]
                             }}
-                          />
+                          >
+                            <span className="text-xs font-bold text-white drop-shadow-lg">{percentage.toFixed(1)}%</span>
+                          </div>
                         </div>
                       </div>
                     );

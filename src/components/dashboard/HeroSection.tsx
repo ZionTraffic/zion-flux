@@ -104,7 +104,7 @@ export function HeroSection({
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <p className="text-sm text-blue-100 mb-1">Taxa de Conversão</p>
-            <p className="text-2xl font-bold text-white">{conversionRate.toFixed(1)}%</p>
+            <p className="text-2xl font-bold text-white">{Math.ceil(conversionRate * 10) / 10}%</p>
           </div>
         </div>
         )}

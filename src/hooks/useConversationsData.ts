@@ -190,7 +190,7 @@ function generateSummaryFromMessages(messages: any[]): string {
   return `${userMessages.length} mensagens do lead. Iniciou com: "${preview}${firstUserMsg.content.length > 80 ? '...' : ''}"`;
 }
 
-export function useConversationsData(workspaceId: string) {
+export function useConversationsData(workspaceId: string, startDate?: Date, endDate?: Date) {
   const { supabase } = useDatabase();
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [stats, setStats] = useState<ConversationsStats>({
@@ -220,58 +220,67 @@ export function useConversationsData(workspaceId: string) {
         const dateField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "created_at" : "created_at";
         const workspaceField = tableName === "conversas_asf" || tableName === "conversas_sieg_financeiro" ? "id_workspace" : "id_workspace";
 
-        console.log('[useConversationsData] Buscando conversas:', { tableName, workspaceId, dateField });
+        console.log('[useConversationsData] Buscando conversas:', { tableName, workspaceId, dateField, startDate, endDate });
 
-        const { data: conversationsData, error: conversationsError } = await (supabase.from as any)(tableName)
+        // Construir query com filtros de data
+        let query = (supabase.from as any)(tableName)
           .select("*")
           .eq(workspaceField, workspaceId)
-          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`)
-          .order(dateField, { ascending: false });
+          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
+
+        // Aplicar filtro de data inicial se fornecido
+        if (startDate) {
+          const startDateStr = startDate.toISOString().split('T')[0];
+          query = query.gte(dateField, `${startDateStr}T00:00:00`);
+        }
+
+        // Aplicar filtro de data final se fornecido
+        if (endDate) {
+          const endDateStr = endDate.toISOString().split('T')[0];
+          query = query.lte(dateField, `${endDateStr}T23:59:59`);
+        }
+
+        query = query.order(dateField, { ascending: false }).limit(1000);
+
+        const { data: conversationsData, error: conversationsError } = await query;
 
         if (conversationsError) {
           console.error('[useConversationsData] Erro ao buscar conversas:', conversationsError);
           throw conversationsError;
         }
 
-        console.log('[useConversationsData] Conversas encontradas:', conversationsData?.length || 0);
+        // Buscar COUNT total separadamente para estatísticas corretas
+        let countQuery = (supabase.from as any)(tableName)
+          .select("*", { count: 'exact', head: true })
+          .eq(workspaceField, workspaceId)
+          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
 
-        // 2. Para cada conversa, buscar dados complementares
-        const enrichedConversations = await Promise.all(
-          (((conversationsData as any[]) || [])).map(async (conv: any) => {
-            // Buscar análise IA (opcional)
-            const { data: analysisData } = await supabase
-              .from("analise_ia")
-              .select("*")
-              .eq("phone", conv.phone)
-              .eq("workspace_id", workspaceId)
-              .gte("started_at", MIN_DATA_DATE)
-              .maybeSingle();
+        if (startDate) {
+          const startDateStr = startDate.toISOString().split('T')[0];
+          countQuery = countQuery.gte(dateField, `${startDateStr}T00:00:00`);
+        }
 
-            // Buscar lead (opcional)
-            const { data: leadData } = await supabase
-              .from("leads")
-              .select("nome, email, produto, stage")
-              .eq("telefone", conv.phone)
-              .eq("workspace_id", workspaceId)
-              .gte("created_at", MIN_DATA_DATE)
-              .maybeSingle();
+        if (endDate) {
+          const endDateStr = endDate.toISOString().split('T')[0];
+          countQuery = countQuery.lte(dateField, `${endDateStr}T23:59:59`);
+        }
 
-            return {
-              conversation: conv,
-              analysis: analysisData,
-              lead: leadData
-            };
-          })
-        );
+        const { count: totalCount, error: countError } = await countQuery;
 
-        // 3. Mapear para ConversationData
-        const mappedConversations: ConversationData[] = enrichedConversations
-          .filter(item => {
+        if (countError) {
+          console.error('[useConversationsData] Erro ao contar conversas:', countError);
+        }
+
+        console.log('[useConversationsData] Conversas encontradas:', conversationsData?.length || 0, '/ Total:', totalCount || 0);
+
+        // 2. Mapear diretamente sem queries adicionais (otimização de performance)
+        const mappedConversations: ConversationData[] = ((conversationsData as any[]) || [])
+          .filter(conv => {
             // Verificar se tem telefone
-            if (!item.conversation.phone) return false;
+            if (!conv.phone) return false;
             
             // Verificar se messages existe e tem conteúdo
-            const messages = item.conversation.messages;
+            const messages = conv.messages;
             
             // Se messages for um array válido com tamanho > 0
             if (Array.isArray(messages) && messages.length > 0) {
@@ -285,61 +294,89 @@ export function useConversationsData(workspaceId: string) {
             
             return false; // Filtrar conversas sem mensagens
           })
-          .map(({ conversation, analysis, lead }) => {
-            // Mensagens já vêm direto de historico_conversas.messages
-            const messages: Message[] = Array.isArray(conversation.messages) 
-              ? (conversation.messages as unknown as Message[])
+          .map(conv => {
+            // Mensagens já vêm direto da tabela
+            let messages: Message[] = Array.isArray(conv.messages) 
+              ? (conv.messages as unknown as Message[])
               : [];
+            
+            // Filtrar mensagens inválidas (wa_template: undefined, etc)
+            messages = messages.filter(msg => {
+              // Remover mensagens com conteúdo inválido
+              if (!msg.content || msg.content.trim() === '') return false;
+              if (msg.content.includes('[wa_template]: undefined')) return false;
+              if (msg.content === 'undefined') return false;
+              return true;
+            });
 
-            const positives = analysis?.positives || [];
-            const negatives = analysis?.negatives || [];
+            // Calcular sentimento diretamente das mensagens
+            const sentimentData = analyzeSentimentFromMessages(messages);
 
-            // Calcular sentimento com score e intensidade
-            const sentimentData = analysis 
-              ? calculateSentiment(positives, negatives)
-              : analyzeSentimentFromMessages(messages);
-
-            const startedAtStr = (conversation as any).started_at || (conversation as any).created_at || null;
-            const endedAtStr = (conversation as any).ended_at || null;
+            const startedAtStr = conv.started_at || conv.created_at || null;
+            const endedAtStr = conv.ended_at || null;
 
             return {
-              id: conversation.id,
-              leadName: conversation.lead_name || lead?.nome || `Lead ${conversation.phone}`,
-              phone: conversation.phone,
-              product: lead?.produto,
-              email: lead?.email,
-              status: mapTagToStatus(conversation.tag, analysis?.qualified),
-              tag: conversation.tag,
+              id: conv.id,
+              leadName: conv.lead_name || conv.nome || `Lead ${conv.phone}`,
+              phone: conv.phone,
+              product: undefined,
+              email: undefined,
+              status: mapTagToStatus(conv.tag, false),
+              tag: conv.tag,
               sentiment: sentimentData.sentiment,
               sentimentScore: sentimentData.score,
               sentimentIntensity: sentimentData.intensity,
-              summary: analysis?.summary || generateSummaryFromMessages(messages),
+              summary: generateSummaryFromMessages(messages),
               startedAt: startedAtStr ? new Date(startedAtStr) : new Date(),
               endedAt: endedAtStr ? new Date(endedAtStr) : undefined,
               duration: calculateDuration(startedAtStr, endedAtStr),
-              positives,
-              negatives,
-              suggestions: analysis?.ai_suggestions || [],
-              adSuggestions: analysis?.ad_suggestions || [],
-              stageAfter: analysis?.stage_after || conversation.tag,
-              qualified: analysis?.qualified || conversation.tag?.includes("Qualificando") || false,
+              positives: [],
+              negatives: [],
+              suggestions: [],
+              adSuggestions: [],
+              stageAfter: conv.tag,
+              qualified: conv.tag?.toLowerCase().includes("qualificado") || false,
               messages,
-              csat: conversation.csat, // CSAT do atendimento
-              analista: conversation.analista // Nome do analista
+              csat: conv.csat, // CSAT do atendimento
+              analista: conv.analista, // Nome do analista
             };
           });
 
         setConversations(mappedConversations);
 
-        // Calculate stats
-        const total = mappedConversations.length;
+        // Calculate stats usando o total real do banco
+        const totalReal = totalCount || mappedConversations.length;
         const qualified = mappedConversations.filter(c => c.status === "qualified").length;
         const totalDuration = mappedConversations.reduce((acc, c) => acc + c.duration, 0);
 
+        // Buscar total de qualificados no banco para taxa de conversão correta
+        let qualifiedCountQuery = (supabase.from as any)(tableName)
+          .select("*", { count: 'exact', head: true })
+          .eq(workspaceField, workspaceId)
+          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
+
+        if (startDate) {
+          const startDateStr = startDate.toISOString().split('T')[0];
+          qualifiedCountQuery = qualifiedCountQuery.gte(dateField, `${startDateStr}T00:00:00`);
+        }
+
+        if (endDate) {
+          const endDateStr = endDate.toISOString().split('T')[0];
+          qualifiedCountQuery = qualifiedCountQuery.lte(dateField, `${endDateStr}T23:59:59`);
+        }
+
+        // Filtrar por tags de qualificados (apenas T3 e pago para Sieg Financeiro)
+        // T4 é "Transferido" no Sieg, não conta como qualificado
+        qualifiedCountQuery = qualifiedCountQuery.or('tag.ilike.%T3%,tag.ilike.%pago%');
+
+        const { count: qualifiedCount } = await qualifiedCountQuery;
+
+        const totalQualificadosReal = qualifiedCount || qualified;
+
         setStats({
-          totalConversations: total,
-          conversionRate: total > 0 ? (qualified / total) * 100 : 0,
-          averageDuration: total > 0 ? totalDuration / total : 0,
+          totalConversations: totalReal,
+          conversionRate: totalReal > 0 ? (totalQualificadosReal / totalReal) * 100 : 0,
+          averageDuration: mappedConversations.length > 0 ? totalDuration / mappedConversations.length : 0,
         });
       } catch (err) {
         logger.error("Error fetching conversations:", err);
@@ -350,7 +387,7 @@ export function useConversationsData(workspaceId: string) {
     };
 
     fetchConversations();
-  }, [workspaceId]);
+  }, [workspaceId, startDate, endDate, supabase]);
 
   return { conversations, stats, isLoading, error };
 }

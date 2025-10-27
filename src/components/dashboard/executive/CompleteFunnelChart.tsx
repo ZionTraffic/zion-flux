@@ -75,7 +75,7 @@ export const CompleteFunnelChart = ({ data }: CompleteFunnelChartProps) => {
                 {stage.conversionRate !== undefined && (
                   <div className="absolute inset-0 flex items-center justify-between px-4">
                     <span className="text-sm font-medium text-foreground">
-                      {stage.conversionRate.toFixed(1)}% converteram
+                      {Math.ceil(stage.conversionRate * 10) / 10}% converteram
                     </span>
                     {stage.benchmark && (
                       <span className={`text-xs ${

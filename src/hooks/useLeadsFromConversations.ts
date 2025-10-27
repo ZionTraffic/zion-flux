@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as defaultSupabase } from '@/integrations/supabase/client';
 import { MIN_DATA_DATE } from '@/lib/constants';
 import { toBrasiliaDateString } from '@/lib/dateUtils';
+import { useDatabase } from '@/contexts/DatabaseContext';
 
 export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
@@ -98,6 +99,7 @@ export const useLeadsFromConversations = (
   startDate?: Date,
   endDate?: Date
 ) => {
+  const { supabase: workspaceSupabase } = useDatabase();
   const [columns, setColumns] = useState<KanbanColumn[]>([
     { stage: 'novo_lead', leads: [] },
     { stage: 'qualificacao', leads: [] },
@@ -109,7 +111,7 @@ export const useLeadsFromConversations = (
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId || !workspaceSupabase) return;
     
     console.log('🔍 Fetching leads with filters:', { 
       workspaceId, 
@@ -122,7 +124,7 @@ export const useLeadsFromConversations = (
 
     try {
       // Resolver tabela por workspace
-      const { data: ws } = await supabase
+      const { data: ws } = await defaultSupabase
         .from('workspaces')
         .select('slug,name')
         .eq('id', workspaceId)
@@ -133,53 +135,50 @@ export const useLeadsFromConversations = (
       const dateField = 'created_at';
       const workspaceField = tableName === 'historico_conversas' ? 'workspace_id' : 'id_workspace';
 
-      // Fetch conversations with minimum date filter
-      let query = (supabase.from as any)(tableName)
-        .select('*')
-        .eq(workspaceField, workspaceId)
-        .gte(dateField, MIN_DATA_DATE)
-        .order(dateField, { ascending: false });
+      // Buscar TODOS os registros usando paginação para evitar limite padrão de 1000
+      let allData: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      const { data, error: fetchError } = await query;
+      while (hasMore) {
+        let query = (workspaceSupabase.from as any)(tableName)
+          .select('*')
+          .eq(workspaceField, workspaceId)
+          .gte(dateField, MIN_DATA_DATE)
+          .order(dateField, { ascending: false })
+          .range(from, from + pageSize - 1);
 
-      if (fetchError) throw fetchError;
+        // Aplicar filtros de data diretamente na query, garantindo intervalo inclusivo
+        if (startDate) {
+          const startDateStr = toBrasiliaDateString(startDate);
+          const effectiveStart = startDateStr && startDateStr > MIN_DATA_DATE ? startDateStr : MIN_DATA_DATE;
+          query = query.gte(dateField, effectiveStart);
+        }
+        if (endDate) {
+          const endDateObj = new Date(endDate);
+          const endDateWithTime = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate(), 23, 59, 59, 999);
+          query = query.lte(dateField, endDateWithTime.toISOString());
+        }
 
-      // Usar função utilitária para converter datas para horário de Brasília
-      const toDateStr = toBrasiliaDateString;
-
-      // Filter by date in JavaScript - apply MIN_DATA_DATE and user filters
-      let filteredData = data || [];
-      
-      // Aplicar filtro de data mínima do sistema
-      filteredData = filteredData.filter(conv => {
-        const dateValue = conv.created_at; // SEMPRE usar created_at
-        const convDate = toDateStr(dateValue);
-        if (!convDate) return false;
-        return convDate >= MIN_DATA_DATE;
-      });
-      
-      // Aplicar filtros de data do usuário (se fornecidos)
-      if (startDate || endDate) {
-        const startStr = startDate 
-          ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}` 
-          : null;
-        const endStr = endDate 
-          ? `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}` 
-          : null;
+        const { data: pageData, error: fetchError } = await query;
         
-        filteredData = filteredData.filter((conv) => {
-          const dateValue = conv.created_at; // SEMPRE usar created_at
-          const convDate = toDateStr(dateValue);
-          if (!convDate) return false;
-          if (startStr && convDate < startStr) return false;
-          if (endStr && convDate > endStr) return false;
-          return true;
-        });
+        if (fetchError) throw fetchError;
+        
+        if (pageData && pageData.length > 0) {
+          allData = [...allData, ...pageData];
+          from += pageSize;
+          hasMore = pageData.length === pageSize;
+        } else {
+          hasMore = false;
+        }
       }
 
-      console.log('📊 Fetched leads:', data?.length, '| After date filter:', filteredData.length);
+      const data = allData;
+      const filteredData = data || [];
+      const toDateStr = toBrasiliaDateString;
 
-      if (fetchError) throw fetchError;
+      console.log('📊 Fetched leads (filtered by Supabase):', filteredData.length);
 
       const leadsByStage: Record<LeadStage, LeadFromConversation[]> = {
         novo_lead: [],
@@ -226,7 +225,7 @@ export const useLeadsFromConversations = (
     } finally {
       setIsLoading(false);
     }
-  }, [workspaceId, startDate, endDate]);
+  }, [workspaceId, startDate, endDate, workspaceSupabase]);
 
   useEffect(() => {
     fetchLeads();
@@ -257,13 +256,13 @@ export const useLeadsFromConversations = (
       // Update database
       const newTag = mapStageToTag(toStage);
       // Descobrir tabela alvo para atualização
-      const { data: ws2 } = await supabase
+      const { data: ws2 } = await defaultSupabase
         .from('workspaces')
         .select('slug')
         .eq('id', workspaceId)
         .maybeSingle();
       const updateTable = ws2?.slug === 'asf' ? 'conversas_asf' : ws2?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
-      const { error: updateError } = await (supabase.from as any)(updateTable)
+      const { error: updateError } = await (workspaceSupabase.from as any)(updateTable)
         .update({ 
           tag: newTag,
           updated_at: new Date().toISOString().split('T')[0]
@@ -321,11 +320,11 @@ export const useLeadsFromConversations = (
 
   // Buscar workspace slug para labels condicionais
   const [workspaceSlug, setWorkspaceSlug] = useState<string>('');
-  
+
   useEffect(() => {
     const fetchWorkspaceSlug = async () => {
       if (!workspaceId) return;
-      const { data: ws } = await supabase
+      const { data: ws } = await defaultSupabase
         .from('workspaces')
         .select('slug')
         .eq('id', workspaceId)

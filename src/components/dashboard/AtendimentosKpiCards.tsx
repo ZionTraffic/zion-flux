@@ -33,7 +33,7 @@ export function AtendimentosKpiCards({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Card: Atendimentos Hoje */}
+      {/* Card: Atendimentos Totais */}
       <div
         className={cn(
           "group relative overflow-hidden rounded-2xl p-6",
@@ -61,7 +61,7 @@ export function AtendimentosKpiCards({
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Atendimentos Hoje
+                Atendimentos Totais
               </p>
             </div>
           </div>

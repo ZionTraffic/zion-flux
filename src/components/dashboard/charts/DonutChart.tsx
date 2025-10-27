@@ -28,11 +28,11 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
   const option: EChartsOption = {
     title: {
       text: title,
-      left: 'center',
+      left: '5%',
       top: '2%',
       textStyle: {
         color: '#1e293b',
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: 700,
       },
     },
@@ -58,16 +58,17 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
       },
     },
     legend: {
-      orient: 'horizontal',
-      bottom: '2%',
-      left: 'center',
+      orient: 'vertical',
+      right: '5%',
+      top: 'center',
       textStyle: {
-        color: '#475569',
-        fontSize: 12,
-        fontWeight: 500,
+        color: '#1e293b',
+        fontSize: 15,
+        fontWeight: 600,
+        lineHeight: 24,
       },
-      itemWidth: 14,
-      itemHeight: 14,
+      itemWidth: 20,
+      itemHeight: 20,
       itemGap: 20,
       icon: 'circle',
       formatter: (name: string) => {
@@ -75,15 +76,15 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         if (!item) return name;
         const total = data.reduce((sum, d) => sum + d.value, 0);
         const percent = ((item.value / total) * 100).toFixed(1);
-        return `${name} (${percent}%)`;
+        return `${name}\n${item.value} leads (${percent}%)`;
       },
     },
     series: [
       {
         name: 'Distribuição',
         type: 'pie',
-        radius: ['45%', '70%'],
-        center: ['50%', '52%'],
+        radius: ['50%', '75%'],
+        center: ['35%', '50%'],
         avoidLabelOverlap: true,
         // Efeito 3D
         itemStyle: {
@@ -108,61 +109,25 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
           }
         },
         label: {
-          show: true,
-          position: 'outside',
-          formatter: (params: any) => {
-            // Mostrar apenas se percentual > 3%
-            if (params.percent < 3) return '';
-            return `{b|${params.name}}\n{c|${params.percent.toFixed(1)}%}`;
-          },
-          fontSize: 12,
-          fontWeight: 'bold',
-          color: '#1e293b',
-          lineHeight: 18,
-          textBorderColor: '#ffffff',
-          textBorderWidth: 2,
-          distanceToLabelLine: 10,
-          rich: {
-            b: {
-              fontSize: 12,
-              fontWeight: 'bold',
-              color: '#1e293b',
-              lineHeight: 18,
-            },
-            c: {
-              fontSize: 13,
-              fontWeight: 'bold',
-              color: '#3b82f6',
-              lineHeight: 18,
-            }
-          }
+          show: false, // Desabilitar labels externos para evitar sobreposição
         },
         emphasis: {
           label: {
             show: true,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: 'bold',
             color: '#1e293b',
           },
           itemStyle: {
-            shadowBlur: 25,
-            shadowOffsetY: 8,
-            shadowColor: 'rgba(59, 130, 246, 0.5)',
+            shadowBlur: 30,
+            shadowOffsetY: 10,
+            shadowColor: 'rgba(59, 130, 246, 0.6)',
           },
           scale: true,
-          scaleSize: 12,
+          scaleSize: 15,
         },
         labelLine: {
-          show: true,
-          length: 30,
-          length2: 25,
-          smooth: true,
-          minTurnAngle: 90,
-          maxSurfaceAngle: 80,
-          lineStyle: {
-            color: '#94a3b8',
-            width: 2,
-          },
+          show: false, // Desabilitar linhas
         },
         data: data.map((item) => {
           const baseColor = item.color || colorMap[item.name] || '#94a3b8';

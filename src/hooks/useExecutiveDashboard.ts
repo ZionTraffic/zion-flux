@@ -99,7 +99,7 @@ export function useExecutiveDashboard(
   
   const metaAds = useMetaAdsData(workspaceId, effectiveStartDate, endDate, days);
   const leads = useLeadsFromConversations(workspaceId, effectiveStartDate, endDate);
-  const conversations = useConversationsData(workspaceId);
+  const conversations = useConversationsData(workspaceId, effectiveStartDate, endDate);
 
   // Calcular métricas de qualificação
   const qualificationMetrics: QualificationMetrics = useMemo(() => {

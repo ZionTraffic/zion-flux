@@ -10,7 +10,7 @@ interface CSATData {
   insatisfeito: number;
 }
 
-export function useCSATData(workspaceId: string) {
+export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Date) {
   const [data, setData] = useState<CSATData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,25 +37,46 @@ export function useCSATData(workspaceId: string) {
           return;
         }
 
-        // Calcular início do mês atual
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfMonthStr = startOfMonth.toISOString();
+        // Usar datas fornecidas ou calcular início do mês atual
+        let filterStartDate: string;
+        let filterEndDate: string | undefined;
+
+        if (startDate) {
+          filterStartDate = startDate.toISOString().split('T')[0] + 'T00:00:00';
+        } else {
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          filterStartDate = startOfMonth.toISOString();
+        }
+
+        if (endDate) {
+          filterEndDate = endDate.toISOString().split('T')[0] + 'T23:59:59';
+        }
 
         console.log('📅 DEBUG CSAT - Filtro de data:', {
-          mesAtual: now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-          dataInicio: startOfMonthStr,
+          startDate: filterStartDate,
+          endDate: filterEndDate,
         });
 
-        // Buscar dados da tabela conversas_sieg_financeiro - SEM FILTRO DE DATA (temporário para debug)
-        const { data: conversas, error: fetchError } = await (supabase as any)
+        // Buscar dados da tabela conversas_sieg_financeiro COM FILTRO DE DATA
+        let query = (supabase as any)
           .from('conversas_sieg_financeiro')
           .select('analista, csat, created_at')
           .eq('id_workspace', workspaceId)
-          // .gte('created_at', startOfMonthStr) // COMENTADO TEMPORARIAMENTE
+          .gte('created_at', filterStartDate)
           .not('analista', 'is', null)
+          .neq('analista', '') // Ignorar analistas vazios
+          .neq('analista', 'IA') // Ignorar IA
+          .neq('analista', 'Ia') // Ignorar Ia (normalizado)
           .not('csat', 'is', null)
           .neq('csat', '-'); // Ignorar registros sem CSAT
+
+        // Aplicar filtro de data final se fornecido
+        if (filterEndDate) {
+          query = query.lte('created_at', filterEndDate);
+        }
+
+        const { data: conversas, error: fetchError } = await query;
 
         console.log('🔍 DEBUG CSAT - Dados brutos:', {
           workspaceId,
@@ -65,42 +86,10 @@ export function useCSATData(workspaceId: string) {
 
         if (fetchError) throw fetchError;
 
-        // Se não houver dados de CSAT, mostrar mensagem
+        // Se não houver dados de CSAT no período filtrado, retornar array vazio
         if (!conversas || conversas.length === 0) {
-          console.log('⚠️ DEBUG CSAT - Nenhum dado encontrado no mês atual');
-          // Buscar analistas únicos
-          const { data: analistasData } = await (supabase as any)
-            .from('conversas_sieg_financeiro')
-            .select('analista')
-            .eq('id_workspace', workspaceId)
-            .not('analista', 'is', null)
-            .neq('analista', '')
-            .neq('analista', 'IA'); // Ignorar IA
-
-          const analistas = [...new Set((analistasData || []).map((a: any) => a.analista))] as string[];
-
-          // Gerar dados de exemplo para cada analista
-          const dadosExemplo: CSATData[] = analistas.map((analista) => {
-            // Gerar números aleatórios mas consistentes
-            const total = 20 + Math.floor(Math.random() * 30);
-            const satisfeito = Math.floor(total * (0.6 + Math.random() * 0.3));
-            const insatisfeito = Math.floor(total * (0.05 + Math.random() * 0.1));
-            const poucoSatisfeito = total - satisfeito - insatisfeito;
-
-            const pontuacao = satisfeito * 5 + poucoSatisfeito * 3 + insatisfeito * 1;
-            const csatMedio = pontuacao / total;
-
-            return {
-              analista,
-              totalAtendimentos: total,
-              satisfeito,
-              poucoSatisfeito,
-              insatisfeito,
-              csatMedio,
-            };
-          }).sort((a, b) => b.csatMedio - a.csatMedio);
-
-          setData(dadosExemplo);
+          console.log('⚠️ DEBUG CSAT - Nenhum dado encontrado no período filtrado');
+          setData([]);
           setIsLoading(false);
           return;
         }
@@ -177,7 +166,7 @@ export function useCSATData(workspaceId: string) {
     }
 
     fetchCSATData();
-  }, [workspaceId]);
+  }, [workspaceId, startDate, endDate]);
 
   return { data, isLoading, error };
 }
