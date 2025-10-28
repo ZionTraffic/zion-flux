@@ -66,8 +66,6 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
           .gte('created_at', filterStartDate)
           .not('analista', 'is', null)
           .neq('analista', '') // Ignorar analistas vazios
-          .neq('analista', 'IA') // Ignorar IA
-          .neq('analista', 'Ia') // Ignorar Ia (normalizado)
           .not('csat', 'is', null)
           .neq('csat', '-'); // Ignorar registros sem CSAT
 

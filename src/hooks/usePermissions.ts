@@ -11,7 +11,7 @@ export interface UserPermission {
 }
 
 export function usePermissions() {
-  const { supabase } = useDatabase();
+  const { supabase, currentDatabase } = useDatabase();
   const { currentWorkspaceId } = useWorkspace();
   const { role, isOwner } = useUserRole();
   const [permissions, setPermissions] = useState<Set<PermissionKey>>(
@@ -19,6 +19,9 @@ export function usePermissions() {
     isOwner ? new Set(DEFAULT_PERMISSIONS_BY_ROLE.owner) : new Set()
   );
   const [loading, setLoading] = useState(true);
+  
+  // Obter slug do workspace (database atual)
+  const workspaceSlug = currentDatabase;
 
   const fetchPermissions = async () => {
     // Se for owner, dar todas as permissões imediatamente e não fazer consultas
@@ -130,7 +133,17 @@ export function usePermissions() {
 
   // Funções de conveniência para verificações comuns
   const canViewDashboard = () => hasPermission(PERMISSIONS.DASHBOARD_VIEW);
-  const canViewTraffic = () => hasPermission(PERMISSIONS.TRAFFIC_VIEW);
+  const canViewTraffic = () => {
+    // Ocultar tráfego para workspace Sieg Financeiro
+    console.log('🔍 canViewTraffic - workspaceSlug:', workspaceSlug, 'currentDatabase:', currentDatabase);
+    if (workspaceSlug === 'sieg' || currentDatabase === 'sieg') {
+      console.log('❌ Ocultando Tráfego para workspace Sieg');
+      return false;
+    }
+    const hasTrafficPermission = hasPermission(PERMISSIONS.TRAFFIC_VIEW);
+    console.log('✅ Mostrando Tráfego - hasPermission:', hasTrafficPermission);
+    return hasTrafficPermission;
+  };
   const canViewQualification = () => hasPermission(PERMISSIONS.QUALIFICATION_VIEW);
   const canManageQualification = () => hasPermission(PERMISSIONS.QUALIFICATION_MANAGE);
   const canViewAnalysis = () => hasPermission(PERMISSIONS.ANALYSIS_VIEW);

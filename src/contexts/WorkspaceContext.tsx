@@ -21,6 +21,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const { toast } = useToast();
 
+  const determineDatabaseFromWorkspace = (workspaceId: string | null | undefined) => {
+    if (!workspaceId) return 'asf';
+    if (workspaceId === 'b939a331-44d9-4122-ab23-dcd60413bd46') return 'sieg';
+    return 'asf';
+  };
+
+  const determineDatabaseFromMembership = (membership: any) => {
+    return (membership as any).workspaces?.database || determineDatabaseFromWorkspace(membership?.workspace_id);
+  };
+
   useEffect(() => {
     async function initializeWorkspace() {
       try {
@@ -44,6 +54,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setCurrentWorkspaceIdState(georgeWorkspaceId);
           setUserRole('owner');
           localStorage.setItem('currentWorkspaceId', georgeWorkspaceId);
+          const masterDb = determineDatabaseFromWorkspace(georgeWorkspaceId);
+          setDatabase(masterDb);
           setIsLoading(false);
           return;
         }
@@ -63,7 +75,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             console.log('✅ Workspace salvo restaurado com sucesso:', savedWorkspaceId);
             setCurrentWorkspaceIdState(savedWorkspaceId);
             setUserRole(savedMembership.role || null);
-            const dbKey = (savedMembership as any).workspaces?.database || 'asf';
+            const dbKey = determineDatabaseFromMembership(savedMembership);
             setDatabase(dbKey);
             setIsLoading(false);
             return;
@@ -98,6 +110,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 setUserRole(userMember.role || 'viewer');
                 setDatabase('sieg');
                 localStorage.setItem('currentWorkspaceId', 'b939a331-44d9-4122-ab23-dcd60413bd46');
+                setIsLoading(false);
                 return;
               }
             }
@@ -130,9 +143,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             setCurrentWorkspaceIdState(targetWorkspaceId);
             setUserRole(memberData.role || null);
             localStorage.setItem('currentWorkspaceId', targetWorkspaceId);
-            const dbKey = (memberData as any).workspaces?.database || 'asf';
-            
-            // Configurar banco de dados correto
+            const dbKey = determineDatabaseFromMembership(memberData);
             setDatabase(dbKey);
             
             console.log('✅ Workspace carregado com sucesso:', {

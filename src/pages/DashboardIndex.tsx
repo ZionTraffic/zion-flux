@@ -19,7 +19,7 @@ import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaigns
 import { HeroSection } from "@/components/dashboard/HeroSection";
 import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
 import { AtendimentosKpiCards } from "@/components/dashboard/AtendimentosKpiCards";
-import { CSATAnalystTable } from "@/components/dashboard/CSATAnalystTable";
+import { CSATAnalystTable } from "@/components/dashboard/CSATAnalystTablePremium";
 import { useAtendimentosMetrics } from "@/hooks/useAtendimentosMetrics";
 import { useCSATData } from "@/hooks/useCSATData";
 import { pdf } from "@react-pdf/renderer";

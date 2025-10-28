@@ -107,21 +107,31 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   ];
 
   // Filter menu items based on user permissions
-  // Master user sempre vê todos os itens
-  const menuItems = isMasterUser ? allMenuItems : allMenuItems.filter(item => {
+  // Master user vê todos os itens, EXCETO regras específicas de workspace (como Tráfego para Sieg)
+  const menuItems = allMenuItems.filter(item => {
+    let shouldShow = true;
     switch (item.label) {
       case 'Dashboard':
-        return canViewDashboard();
+        shouldShow = isMasterUser || canViewDashboard();
+        break;
       case 'Tráfego':
-        return canViewTraffic();
+        // Sempre ocultar Tráfego para Sieg, mesmo para master
+        shouldShow = canViewTraffic();
+        console.log('🔍 [Header] Filtro Tráfego:', { shouldShow, currentWorkspace });
+        break;
       case 'Qualificação':
-        return canViewQualification();
+        shouldShow = isMasterUser || canViewQualification();
+        break;
       case 'Análise':
-        return canViewAnalysis();
+        shouldShow = isMasterUser || canViewAnalysis();
+        break;
       default:
-        return true;
+        shouldShow = true;
     }
+    return shouldShow;
   });
+  
+  console.log('📋 [Header] Menu items filtrados:', menuItems.map(i => i.label));
 
   const getActiveItem = () => {
     const path = location.pathname;
