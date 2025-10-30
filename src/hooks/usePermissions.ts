@@ -24,6 +24,18 @@ export function usePermissions() {
   const workspaceSlug = currentDatabase;
 
   const fetchPermissions = async () => {
+    // Verificar se é master user
+    const { data: { user } } = await supabase.auth.getUser();
+    const isMasterUser = user?.email === 'george@ziontraffic.com.br';
+    
+    // Master user tem TODAS as permissões sempre
+    if (isMasterUser) {
+      console.log('🔓 MASTER USER detectado - concedendo todas as permissões');
+      setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.owner));
+      setLoading(false);
+      return;
+    }
+    
     // Se for owner, dar todas as permissões imediatamente e não fazer consultas
     if (isOwner || role === 'owner') {
       setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.owner));
@@ -134,14 +146,16 @@ export function usePermissions() {
   // Funções de conveniência para verificações comuns
   const canViewDashboard = () => hasPermission(PERMISSIONS.DASHBOARD_VIEW);
   const canViewTraffic = () => {
-    // Ocultar tráfego para workspace Sieg Financeiro
+    // Ocultar tráfego APENAS para workspace Sieg Financeiro
     console.log('🔍 canViewTraffic - workspaceSlug:', workspaceSlug, 'currentDatabase:', currentDatabase);
     if (workspaceSlug === 'sieg' || currentDatabase === 'sieg') {
       console.log('❌ Ocultando Tráfego para workspace Sieg');
       return false;
     }
-    const hasTrafficPermission = hasPermission(PERMISSIONS.TRAFFIC_VIEW);
-    console.log('✅ Mostrando Tráfego - hasPermission:', hasTrafficPermission);
+    // Para ASF Finance e outros workspaces, sempre mostrar Tráfego
+    // (Owner sempre tem acesso, outros roles verificam permissão)
+    const hasTrafficPermission = isOwner || hasPermission(PERMISSIONS.TRAFFIC_VIEW);
+    console.log('✅ Mostrando Tráfego para ASF - hasPermission:', hasTrafficPermission, 'isOwner:', isOwner);
     return hasTrafficPermission;
   };
   const canViewQualification = () => hasPermission(PERMISSIONS.QUALIFICATION_VIEW);

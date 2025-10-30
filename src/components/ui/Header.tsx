@@ -38,7 +38,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     canViewDashboard, 
     canViewTraffic, 
     canViewQualification, 
-    canViewAnalysis 
+    canViewAnalysis,
+    loading: permissionsLoading
   } = usePermissions();
 
   // Verificar se é o usuário master
@@ -56,7 +57,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   }, []);
 
   // Debug: Log para verificar se o Header está sendo renderizado
-  console.log('[Header] Renderizando Header', { currentWorkspace, location: location.pathname, isMasterUser });
+  console.log('[Header] Renderizando Header', { 
+    currentWorkspace, 
+    location: location.pathname, 
+    isMasterUser,
+    canAccessSettings,
+    shouldShowSettings: isMasterUser || canAccessSettings
+  });
 
   const handleLogout = async () => {
     try {
@@ -109,15 +116,37 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
   // Filter menu items based on user permissions
   // Master user vê todos os itens, EXCETO regras específicas de workspace (como Tráfego para Sieg)
   const menuItems = allMenuItems.filter(item => {
+    // Se ainda está carregando permissões, mostrar todos os itens temporariamente
+    if (permissionsLoading) {
+      return true;
+    }
+    
     let shouldShow = true;
     switch (item.label) {
       case 'Dashboard':
         shouldShow = isMasterUser || canViewDashboard();
         break;
       case 'Tráfego':
-        // Sempre ocultar Tráfego para Sieg, mesmo para master
-        shouldShow = canViewTraffic();
-        console.log('🔍 [Header] Filtro Tráfego:', { shouldShow, currentWorkspace });
+        // Master user sempre vê Tráfego, EXCETO no workspace Sieg
+        if (isMasterUser) {
+          // Verificar se é workspace Sieg
+          const isSiegWorkspace = currentWorkspace?.name?.toLowerCase().includes('sieg') || 
+                                 currentWorkspace?.slug === 'sieg';
+          shouldShow = !isSiegWorkspace; // Mostrar para ASF, ocultar para SIEG
+          console.log('🔑 [Header] MASTER USER - Tráfego:', { 
+            shouldShow, 
+            isSiegWorkspace,
+            workspaceName: currentWorkspace?.name,
+            workspaceSlug: currentWorkspace?.slug
+          });
+        } else {
+          shouldShow = canViewTraffic();
+          console.log('🔍 [Header] Filtro Tráfego (não-master):', { 
+            shouldShow, 
+            currentWorkspace, 
+            permissionsLoading
+          });
+        }
         break;
       case 'Qualificação':
         shouldShow = isMasterUser || canViewQualification();
@@ -241,7 +270,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
                 </TooltipContent>
               </Tooltip>
 
-              {canAccessSettings && (
+              {(isMasterUser || canAccessSettings) && (
                 <div className="hidden sm:block">
                   <SettingsMenu />
                 </div>

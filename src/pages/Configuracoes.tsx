@@ -28,13 +28,14 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
 import { PERMISSIONS } from "@/types/permissions";
+import { supabase as defaultSupabase } from "@/integrations/supabase/client";
 
 const Configuracoes = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
   const { workspaces, isLoading: workspacesLoading, refetch: refetchWorkspaces, createWorkspace } = useWorkspaces();
-  const { availableDatabases, refetchConfigs } = useDatabase();
+  const { availableDatabases, refetchConfigs, supabase } = useDatabase();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
@@ -48,6 +49,40 @@ const Configuracoes = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "workspaces";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+  
+  // Verificar se é master user
+  const [isMasterUser, setIsMasterUser] = useState(false);
+  
+  useEffect(() => {
+    const checkMasterUser = async () => {
+      console.log('🔍 [Configuracoes] Verificando master user...');
+      try {
+        // Usar defaultSupabase para obter o usuário autenticado
+        const { data: { user } } = await defaultSupabase.auth.getUser();
+        console.log('🔍 [Configuracoes] User obtido:', { email: user?.email, isMaster: user?.email === 'george@ziontraffic.com.br' });
+        if (user?.email === 'george@ziontraffic.com.br') {
+          setIsMasterUser(true);
+          console.log('🔓 MASTER USER detectado em Configurações');
+        } else {
+          console.log('❌ [Configuracoes] Não é master user:', user?.email);
+        }
+      } catch (error) {
+        console.error('❌ [Configuracoes] Erro ao verificar master user:', error);
+      }
+    };
+    checkMasterUser();
+  }, []);
+  
+  // Master user ou owner podem gerenciar
+  const canManage = isMasterUser || isOwner;
+  
+  // Debug log
+  console.log('🔍 [Configuracoes] Permissões:', { 
+    isMasterUser, 
+    isOwner, 
+    canManage,
+    currentWorkspaceId 
+  });
 
   useEffect(() => {
     const current = searchParams.get("tab") || "workspaces";
@@ -151,7 +186,7 @@ const Configuracoes = () => {
             <Card className="p-6 glass border border-border/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Workspaces</h3>
-                {isOwner && (
+                {canManage && (
                   <Button 
                     variant="default" 
                     size="sm"
@@ -217,7 +252,7 @@ const Configuracoes = () => {
                     Workspace atual: <strong className="text-blue-600 dark:text-blue-400">{workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Carregando...'}</strong>
                   </p>
                 </div>
-                {isOwner && (
+                {canManage && (
                   <Button 
                     variant="default" 
                     size="sm"
@@ -229,7 +264,7 @@ const Configuracoes = () => {
                 )}
               </div>
               
-              {isOwner && (
+              {canManage && (
                 <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-blue-300 dark:border-blue-700 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="text-2xl mt-0.5">
@@ -269,7 +304,7 @@ const Configuracoes = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isOwner ? (
+                        {canManage ? (
                           <Select
                             value={member.role}
                             onValueChange={(newRole) => updateMemberRole(member.user_id, newRole)}
@@ -287,7 +322,7 @@ const Configuracoes = () => {
                         ) : (
                           <Badge variant="outline">{member.role}</Badge>
                         )}
-                        {isOwner && (
+                        {canManage && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -298,7 +333,7 @@ const Configuracoes = () => {
                             <Shield className="h-4 w-4" />
                           </Button>
                         )}
-                        {isOwner && member.role !== 'owner' && (
+                        {canManage && member.role !== 'owner' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -329,7 +364,7 @@ const Configuracoes = () => {
             <Card className="p-6 glass border border-border/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Bancos de Dados</h3>
-                {isOwner && (
+                {canManage && (
                   <Button 
                     variant="default" 
                     size="sm"

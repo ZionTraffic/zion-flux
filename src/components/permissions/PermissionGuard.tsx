@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionKey } from '@/types/permissions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PermissionGuardProps {
   children: ReactNode;
@@ -19,9 +20,25 @@ export function PermissionGuard({
   fallback = null 
 }: PermissionGuardProps) {
   const { hasPermission, hasAnyPermission, hasAllPermissions, loading } = usePermissions();
+  const [isMasterUser, setIsMasterUser] = useState(false);
+  const [checkingMaster, setCheckingMaster] = useState(true);
 
-  // Mostrar loading enquanto carrega permissões
-  if (loading) {
+  // Verificar se é master user
+  useEffect(() => {
+    const checkMasterUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const isMaster = user?.email === 'george@ziontraffic.com.br';
+      setIsMasterUser(isMaster);
+      setCheckingMaster(false);
+      if (isMaster) {
+        console.log('🔓 MASTER USER - Bypassando PermissionGuard');
+      }
+    };
+    checkMasterUser();
+  }, []);
+
+  // Mostrar loading enquanto verifica master user ou carrega permissões
+  if (checkingMaster || loading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-pulse text-center">
@@ -30,6 +47,11 @@ export function PermissionGuard({
         </div>
       </div>
     );
+  }
+
+  // Master user sempre tem acesso
+  if (isMasterUser) {
+    return <>{children}</>;
   }
 
   // Verificar permissão única
