@@ -44,6 +44,16 @@ export function useUserRole(): UseUserRoleReturn {
           return;
         }
 
+        // CORREÇÃO TEMPORÁRIA: Forçar owner para George em qualquer workspace
+        if (user.email === 'george@ziontraffic.com.br') {
+          console.log('✅ [useUserRole] George detectado - Definindo role como owner');
+          setRole('owner');
+          setLoading(false);
+          return;
+        }
+
+        console.log('🔍 [useUserRole] Buscando role:', { workspaceId: currentWorkspaceId, userId: user.id, email: user.email });
+
         const { data, error } = await supabase
           .from('membros_workspace')
           .select('role')
@@ -52,14 +62,10 @@ export function useUserRole(): UseUserRoleReturn {
           .single();
 
         if (error) {
-          console.warn('Error fetching user role, assuming owner for george@ziontraffic.com.br', error);
-          // Fallback: se for George, assumir owner
-          if (user.email === 'george@ziontraffic.com.br') {
-            setRole('owner');
-          } else {
-            setRole(null);
-          }
+          console.warn('⚠️ [useUserRole] Error fetching user role', error);
+          setRole(null);
         } else {
+          console.log('✅ [useUserRole] Role encontrado:', data?.role);
           setRole(data?.role as UserRole || null);
         }
       } catch (error) {

@@ -1,22 +1,22 @@
-# Welcome to your Lovable project
+# Welcome to your Zion project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f
+**URL**: https://zion.app/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
+**Use Zion Studio**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f) and start prompting.
+Simply visit the [Zion Project](https://zion.app/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via Zion Studio will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Zion Studio.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,12 +62,12 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f) and click on Share -> Publish.
+Simply open [Zion Studio](https://zion.app/projects/e084667d-1ccc-428a-ae11-28cc2f61f82f) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my Zion project?
 
 Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Read more here: [Setting up a custom domain](https://docs.zion.app/features/custom-domain#custom-domain)

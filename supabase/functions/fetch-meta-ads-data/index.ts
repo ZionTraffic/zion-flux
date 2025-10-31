@@ -105,30 +105,31 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'UNAUTHORIZED', message: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Accept both authenticated and anon requests; prefer user context if provided
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+    const apiKeyHeader = req.headers.get('apikey') || req.headers.get('x-apikey');
 
-    // Create Supabase client with user's JWT
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      console.error('User authentication failed:', userError);
-      return new Response(
-        JSON.stringify({ error: 'UNAUTHORIZED', message: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Admin client (service role) for server-side checks that must bypass RLS
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Optional user-scoped client
+    let supabaseClient: any = null;
+    let user: any = null;
+
+    if (authHeader) {
+      supabaseClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+      const { data: { user: u }, error: userError } = await supabaseClient.auth.getUser();
+      if (!userError && u) {
+        user = u;
+      } else {
+        console.warn('User authentication failed or missing, continuing without user context');
+      }
+    } else {
+      console.log('No Authorization header provided, proceeding with anon/service access', { hasApiKey: !!apiKeyHeader });
     }
 
     // Parse request body
@@ -143,28 +144,30 @@ serve(async (req) => {
       );
     }
 
-    // Verify user has access to this workspace AND workspace uses ASF database
-    const { data: membership, error: membershipError } = await supabaseClient
-      .from('membros_workspace')
-      .select('role')
-      .eq('workspace_id', workspace_id)
-      .eq('user_id', user.id)
-      .single();
+    // Verify user has access to this workspace if user context exists
+    if (user) {
+      const { data: membership, error: membershipError } = await supabaseAdmin
+        .from('membros_workspace')
+        .select('role')
+        .eq('workspace_id', workspace_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (membershipError || !membership) {
-      console.error('Workspace access denied:', { userId: user.id, workspaceId: workspace_id });
-      return new Response(
-        JSON.stringify({ error: 'FORBIDDEN', message: 'Access denied to workspace' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (membershipError || !membership) {
+        console.error('Workspace access denied:', { userId: user.id, workspaceId: workspace_id });
+        return new Response(
+          JSON.stringify({ error: 'FORBIDDEN', message: 'Access denied to workspace' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Verify workspace uses ASF database (only ASF workspaces have Meta Ads integration)
-    const { data: workspace, error: workspaceError } = await supabaseClient
+    const { data: workspace, error: workspaceError } = await supabaseAdmin
       .from('workspaces')
       .select('database')
       .eq('id', workspace_id)
-      .single();
+      .maybeSingle();
 
     if (workspaceError || !workspace || workspace.database !== 'asf') {
       console.error('Workspace not ASF:', { workspaceId: workspace_id, database: workspace?.database });
@@ -174,7 +177,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Workspace access verified:', { userId: user.id, workspaceId: workspace_id, role: membership.role, database: workspace.database });
+    console.log('✅ Workspace access verified:', { userId: user?.id || null, workspaceId: workspace_id, database: workspace.database });
 
     const META_ACCESS_TOKEN = Deno.env.get("META_ACCESS_TOKEN");
     const META_AD_ACCOUNT_ID = Deno.env.get("META_AD_ACCOUNT_ID");

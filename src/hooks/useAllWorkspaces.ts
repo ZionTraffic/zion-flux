@@ -28,12 +28,19 @@ export function useAllWorkspaces(): UseAllWorkspacesResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Reuse default client for ASF so we don't duplicate GoTrue with same storageKey
+  // Como ASF e SIEG agora usam o MESMO banco, usar a MESMA instância
+  // Isso evita múltiplas instâncias do GoTrueClient
   const asf = defaultSupabase;
-  const sieg = useMemo(() => (SIEG_URL && SIEG_ANON)
-    ? createSupabaseClient(SIEG_URL, SIEG_ANON, 'sb-sieg')
-    : null
-  , [SIEG_URL, SIEG_ANON]);
+  const sieg = useMemo(() => {
+    // Se ASF e SIEG têm a mesma URL, reusar a mesma instância
+    if (SIEG_URL === ASF_URL) {
+      return defaultSupabase;
+    }
+    // Caso contrário, criar instância separada
+    return (SIEG_URL && SIEG_ANON)
+      ? createSupabaseClient(SIEG_URL, SIEG_ANON, 'sb-sieg')
+      : null;
+  }, [SIEG_URL, SIEG_ANON]);
 
   const fetchAll = async () => {
     setIsLoading(true);

@@ -16,7 +16,7 @@ const clientCache = new Map<string, ReturnType<typeof createClient<Database>>>()
 
 // Export function to create Supabase clients dynamically
 export const createSupabaseClient = (url: string, anonKey: string, storageKey: string = 'sb-auth-token') => {
-  const cacheKey = `${url}-${storageKey}`;
+  const cacheKey = `${url}-${anonKey}-${storageKey}`;
   
   // Retornar instância em cache se existir
   if (clientCache.has(cacheKey)) {

@@ -34,6 +34,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [currentDatabase, setCurrentDatabase] = useState<string>('asf');
   const [supabaseClient, setSupabaseClient] = useState<SupabaseClient<Database>>(defaultSupabase);
+  const [pendingDatabaseKey, setPendingDatabaseKey] = useState<string | null>(null);
 
   const fetchDatabaseConfigs = async () => {
     try {
@@ -47,15 +48,20 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
 
       if (data && data.length > 0) {
         setConfigs(data);
-        
+
         const stored = localStorage.getItem(STORAGE_KEY);
-        const dbKey = stored || data[0].database_key;
-        
-        const config = data.find(c => c.database_key === dbKey) || data[0];
+        const desiredKey = pendingDatabaseKey || stored || data[0].database_key;
+        const config = data.find(c => c.database_key === desiredKey) || data[0];
+
         setCurrentDatabase(config.database_key);
-        
-        const client = createSupabaseClient(config.url, config.anon_key);
+        localStorage.setItem(STORAGE_KEY, config.database_key);
+
+        // Usar storageKey baseado na URL, não no database_key
+        // Isso evita múltiplas instâncias do GoTrueClient quando URLs são iguais
+        const storageKey = `sb-${config.url.split('//')[1]?.split('.')[0] || 'default'}`;
+        const client = createSupabaseClient(config.url, config.anon_key, storageKey);
         setSupabaseClient(client);
+        setPendingDatabaseKey(null);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações de banco:', error);
@@ -67,20 +73,25 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchDatabaseConfigs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setDatabase = (databaseKey: string) => {
     const config = configs.find(c => c.database_key === databaseKey);
     
     if (!config) {
-      console.error(`Banco ${databaseKey} não encontrado`);
+      console.log("⏳ Aguardando banco", databaseKey, "carregar...");
+      setPendingDatabaseKey(databaseKey);
       return;
     }
 
     setCurrentDatabase(databaseKey);
     localStorage.setItem(STORAGE_KEY, databaseKey);
     
-    const newClient = createSupabaseClient(config.url, config.anon_key);
+    // Usar storageKey baseado na URL, não no database_key
+    // Isso evita múltiplas instâncias do GoTrueClient quando URLs são iguais
+    const storageKey = `sb-${config.url.split('//')[1]?.split('.')[0] || 'default'}`;
+    const newClient = createSupabaseClient(config.url, config.anon_key, storageKey);
     setSupabaseClient(newClient);
   };
 

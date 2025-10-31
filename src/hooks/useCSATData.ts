@@ -37,6 +37,34 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
           return;
         }
 
+        // Funções auxiliares para trabalhar com o CSAT
+        const normalizeCsatValue = (value: string) =>
+          value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // remove acentos
+            .replace(/[()]/g, '')
+            .trim()
+            .toLowerCase();
+
+        const mapCsatToCategory = (value: string) => {
+          const cleaned = value.replace(/\s+/g, ' ');
+          if (!cleaned) return null;
+
+          if (['satisfeito', 'satisfeita', 'satisfeito a', 'muito satisfeito', 'muito satisfeita'].includes(cleaned)) {
+            return 'satisfeito';
+          }
+
+          if (['pouco satisfeito', 'pouco satisfeita', 'pouco', 'ok'].includes(cleaned)) {
+            return 'poucoSatisfeito';
+          }
+
+          if (['insatisfeito', 'insatisfeita', 'ruim', 'pessimo', 'péssimo', 'muito insatisfeito', 'muito insatisfeita'].includes(cleaned)) {
+            return 'insatisfeito';
+          }
+
+          return null;
+        };
+
         // Usar datas fornecidas ou calcular início do mês atual
         let filterStartDate: string;
         let filterEndDate: string | undefined;
@@ -58,20 +86,22 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
           endDate: filterEndDate,
         });
 
-        // Buscar dados da tabela conversas_sieg_financeiro COM FILTRO DE DATA
+        // Buscar dados da tabela conversas_sieg_financeiro usando a data da resposta CSAT
         let query = (supabase as any)
           .from('conversas_sieg_financeiro')
-          .select('analista, csat, created_at')
+          .select('analista, csat, data_resposta_csat')
           .eq('id_workspace', workspaceId)
-          .gte('created_at', filterStartDate)
           .not('analista', 'is', null)
           .neq('analista', '') // Ignorar analistas vazios
           .not('csat', 'is', null)
-          .neq('csat', '-'); // Ignorar registros sem CSAT
+          .neq('csat', '-')
+          .neq('csat', '') // Ignorar registros sem CSAT preenchido
+          .not('data_resposta_csat', 'is', null)
+          .gte('data_resposta_csat', filterStartDate)
 
         // Aplicar filtro de data final se fornecido
         if (filterEndDate) {
-          query = query.lte('created_at', filterEndDate);
+          query = query.lte('data_resposta_csat', filterEndDate);
         }
 
         const { data: conversas, error: fetchError } = await query;
@@ -95,10 +125,21 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
         // Agrupar por analista e contar cada categoria de CSAT
         const grouped = (conversas || []).reduce((acc, conv) => {
           const analista = conv.analista;
-          const csatOriginal = conv.csat;
-          const csat = conv.csat?.toLowerCase().trim();
-          
-          console.log('📝 DEBUG CSAT - Processando:', { analista, csatOriginal, csatNormalizado: csat });
+          const csatRaw = (conv.csat || '').trim();
+
+          if (!analista || !csatRaw || csatRaw === '-') {
+            return acc;
+          }
+
+          const csatNormalized = normalizeCsatValue(csatRaw);
+          const category = mapCsatToCategory(csatNormalized);
+
+          console.log('📝 DEBUG CSAT - Processando:', { analista, csatOriginal: csatRaw, csatNormalizado: csatNormalized, categoria: category });
+
+          if (!category) {
+            console.log('⚠️ Valor de CSAT não reconhecido:', { analista, csatOriginal: csatRaw, csatNormalizado: csatNormalized });
+            return acc;
+          }
 
           if (!acc[analista]) {
             acc[analista] = {
@@ -112,15 +153,16 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
 
           acc[analista].totalAtendimentos++;
 
-          // Mapear valores de CSAT para as 3 categorias (case-insensitive)
-          if (csat === 'satisfeito' || csat === 'satisfeita') {
+          if (category === 'satisfeito') {
             acc[analista].satisfeito++;
-          } else if (csat === 'pouco satisfeito' || csat === 'pouco' || csat === 'pouco satisfeita') {
+          }
+
+          if (category === 'poucoSatisfeito') {
             acc[analista].poucoSatisfeito++;
-          } else if (csat === 'insatisfeito' || csat === 'insatisfeita') {
+          }
+
+          if (category === 'insatisfeito') {
             acc[analista].insatisfeito++;
-          } else {
-            console.log('⚠️ Valor de CSAT não reconhecido:', csat);
           }
 
           return acc;

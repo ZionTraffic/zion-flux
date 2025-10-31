@@ -99,7 +99,7 @@ export const useLeadsFromConversations = (
   startDate?: Date,
   endDate?: Date
 ) => {
-  const { supabase: workspaceSupabase } = useDatabase();
+  const { supabase: workspaceSupabase, isLoading: dbLoading } = useDatabase();
   const [columns, setColumns] = useState<KanbanColumn[]>([
     { stage: 'novo_lead', leads: [] },
     { stage: 'qualificacao', leads: [] },
@@ -111,7 +111,11 @@ export const useLeadsFromConversations = (
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
-    if (!workspaceId || !workspaceSupabase) return;
+    // Evita buscar antes do Supabase e banco estarem prontos
+    if (!workspaceId || !workspaceSupabase || dbLoading) {
+      console.log('⏳ Aguardando Supabase e workspace antes da busca...');
+      return;
+    }
     
     console.log('🔍 Fetching leads with filters:', { 
       workspaceId, 
@@ -130,80 +134,64 @@ export const useLeadsFromConversations = (
         .eq('id', workspaceId)
         .maybeSingle();
 
-      const tableName = ws?.slug === 'asf' ? 'conversas_asf' : ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
+      const tableName = ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'conversas_asf';
       // SEMPRE usar created_at como campo de data de entrada do lead
       const dateField = 'created_at';
-      const workspaceField = tableName === 'historico_conversas' ? 'workspace_id' : 'id_workspace';
+      const workspaceField = 'id_workspace';
 
-      // Buscar TODOS os registros usando paginação para evitar limite padrão de 1000
-      let allData: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
+      console.log('🔍 Query params:', { startDate, endDate, tableName, workspaceId });
+      
+      let query = (workspaceSupabase.from as any)(tableName)
+        .select('*')
+        .eq(workspaceField, workspaceId)
+        .order(dateField, { ascending: false })
+        .limit(1000);
 
-      while (hasMore) {
-        console.log('🔍 Query params:', { startDate, endDate, tableName, workspaceId });
-        
-        let query = (workspaceSupabase.from as any)(tableName)
-          .select('*')
-          .eq(workspaceField, workspaceId)
-          .order(dateField, { ascending: false })
-          .range(from, from + pageSize - 1);
-
-        // Aplicar filtros de data diretamente na query, garantindo intervalo inclusivo
-        if (startDate) {
-          // Usar data local sem conversão de timezone
-          const year = startDate.getFullYear();
-          const month = String(startDate.getMonth() + 1).padStart(2, '0');
-          const day = String(startDate.getDate()).padStart(2, '0');
-          const startDateStr = `${year}-${month}-${day}`;
-          // Usar o startDate fornecido, sem limitação de MIN_DATA_DATE
-          const effectiveStart = `${startDateStr}T00:00:00`;
-          console.log('🔍 Fetching leads with filters:', { 
-            workspaceId, 
-            startDate: startDate.toISOString(), 
-            startDateStr, 
-            effectiveStart,
-            tableName 
-          });
-          query = query.gte(dateField, effectiveStart);
-        } else {
-          // Se não houver startDate, usar MIN_DATA_DATE
-          query = query.gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
-        }
-        if (endDate) {
-          // Usar data local sem conversão de timezone
-          const year = endDate.getFullYear();
-          const month = String(endDate.getMonth() + 1).padStart(2, '0');
-          const day = String(endDate.getDate()).padStart(2, '0');
-          const endDateStr = `${year}-${month}-${day}`;
-          const endDateWithTime = `${endDateStr}T23:59:59.999`;
-          console.log('🔍 End date filter:', { 
-            endDate: endDate.toISOString(), 
-            endDateStr,
-            endDateWithTime 
-          });
-          query = query.lte(dateField, endDateWithTime);
-        }
-
-        const { data: pageData, error: fetchError } = await query;
-        
-        if (fetchError) throw fetchError;
-        
-        if (pageData && pageData.length > 0) {
-          allData = [...allData, ...pageData];
-          from += pageSize;
-          hasMore = pageData.length === pageSize;
-        } else {
-          hasMore = false;
-        }
+      // Aplicar filtros de data diretamente na query, garantindo intervalo inclusivo
+      if (startDate) {
+        const year = startDate.getFullYear();
+        const month = String(startDate.getMonth() + 1).padStart(2, '0');
+        const day = String(startDate.getDate()).padStart(2, '0');
+        const startDateStr = `${year}-${month}-${day}`;
+        const startISO = new Date(`${startDateStr}T00:00:00-03:00`).toISOString();
+        console.log('🔍 Fetching leads with filters:', { 
+          workspaceId, 
+          startDate: startDate.toISOString(), 
+          startDateStr, 
+          startISO,
+          tableName 
+        });
+        query = query.gte(dateField, startISO);
+      } else {
+        // Se não houver startDate, usar data bem antiga para pegar todos os dados
+        query = query.gte(dateField, '2025-01-01T00:00:00');
+        console.log('📅 Usando data mínima: 2025-01-01');
+      }
+      if (endDate) {
+        const endNext = new Date(endDate);
+        endNext.setDate(endNext.getDate() + 1);
+        const endNextStr = endNext.toISOString().split('T')[0];
+        const endExclusiveISO = new Date(`${endNextStr}T00:00:00-03:00`).toISOString();
+        console.log('🔍 End date exclusive filter:', { endExclusiveISO });
+        query = query.lt(dateField, endExclusiveISO);
       }
 
-      const data = allData;
+      const { data, error: fetchError } = await query;
+      if (fetchError) {
+        console.error('❌ Erro ao buscar leads:', fetchError);
+        throw fetchError;
+      }
       const filteredData = data || [];
       const toDateStr = toBrasiliaDateString;
 
       console.log('📊 Fetched leads (filtered by Supabase):', filteredData.length);
+      console.log('🔍 [ASF DEBUG] Workspace:', { workspaceId, slug: ws?.slug, tableName });
+      console.log('🔍 [ASF DEBUG] Primeiros 3 registros:', filteredData.slice(0, 3).map(r => ({
+        id: r.id,
+        nome: r.lead_name || r.nome,
+        tag: r.tag,
+        created_at: r.created_at
+      })));
 
       const leadsByStage: Record<LeadStage, LeadFromConversation[]> = {
         novo_lead: [],
@@ -250,7 +238,7 @@ export const useLeadsFromConversations = (
     } finally {
       setIsLoading(false);
     }
-  }, [workspaceId, startDate, endDate, workspaceSupabase]);
+  }, [workspaceId, startDate, endDate, workspaceSupabase, dbLoading]);
 
   useEffect(() => {
     fetchLeads();
@@ -286,7 +274,7 @@ export const useLeadsFromConversations = (
         .select('slug')
         .eq('id', workspaceId)
         .maybeSingle();
-      const updateTable = ws2?.slug === 'asf' ? 'conversas_asf' : ws2?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
+      const updateTable = ws2?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'conversas_asf';
       const { error: updateError } = await (workspaceSupabase.from as any)(updateTable)
         .update({ 
           tag: newTag,

@@ -83,11 +83,6 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
     <div className="relative overflow-hidden rounded-3xl p-8 border border-gray-200 shadow-2xl bg-white" style={{
       boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)'
     }}>
-      {/* Liquid Glass Background Effect - Tons Zion (Azul) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-500/10 via-blue-400/8 to-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-blue-600/10 via-indigo-500/8 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-      </div>
 
       <div className="relative z-10">
         {/* Header */}
@@ -117,14 +112,8 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {/* Total Avaliações */}
               <div 
-                className="group relative overflow-hidden rounded-2xl p-6 border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  transform: 'translateZ(0)'
-                }}
+                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-5">
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
@@ -139,14 +128,8 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
 
               {/* Satisfação Geral */}
               <div 
-                className="group relative overflow-hidden rounded-2xl p-6 border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.08) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  transform: 'translateZ(0)'
-                }}
+                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-5">
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
@@ -161,14 +144,8 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
 
               {/* Distribuição */}
               <div 
-                className="group relative overflow-hidden rounded-2xl p-6 border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.08) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  transform: 'translateZ(0)'
-                }}
+                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex gap-2">
@@ -216,18 +193,14 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                         key={item.analista}
                         onMouseEnter={() => setHoveredCard(item.analista)}
                         onMouseLeave={() => setHoveredCard(null)}
-                        className="group relative overflow-hidden rounded-2xl p-6 border border-white/10 transition-all duration-500 cursor-pointer"
+                        className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 cursor-pointer bg-white"
                         style={{
-                          background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
-                          backdropFilter: 'blur(12px)',
                           transform: hoveredCard === item.analista ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
                           boxShadow: hoveredCard === item.analista 
                             ? '0 20px 60px rgba(0,0,0,0.3), 0 0 40px rgba(59,130,246,0.2)'
                             : '0 4px 20px rgba(0,0,0,0.1)'
                         }}
                       >
-                        {/* 3D Glow Effect - Tons Zion */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-blue-400/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                         
                         <div className="relative z-10">
                           <div className="flex items-start justify-between mb-5">
@@ -315,13 +288,8 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                 </div>
 
                 <div 
-                  className="relative overflow-hidden rounded-2xl p-8 border border-dashed border-blue-500/40 shadow-xl"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(37,99,235,0.05) 100%)',
-                    backdropFilter: 'blur(12px)'
-                  }}
+                  className="relative overflow-hidden rounded-2xl p-8 border border-dashed border-blue-500/40 shadow-xl bg-white"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent" />
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-4">

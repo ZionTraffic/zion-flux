@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico ASF</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        .status { 
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #0056b3; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnóstico ASF Finance</h1>
+    
+    <div class="card">
+        <h2>Status da Conexão</h2>
+        <div id="connection-status">Verificando...</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Workspace Atual</h2>
+            <div id="workspace-info">Carregando...</div>
+        </div>
+
+        <div class="card">
+            <h2>Banco de Dados</h2>
+            <div id="database-info">Carregando...</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Dados ASF</h2>
+        <button onclick="testQuery()">Testar Query</button>
+        <div id="query-result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="card">
+        <h2>LocalStorage</h2>
+        <pre id="localstorage-info"></pre>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        const supabaseUrl = 'https://wrebkgazdlyjenbpexnc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZWJrZ2F6ZGx5amVuYnBleG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1ODgzMTQsImV4cCI6MjA3NTE2NDMxNH0.P2miUZA3TX0ofUEhIdEkwGq-oruyDPiC1GjEcQkun7w';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Verificar conexão
+        async function checkConnection() {
+            try {
+                const { data, error } = await supabase.from('workspaces').select('count').limit(1);
+                if (error) throw error;
+                document.getElementById('connection-status').innerHTML = 
+                    '<span class="status ok">✅ Conectado</span>';
+            } catch (error) {
+                document.getElementById('connection-status').innerHTML = 
+                    `<span class="status error">❌ Erro: ${error.message}</span>`;
+            }
+        }
+
+        // Verificar workspace
+        async function checkWorkspace() {
+            const workspaceId = localStorage.getItem('currentWorkspaceId');
+            
+            if (!workspaceId) {
+                document.getElementById('workspace-info').innerHTML = 
+                    '<span class="status warning">⚠️ Nenhum workspace selecionado</span>';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('workspaces')
+                    .select('*')
+                    .eq('id', workspaceId)
+                    .single();
+
+                if (error) throw error;
+
+                document.getElementById('workspace-info').innerHTML = `
+                    <p><strong>Nome:</strong> ${data.name}</p>
+                    <p><strong>Slug:</strong> ${data.slug}</p>
+                    <p><strong>ID:</strong> ${data.id}</p>
+                    <p><strong>Database:</strong> ${data.database}</p>
+                `;
+            } catch (error) {
+                document.getElementById('workspace-info').innerHTML = 
+                    `<span class="status error">❌ Erro: ${error.message}</span>`;
+            }
+        }
+
+        // Verificar banco
+        async function checkDatabase() {
+            const dbKey = localStorage.getItem('zion-selected-database');
+            
+            document.getElementById('database-info').innerHTML = `
+                <p><strong>Banco Selecionado:</strong> ${dbKey || 'Nenhum'}</p>
+                <p><strong>URL:</strong> ${supabaseUrl}</p>
+            `;
+        }
+
+        // Testar query
+        window.testQuery = async function() {
+            const resultDiv = document.getElementById('query-result');
+            resultDiv.innerHTML = '<p>Executando query...</p>';
+
+            try {
+                // Contar total
+                const { count: total, error: countError } = await supabase
+                    .from('conversas_asf')
+                    .select('*', { count: 'exact', head: true });
+
+                if (countError) throw countError;
+
+                // Buscar últimos 5
+                const { data: records, error: dataError } = await supabase
+                    .from('conversas_asf')
+                    .select('id, lead_name, phone, tag, created_at, id_workspace')
+                    .eq('id_workspace', '01d0cff7-2de1-4731-af0d-ee62f5ba974b')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (dataError) throw dataError;
+
+                resultDiv.innerHTML = `
+                    <p><span class="status ok">✅ Query executada com sucesso!</span></p>
+                    <p><strong>Total de registros:</strong> ${total}</p>
+                    <p><strong>Últimos 5 registros:</strong></p>
+                    <pre>${JSON.stringify(records, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = 
+                    `<span class="status error">❌ Erro: ${error.message}</span>`;
+            }
+        };
+
+        // Mostrar localStorage
+        function showLocalStorage() {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            document.getElementById('localstorage-info').textContent = 
+                JSON.stringify(storage, null, 2);
+        }
+
+        // Executar diagnósticos
+        checkConnection();
+        checkWorkspace();
+        checkDatabase();
+        showLocalStorage();
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { useDatabase } from '@/contexts/DatabaseContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { NoWorkspaceAccess } from '@/components/workspace/NoWorkspaceAccess';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
 
 interface WorkspaceContextType {
   currentWorkspaceId: string | null;
@@ -34,7 +35,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function initializeWorkspace() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await centralSupabase.auth.getUser();
         
         if (!user) {
           setIsLoading(false);
@@ -64,7 +65,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (savedWorkspaceId) {
           console.log(`🔄 Tentando restaurar workspace salvo:`, savedWorkspaceId);
           
-          const { data: savedMembership, error: savedError } = await supabase
+          const { data: savedMembership, error: savedError } = await centralSupabase
             .from('membros_workspace')
             .select('workspace_id, role, workspaces(name, database)')
             .eq('user_id', user.id)
@@ -88,7 +89,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         // PRIORIDADE 2: Buscar primeira workspace disponível
         console.log(`🔍 Buscando workspaces para usuário:`, user.email);
         
-        const { data: firstMembership, error: membershipError } = await supabase
+        const { data: firstMembership, error: membershipError } = await centralSupabase
           .from('membros_workspace')
           .select('workspace_id, role')
           .eq('user_id', user.id)
@@ -99,7 +100,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           console.error('❌ Erro ao buscar membership:', membershipError);
           // Tentar uma consulta mais simples como fallback
           try {
-            const { data: fallbackData } = await supabase
+            const { data: fallbackData } = await centralSupabase
               .rpc('get_workspace_members_with_details', { p_workspace_id: 'b939a331-44d9-4122-ab23-dcd60413bd46' });
             
             if (fallbackData && fallbackData.length > 0) {
@@ -132,7 +133,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         // 3. Se encontrou workspace, validar acesso e carregar
         if (targetWorkspaceId) {
-          const { data: memberData } = await supabase
+          const { data: memberData } = await centralSupabase
             .from('membros_workspace')
             .select('role, workspaces(name, database)')
             .eq('user_id', user.id)
@@ -165,7 +166,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = centralSupabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setCurrentWorkspaceIdState(null);
         setUserRole(null);
@@ -178,11 +179,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     initializeWorkspace();
     
     return () => subscription.unsubscribe();
-  }, [supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setCurrentWorkspaceId = async (id: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await centralSupabase.auth.getUser();
       
       if (!user) {
         toast({
@@ -194,7 +196,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
 
       // Validar acesso à workspace
-      const { data: memberData } = await supabase
+      const { data: memberData } = await centralSupabase
         .from('membros_workspace')
         .select('role, workspaces(name, database)')
         .eq('user_id', user.id)
@@ -221,7 +223,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       // Salvar como workspace padrão (opcional - não crítico se falhar)
       try {
-        await (supabase as any)
+        await (centralSupabase as any)
           .from('user_settings')
           .upsert({
             user_id: user.id,

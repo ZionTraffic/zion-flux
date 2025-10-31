@@ -5,7 +5,6 @@ import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { LineChart } from "@/components/dashboard/charts/LineChart";
 import { FunnelPremium } from "@/components/dashboard/charts/FunnelPremium";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
-import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -24,9 +23,7 @@ import { format } from "date-fns";
 const Trafego = () => {
   const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
   const { currentDatabase } = useDatabase();
-  const [workspaceDb, setWorkspaceDb] = useState<string | undefined>(undefined);
   const [userEmail, setUserEmail] = useState<string>();
-  const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   
@@ -52,15 +49,6 @@ const Trafego = () => {
   }, []);
 
   // Fetch workspace database to enforce ASF-only view for Meta Ads
-  useEffect(() => {
-    if (!currentWorkspaceId) return;
-    supabase
-      .from('workspaces')
-      .select('database')
-      .eq('id', currentWorkspaceId)
-      .maybeSingle()
-      .then(({ data }) => setWorkspaceDb(data?.database || null));
-  }, [currentWorkspaceId]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     await setCurrentWorkspaceId(workspaceId);
@@ -115,25 +103,9 @@ const Trafego = () => {
     }
 
   // Guard: Only ASF workspaces can view Meta Ads. Others see guidance
-  if (workspaceDb === undefined) {
-    return (
-      <DashboardLayout
-        onRefresh={refetch}
-        isRefreshing={true}
-        lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
-        onExportPdf={() => {}}
-        isExporting={false}
-      >
-        <div className="min-h-[60vh] flex items-center justify-center p-6">
-          <div className="animate-pulse text-center text-muted-foreground">Carregando workspace...</div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  if (false) {}
 
-  if (workspaceDb && workspaceDb !== 'asf') {
+  if (currentDatabase && currentDatabase !== 'asf') {
     return (
       <DashboardLayout
         onRefresh={refetch}
@@ -246,41 +218,15 @@ const Trafego = () => {
   };
 
   // Show no workspace screen if user has no workspace access
-  if (!currentWorkspaceId && diagnostics.status !== "checking") {
+  if (!currentWorkspaceId) {
     return <NoWorkspaceAccess userEmail={userEmail} />;
   }
 
   // Diagnóstico em andamento
-  if (diagnostics.status === "checking") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="glass rounded-2xl p-8 border border-border/50 max-w-md w-full text-center">
-          <div className="animate-pulse text-center">
-            <div className="text-4xl mb-4">🔍</div>
-            <p className="text-muted-foreground">{diagnostics.details}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (false) {}
 
   // Diagnóstico falhou
-  if (diagnostics.status === "error") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="glass rounded-2xl p-8 border border-destructive/50 bg-destructive/5 max-w-md w-full">
-          <div className="text-center space-y-4">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-destructive">Erro de Conexão</h2>
-            <p className="text-sm text-muted-foreground">{diagnostics.details}</p>
-            <Button onClick={() => window.location.reload()} variant="default" className="mt-4">
-              🔁 Tentar Novamente
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (false) {}
 
   // Carregando dados do dashboard
   if (loading || !totals) {

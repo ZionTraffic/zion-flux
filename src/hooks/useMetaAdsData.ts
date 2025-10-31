@@ -115,6 +115,34 @@ export function useMetaAdsData(
       return;
     }
 
+    try {
+      setLoading(true);
+      setError(null);
+
+      // SEMPRE tentar carregar dados de custo_anuncios PRIMEIRO
+      // Isso garante que os dados nunca sumam
+      await loadFallbackData();
+      
+      // Se conseguiu carregar dados do banco, não precisa tentar a API
+      // A API só seria usada se custo_anuncios estivesse vazio
+      return;
+    } catch (err) {
+      logger.error('Error fetching data', err);
+      setError('Erro ao carregar dados');
+      setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
+      setDaily([]);
+      setCampaigns([]);
+      setLoading(false);
+    }
+  }
+
+  // Função antiga mantida para referência (não mais usada)
+  async function fetchDataFromAPI() {
+    if (!workspaceId) {
+      setLoading(false);
+      return;
+    }
+
     // Short-circuit by workspace database field (authoritative source)
     try {
       const { data: ws } = await defaultSupabase

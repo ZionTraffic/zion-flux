@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDatabase } from '@/contexts/DatabaseContext';
 import { logger } from "@/utils/logger";
 import { MIN_DATA_DATE } from "@/lib/constants";
+import { supabase as defaultSupabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: string;
@@ -210,7 +211,7 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
         setError(null);
 
         // Resolver tabela por workspace
-        const { data: ws } = await supabase
+        const { data: ws } = await defaultSupabase
           .from("workspaces")
           .select("slug,name")
           .eq("id", workspaceId)
@@ -223,10 +224,11 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
         console.log('[useConversationsData] Buscando conversas:', { tableName, workspaceId, dateField, startDate, endDate });
 
         // Construir query com filtros de data
+        // Usar data bem antiga para garantir que pegue todos os dados
         let query = (supabase.from as any)(tableName)
           .select("*")
           .eq(workspaceField, workspaceId)
-          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
+          .gte(dateField, '2025-01-01T00:00:00'); // Data bem antiga
 
         // Aplicar filtro de data inicial se fornecido
         if (startDate) {
@@ -234,10 +236,13 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
           query = query.gte(dateField, `${startDateStr}T00:00:00`);
         }
 
-        // Aplicar filtro de data final se fornecido
+        // Aplicar filtro de data final se fornecido (limite superior exclusivo)
         if (endDate) {
           const endDateStr = endDate.toISOString().split('T')[0];
-          query = query.lte(dateField, `${endDateStr}T23:59:59`);
+          const endNext = new Date(endDate);
+          endNext.setDate(endNext.getDate() + 1);
+          const endNextStr = endNext.toISOString().split('T')[0];
+          query = query.lt(dateField, `${endNextStr}T00:00:00`);
         }
 
         query = query.order(dateField, { ascending: false }).limit(1000);
@@ -253,7 +258,7 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
         let countQuery = (supabase.from as any)(tableName)
           .select("*", { count: 'exact', head: true })
           .eq(workspaceField, workspaceId)
-          .gte(dateField, `${MIN_DATA_DATE}T00:00:00`);
+          .gte(dateField, '2025-01-01T00:00:00'); // Data bem antiga
 
         if (startDate) {
           const startDateStr = startDate.toISOString().split('T')[0];
@@ -262,7 +267,10 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
 
         if (endDate) {
           const endDateStr = endDate.toISOString().split('T')[0];
-          countQuery = countQuery.lte(dateField, `${endDateStr}T23:59:59`);
+          const endNext = new Date(endDate);
+          endNext.setDate(endNext.getDate() + 1);
+          const endNextStr = endNext.toISOString().split('T')[0];
+          countQuery = countQuery.lt(dateField, `${endNextStr}T00:00:00`);
         }
 
         const { count: totalCount, error: countError } = await countQuery;
@@ -368,6 +376,8 @@ export function useConversationsData(workspaceId: string, startDate?: Date, endD
         // Filtrar por tags de qualificados (apenas T3 e pago para Sieg Financeiro)
         // T4 é "Transferido" no Sieg, não conta como qualificado
         qualifiedCountQuery = qualifiedCountQuery.or('tag.ilike.%T3%,tag.ilike.%pago%');
+        
+        console.log('🔍 [useConversationsData] Query qualificados:', { workspaceId, tableName });
 
         const { count: qualifiedCount } = await qualifiedCountQuery;
 
