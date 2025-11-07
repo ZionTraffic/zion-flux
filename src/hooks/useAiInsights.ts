@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays } from 'date-fns';
 import { generateAiInsights, AiInsight } from '@/utils/insightsGenerator';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 export function useAiInsights() {
-  const { supabase } = useDatabase();
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
   const [insights, setInsights] = useState<AiInsight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInsights = async () => {
+      if (tenantLoading) return;
+      if (!tenant) {
+        setInsights([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -19,57 +27,52 @@ export function useAiInsights() {
         const from = format(thirtyDaysAgo, 'yyyy-MM-dd');
         const to = format(new Date(), 'yyyy-MM-dd');
 
-        // Fetch all workspaces
-        const { data: workspacesData, error: workspacesError } = await supabase
-          .from('workspaces')
-          .select('id, name')
-          .order('name');
+        const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)
+          ('tenant_conversations')
+          .select('created_at, tag')
+          .eq('tenant_id', tenant.id)
+          .gte('created_at', `${from}T00:00:00`)
+          .lte('created_at', `${to}T23:59:59`)
+          .limit(5000);
 
-        if (workspacesError) throw workspacesError;
+        if (leadsError) throw leadsError;
 
-        if (!workspacesData || workspacesData.length === 0) {
-          setInsights([{
-            id: 1,
-            title: "Bem-vindo ao Analytics",
-            description: "Crie seu primeiro workspace para começar a receber insights inteligentes baseados em dados reais.",
-            type: "success",
-            iconName: "Target",
-            priority: 1,
-          }]);
-          setIsLoading(false);
-          return;
-        }
+        const { data: costData, error: costError } = await (centralSupabase.from as any)
+          ('tenant_ad_costs')
+          .select('amount, day')
+          .eq('tenant_id', tenant.id)
+          .gte('day', from)
+          .lte('day', to);
 
-        // Fetch metrics for each workspace
-        const metricsPromises = workspacesData.map(async (workspace) => {
-          const { data: kpiData } = await supabase.rpc('kpi_totais_periodo', {
-            p_workspace_id: workspace.id,
-            p_from: from,
-            p_to: to,
-          });
+        if (costError) throw costError;
 
-          const kpi = kpiData?.[0] || {
-            recebidos: 0,
-            qualificados: 0,
-            investimento: 0,
-            cpl: 0,
-          };
+        const leads = leadsData || [];
+        const totalLeads = leads.length;
+        const qualifiedLeads = leads.filter((lead) => {
+          const tag = (lead.tag || '').toLowerCase();
+          if (tenant.slug === 'sieg') {
+            return tag.includes('t3') || tag.includes('pago');
+          }
+          return tag.includes('qualificado') || tag.includes('t3');
+        }).length;
 
-          const conversion = kpi.recebidos > 0 ? (kpi.qualificados / kpi.recebidos) * 100 : 0;
-          const cpl = typeof kpi.cpl === 'string' ? parseFloat(kpi.cpl) : kpi.cpl || 0;
-          const investment = typeof kpi.investimento === 'string' ? parseFloat(kpi.investimento) : kpi.investimento || 0;
+        const totalInvestment = (costData || []).reduce((sum: number, cost: any) => {
+          const amount = typeof cost.amount === 'string' ? parseFloat(cost.amount) : cost.amount || 0;
+          return sum + amount;
+        }, 0);
 
-          return {
-            id: workspace.id,
-            name: workspace.name,
-            conversion,
-            cpl,
-            leads: kpi.recebidos,
-            investment,
-          };
-        });
+        const conversion = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
+        const cpl = qualifiedLeads > 0 ? totalInvestment / qualifiedLeads : 0;
 
-        const workspaceMetrics = await Promise.all(metricsPromises);
+        const workspaceMetrics = [{
+          id: tenant.id,
+          name: tenant.name,
+          conversion,
+          cpl,
+          leads: totalLeads,
+          investment: totalInvestment,
+        }];
+
         const generatedInsights = generateAiInsights(workspaceMetrics);
         
         setInsights(generatedInsights);
@@ -91,10 +94,10 @@ export function useAiInsights() {
 
     fetchInsights();
 
-    // Auto-refresh every 5 minutes
+    // Auto-refresh every 5 minutos
     const interval = setInterval(fetchInsights, 300000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tenantLoading, tenant?.id]);
 
   return { insights, isLoading, error };
 }

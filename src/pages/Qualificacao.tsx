@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2 } from "lucide-react";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { useLeadsFromConversations, LeadStage } from "@/hooks/useLeadsFromConversations";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
@@ -17,18 +15,18 @@ import NovoLeadsChart from "@/components/qualificacao/NovoLeadsChart";
 import LeadsQualificadosChart from "@/components/qualificacao/LeadsQualificadosChart";
 import { DonutChart } from "@/components/dashboard/charts/DonutChart";
 import { FunnelPremium5Stages } from "@/components/dashboard/charts/FunnelPremium5Stages";
-import { supabase } from "@/integrations/supabase/client";
 import { pdf } from "@react-pdf/renderer";
 import { QualificacaoPDF } from "@/components/reports/QualificacaoPDF";
 import { format } from "date-fns";
 import { useEffect } from "react";
+import { useTenant } from "@/contexts/TenantContext";
+import { TenantSelector } from "@/components/ui/TenantSelector";
 
 const Qualificacao = () => {
-  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { currentDatabase } = useDatabase();
+  const { currentTenant } = useTenant();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
-  const [workspaceSlug, setWorkspaceSlug] = useState<string>('');
+  const workspaceSlug = currentTenant?.slug || '';
   
   // Date range state - default to last 90 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -39,28 +37,20 @@ const Qualificacao = () => {
   });
 
   const { columns, isLoading, error, moveLead, refetch, kpis, charts } = useLeadsFromConversations(
-    currentWorkspaceId,
+    currentTenant?.id || '',
     dateRange?.from,
     dateRange?.to
   );
 
-  // Buscar workspace slug
   useEffect(() => {
-    const fetchWorkspaceSlug = async () => {
-      if (!currentWorkspaceId) return;
-      const { data: ws } = await supabase
-        .from('workspaces')
-        .select('slug')
-        .eq('id', currentWorkspaceId)
-        .maybeSingle();
-      setWorkspaceSlug(ws?.slug || '');
-    };
-    fetchWorkspaceSlug();
-  }, [currentWorkspaceId]);
-
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    await setCurrentWorkspaceId(workspaceId);
-  };
+    if (currentTenant) {
+      console.log('🔄 Qualificação - tenant ativo:', {
+        id: currentTenant.id,
+        slug: currentTenant.slug,
+        name: currentTenant.name,
+      });
+    }
+  }, [currentTenant]);
 
   const handleClearFilter = () => {
     const to = new Date();
@@ -181,7 +171,7 @@ const Qualificacao = () => {
           kpis={kpis}
           charts={charts}
           dateRange={dateRange}
-          workspaceName={currentWorkspaceId}
+          workspaceName={currentTenant?.name || currentTenant?.slug || 'Empresa'}
         />
       ).toBlob();
       
@@ -191,7 +181,7 @@ const Qualificacao = () => {
       const dateStr = dateRange?.from && dateRange?.to 
         ? `${format(dateRange.from, 'yyyy-MM-dd')}-${format(dateRange.to, 'yyyy-MM-dd')}`
         : format(new Date(), 'yyyy-MM-dd');
-      link.download = `qualificacao-${currentWorkspaceId}-${dateStr}.pdf`;
+      link.download = `qualificacao-${currentTenant?.slug || 'tenant'}-${dateStr}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       
@@ -235,18 +225,21 @@ const Qualificacao = () => {
     },
   ];
 
-  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+  const componentKey = `${currentTenant?.id || 'no-tenant'}`;
 
   return (
     <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={isLoading}
       lastUpdate={new Date()}
-      currentWorkspace={currentWorkspaceId}
-      onWorkspaceChange={handleWorkspaceChange}
+      currentWorkspace={currentTenant?.id || null}
+      onWorkspaceChange={async () => {}}
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >
+      <div className="flex justify-end mb-4">
+        <TenantSelector />
+      </div>
       {/* Date Range Filter */}
       <div className="mb-6">
         <DateRangePicker

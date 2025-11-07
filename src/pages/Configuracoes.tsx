@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Header } from "@/components/ui/Header";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -7,16 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Users, Plug, Settings, CreditCard, Trash2, UserPlus, Database, Plus, Building2, Shield } from "lucide-react";
-import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
-import { useUserRole } from "@/hooks/useUserRole";
-import { AddMemberModal } from "@/components/workspace/AddMemberModal";
-import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
-import { CreateWorkspaceModal } from "@/components/workspaces/CreateWorkspaceModal";
-import { EditPermissionsModal } from "@/components/permissions/EditPermissionsModal";
+import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -24,32 +14,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { AddMemberModal } from "@/components/workspace/AddMemberModal";
 import { useSearchParams } from "react-router-dom";
 import { PermissionGuard, AccessDenied } from "@/components/permissions/PermissionGuard";
 import { PERMISSIONS } from "@/types/permissions";
 import { supabase as defaultSupabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/contexts/TenantContext";
+import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
+import { TenantSelector } from "@/components/ui/TenantSelector";
+import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
 
 const Configuracoes = () => {
-  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { members, loading: membersLoading, updateMemberRole, removeMember, addMember } = useWorkspaceMembers();
   const { isOwner } = useUserRole();
-  const { workspaces, isLoading: workspacesLoading, refetch: refetchWorkspaces, createWorkspace } = useWorkspaces();
   const { availableDatabases, refetchConfigs, supabase } = useDatabase();
+  const { members, loading: membersLoading, updateMemberRole, removeMember, addMember, refetch: refetchMembers } = useWorkspaceMembers();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
-  const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
-  const [isEditPermissionsModalOpen, setIsEditPermissionsModalOpen] = useState(false);
-  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<{
-    userId: string;
-    userName: string;
-    userEmail: string;
-    userRole: string;
-  } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") || "workspaces";
+  const initialTab = searchParams.get("tab") || "users";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
-  
+  const { currentTenant, refreshTenants } = useTenant();
+
   // Verificar se é master user
   const [isMasterUser, setIsMasterUser] = useState(false);
   
@@ -75,62 +63,49 @@ const Configuracoes = () => {
   
   // Master user ou owner podem gerenciar
   const canManage = isMasterUser || isOwner;
-  
+
   // Debug log
   console.log('🔍 [Configuracoes] Permissões:', { 
     isMasterUser, 
     isOwner, 
     canManage,
-    currentWorkspaceId 
+    currentTenant 
   });
 
   useEffect(() => {
-    const current = searchParams.get("tab") || "workspaces";
-    setActiveTab(current);
+    const current = searchParams.get("tab");
+    if (current) setActiveTab(current);
   }, [searchParams]);
 
-  // Listener para atualizar lista de usuários
-  useEffect(() => {
-    const handleRefreshUserList = () => {
-      // Recarregar membros do workspace
-      window.location.reload();
-    };
-
-    window.addEventListener('refreshUserList', handleRefreshUserList);
-    
-    return () => {
-      window.removeEventListener('refreshUserList', handleRefreshUserList);
-    };
-  }, []);
-
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    await setCurrentWorkspaceId(workspaceId);
-  };
-
-  const handleEditPermissions = (member: any) => {
-    setSelectedUserForPermissions({
-      userId: member.user_id,
-      userName: member.user_name,
-      userEmail: member.user_email,
-      userRole: member.role,
-    });
-    setIsEditPermissionsModalOpen(true);
-  };
-
-  const handlePermissionsUpdated = () => {
-    // Recarregar membros para refletir mudanças
-    // O hook useWorkspaceMembers já tem um refetch que pode ser usado
-  };
-  return (
-    <div className="min-h-screen">
-      <Header 
-        onRefresh={() => window.location.reload()} 
-        isRefreshing={false} 
+  if (!currentTenant) {
+    return (
+      <DashboardLayout
+        onRefresh={() => refreshTenants()}
+        isRefreshing={false}
         lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
-      />
+      >
+        <div className="min-h-[60vh] flex items-center justify-center p-6">
+          <div className="glass rounded-2xl p-8 border border-border/50 max-w-lg w-full text-center">
+            <div className="text-4xl mb-3">🏢</div>
+            <h2 className="text-xl font-semibold mb-2">Selecione uma empresa</h2>
+            <p className="text-sm text-muted-foreground">
+              Escolha um tenant para acessar as configurações.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <TenantSelector />
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
+  return (
+    <DashboardLayout 
+      onRefresh={() => window.location.reload()} 
+      isRefreshing={false} 
+      lastUpdate={new Date()}
+    >
       <PermissionGuard 
         permission={PERMISSIONS.SETTINGS_VIEW}
         fallback={
@@ -140,7 +115,7 @@ const Configuracoes = () => {
           />
         }
       >
-        <main className="container mx-auto px-6 py-8 space-y-8">
+        <main className="space-y-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
@@ -155,11 +130,7 @@ const Configuracoes = () => {
           }}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
-            <TabsTrigger value="workspaces" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Workspaces</span>
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 lg:w-[720px]">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
@@ -176,80 +147,22 @@ const Configuracoes = () => {
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Sistema</span>
             </TabsTrigger>
-            <TabsTrigger value="plans" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Planos</span>
-            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="workspaces" className="space-y-4">
-            <Card className="p-6 glass border border-border/50">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Workspaces</h3>
-                {canManage && (
-                  <Button 
-                    variant="default" 
-                    size="sm"
-                    onClick={() => setIsCreateWorkspaceModalOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova Workspace
-                  </Button>
-                )}
-              </div>
-              
-              <div className="space-y-4">
-                {workspacesLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    Carregando workspaces...
-                  </div>
-                ) : workspaces.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    Nenhuma workspace encontrada
-                  </div>
-                ) : (
-                  workspaces.map((workspace) => (
-                    <div key={workspace.id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Building2 className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{workspace.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Banco: {workspace.database.toUpperCase()} • Slug: {workspace.slug}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-primary/10 text-primary">
-                          {workspace.database.toUpperCase()}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                )}
+          <TabsContent value="users" className="space-y-4">
+            <Card className="p-6 glass border border-border/60 flex flex-col gap-2">
+              <h3 className="text-lg font-semibold">Empresa selecionada</h3>
+              <div className="text-sm text-muted-foreground">
+                <p><strong>Nome:</strong> {currentTenant.name}</p>
+                <p><strong>Slug:</strong> {currentTenant.slug}</p>
               </div>
             </Card>
-            
-            <CreateWorkspaceModal
-              open={isCreateWorkspaceModalOpen}
-              onOpenChange={setIsCreateWorkspaceModalOpen}
-              onCreateWorkspace={async (data) => {
-                await createWorkspace(data);
-                setIsCreateWorkspaceModalOpen(false);
-                refetchWorkspaces();
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-4">
             <Card className="p-6 glass border border-border/50">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
-                  <p className="text-sm text-foreground mt-2">
-                    Workspace atual: <strong className="text-blue-600 dark:text-blue-400">{workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Carregando...'}</strong>
+                <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
+                      <p className="text-sm text-foreground mt-2">
+                    Empresa atual: <strong className="text-blue-600 dark:text-blue-400">{currentTenant.name}</strong>
                   </p>
                 </div>
                 {canManage && (
@@ -272,8 +185,7 @@ const Configuracoes = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-blue-900 dark:text-blue-100 leading-relaxed">
-                        <strong className="text-base">💡 Dica:</strong> Os usuários são específicos por workspace. Para ver usuários de outro workspace, 
-                        use o seletor de workspace no topo da página.
+                        <strong className="text-base">💡 Dica:</strong> Os usuários são específicos por empresa. Para trocar, use o seletor de empresas no topo.
                       </p>
                     </div>
                   </div>
@@ -354,9 +266,12 @@ const Configuracoes = () => {
             <AddMemberModal
               open={isAddMemberModalOpen}
               onOpenChange={setIsAddMemberModalOpen}
-              onAddMember={addMember}
-              workspaces={workspaces}
-              currentWorkspaceId={currentWorkspaceId}
+              onAddMember={async (email, role, tenantId) => {
+                await addMember(email, role, tenantId);
+                await refetchMembers();
+              }}
+              currentTenantId={currentTenant.id}
+              currentTenantName={currentTenant.name}
             />
           </TabsContent>
 
@@ -553,20 +468,6 @@ const Configuracoes = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Edição de Permissões */}
-      {selectedUserForPermissions && (
-        <EditPermissionsModal
-          open={isEditPermissionsModalOpen}
-          onOpenChange={setIsEditPermissionsModalOpen}
-          userId={selectedUserForPermissions.userId}
-          userName={selectedUserForPermissions.userName}
-          userEmail={selectedUserForPermissions.userEmail}
-          userRole={selectedUserForPermissions.userRole}
-          workspaceId={currentWorkspaceId || ''}
-          onPermissionsUpdated={handlePermissionsUpdated}
-        />
-      )}
-
       <footer className="container mx-auto px-6 py-6 mt-12">
         <div className="glass rounded-2xl p-6 text-center border border-border/50">
           <p className="text-sm text-muted-foreground">
@@ -575,7 +476,7 @@ const Configuracoes = () => {
         </div>
       </footer>
       </PermissionGuard>
-    </div>
+    </DashboardLayout>
   );
 };
 

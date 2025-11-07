@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDatabase } from '@/contexts/DatabaseContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -15,10 +15,11 @@ export function useWorkspaceMembers() {
   const { supabase } = useDatabase();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const { currentWorkspaceId } = useWorkspace();
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
 
   const fetchMembers = async () => {
-    if (!currentWorkspaceId) {
+    if (tenantLoading) return;
+    if (!tenant?.id) {
       setMembers([]);
       setLoading(false);
       return;
@@ -26,14 +27,26 @@ export function useWorkspaceMembers() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('get_workspace_members_with_details', {
-          p_workspace_id: currentWorkspaceId
-        });
+      const { data, error } = await (supabase as any)
+        .from('tenant_users')
+        .select(`
+          user_id,
+          role,
+          user:auth.users(email, raw_user_meta_data)
+        `)
+        .eq('tenant_id', tenant.id)
+        .eq('active', true);
 
       if (error) throw error;
 
-      setMembers(data || []);
+      const mappedMembers = (data || []).map((member: any) => ({
+        user_id: member.user_id,
+        role: member.role,
+        user_email: member.user?.email ?? 'sem-email@zion.app',
+        user_name: member.user?.raw_user_meta_data?.full_name ?? member.user?.email ?? 'Usuário'
+      }));
+
+      setMembers(mappedMembers);
     } catch (error) {
       logger.error('Error fetching workspace members', error);
       toast({
@@ -48,26 +61,19 @@ export function useWorkspaceMembers() {
 
   useEffect(() => {
     fetchMembers();
-  }, [currentWorkspaceId]);
+  }, [tenant?.id, tenantLoading]);
 
   const updateMemberRole = async (userId: string, newRole: string) => {
-    if (!currentWorkspaceId) return;
+    if (!tenant?.id) return;
 
     try {
-      const { data, error } = await supabase.rpc('update_workspace_member_role', {
-        p_workspace_id: currentWorkspaceId,
-        p_user_id: userId,
-        p_new_role: newRole
-      });
+      const { error } = await (supabase as any)
+        .from('tenant_users')
+        .update({ role: newRole })
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', userId);
 
       if (error) throw error;
-
-      // Type assertion since we know the RPC returns jsonb with success/error fields
-      const result = data as { success: boolean; error?: string; message?: string };
-      
-      if (result && !result.success) {
-        throw new Error(result.error || 'Failed to update role');
-      }
 
       toast({
         title: 'Role atualizado',
@@ -86,12 +92,12 @@ export function useWorkspaceMembers() {
     }
   };
 
-  const addMember = async (email: string, role: string, workspaceId: string) => {
+  const addMember = async (email: string, role: string, tenantId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('add-workspace-member', {
         body: {
           email: email.toLowerCase().trim(),
-          workspace_id: workspaceId,
+          tenant_id: tenantId,
           role
         }
       });
@@ -121,22 +127,16 @@ export function useWorkspaceMembers() {
   };
 
   const removeMember = async (userId: string) => {
-    if (!currentWorkspaceId) return;
+    if (!tenant?.id) return;
 
     try {
-      const { data, error } = await supabase.rpc('remove_workspace_member', {
-        p_workspace_id: currentWorkspaceId,
-        p_user_id: userId
-      });
+      const { error } = await (supabase as any)
+        .from('tenant_users')
+        .update({ active: false })
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', userId);
 
       if (error) throw error;
-
-      // Type assertion since we know the RPC returns jsonb with success/error fields
-      const result = data as { success: boolean; error?: string; message?: string };
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to remove member');
-      }
 
       toast({
         title: 'Membro removido',

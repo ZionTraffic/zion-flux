@@ -5,10 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && vercel --prod",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:push": "supabase db push",
+    "supabase:pull": "supabase db pull",
+    "supabase:gen-types": "supabase gen types typescript --local > src/types/supabase.ts",
+    "migrate:multitenancy": "node migrate-multitenancy.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

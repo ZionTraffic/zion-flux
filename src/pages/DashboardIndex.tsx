@@ -2,8 +2,6 @@ import { Header } from "@/components/ui/Header";
 import { useSupabaseDiagnostics } from "@/hooks/useSupabaseDiagnostics";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -25,12 +23,10 @@ import { useCSATData } from "@/hooks/useCSATData";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
+import { useTenant } from "@/contexts/TenantContext";
 
 const DashboardIndex = () => {
-  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { currentDatabase } = useDatabase();
-  const [workspaceDb, setWorkspaceDb] = useState<string | null>(null);
-  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  const { currentTenant } = useTenant();
   const [userEmail, setUserEmail] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,25 +43,25 @@ const DashboardIndex = () => {
   });
 
   // Hook para métricas de atendimento (com filtro de data)
-  const atendimentosMetrics = useAtendimentosMetrics(currentWorkspaceId, dateRange?.from, dateRange?.to);
+  const atendimentosMetrics = useAtendimentosMetrics(null, dateRange?.from, dateRange?.to);
   
   // Hook para dados de CSAT (com filtro de data)
-  const csatData = useCSATData(currentWorkspaceId, dateRange?.from, dateRange?.to);
+  const csatData = useCSATData('', dateRange?.from, dateRange?.to);
   
   // Debug: Log workspace info
   useEffect(() => {
-    if (currentWorkspaceId && workspaceDb) {
-      console.log('🏢 DEBUG Dashboard - Workspace atual:', {
-        id: currentWorkspaceId,
-        database: workspaceDb,
-        name: workspaceName,
+    if (currentTenant) {
+      console.log('🏢 DEBUG Dashboard - Tenant atual:', {
+        id: currentTenant.id,
+        slug: currentTenant.slug,
+        name: currentTenant.name,
       });
     }
-  }, [currentWorkspaceId, workspaceDb, workspaceName]);
+  }, [currentTenant]);
 
   // Hook para dados de leads por stage (T1-T4)
   const leadsData = useLeadsFromConversations(
-    currentWorkspaceId || '',
+    currentTenant?.id || '',
     dateRange?.from,
     dateRange?.to
   );
@@ -86,7 +82,7 @@ const DashboardIndex = () => {
     leads,
     conversations,
   } = useExecutiveDashboard(
-    currentWorkspaceId || '',
+    currentTenant?.id || '',
     dateRange?.from,
     dateRange?.to
   );
@@ -96,20 +92,6 @@ const DashboardIndex = () => {
       if (user) setUserEmail(user.email);
     });
   }, []);
-
-  // Fetch workspace database to avoid showing Meta Ads for non-ASF workspaces
-  useEffect(() => {
-    if (!currentWorkspaceId) return;
-    supabase
-      .from('workspaces')
-      .select('database, name')
-      .eq('id', currentWorkspaceId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setWorkspaceDb(data?.database || null);
-        setWorkspaceName(data?.name || null);
-      });
-  }, [currentWorkspaceId]);
 
   // 🔍 DEBUG roiHistory
   useEffect(() => {
@@ -133,10 +115,6 @@ const DashboardIndex = () => {
 
     return () => clearInterval(interval);
   }, []);
-
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    await setCurrentWorkspaceId(workspaceId);
-  };
 
   const handleClearFilter = () => {
     const to = new Date();
@@ -164,8 +142,8 @@ const DashboardIndex = () => {
           leadsSourceDistribution={leadsSourceDistribution}
           metaAds={metaAds}
           dateRange={dateRange || { from: undefined, to: undefined }}
-          workspaceName={workspaceName || 'Workspace'}
-          workspaceSlug={workspaceDb}
+          workspaceName={currentTenant?.name || 'Empresa'}
+          workspaceSlug={currentTenant?.slug || 'tenant'}
           leads={leads}
           conversations={conversations}
           csatData={csatData.data}
@@ -179,7 +157,7 @@ const DashboardIndex = () => {
       link.href = url;
       const fromDate = dateRange?.from || new Date();
       const toDate = dateRange?.to || new Date();
-      link.download = `dashboard-${currentWorkspaceId}-${format(fromDate, 'yyyy-MM-dd')}-${format(toDate, 'yyyy-MM-dd')}.pdf`;
+      link.download = `dashboard-${currentTenant?.slug || 'tenant'}-${format(fromDate, 'yyyy-MM-dd')}-${format(toDate, 'yyyy-MM-dd')}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
 
@@ -200,7 +178,7 @@ const DashboardIndex = () => {
   };
 
   // Show no workspace screen if user has no workspace access
-  if (!currentWorkspaceId && diagnostics.status !== "checking") {
+  if (!currentTenant && diagnostics.status !== "checking") {
     return <NoWorkspaceAccess userEmail={userEmail} />;
   }
 
@@ -248,7 +226,7 @@ const DashboardIndex = () => {
     );
   }
 
-  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+  const componentKey = `${currentTenant?.id || 'no-tenant'}`;
 
   return (
     <div className="min-h-screen" key={componentKey}>
@@ -256,23 +234,24 @@ const DashboardIndex = () => {
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
         lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
+        currentWorkspace={currentTenant?.id || null}
+        onWorkspaceChange={async () => {}}
         onExportPdf={handleExportPdf}
         isExporting={isExporting}
       />
+
 
       <main className="container mx-auto px-6 py-8 space-y-8">
         {/* Hero Section */}
         {!isLoading && (
           <HeroSection
             userName={userEmail}
-            workspaceName={workspaceDb || 'Carregando...'}
+            workspaceName={currentTenant?.name || 'Carregando...'}
             totalLeads={leads?.totalLeads || 0}
             totalInvested={advancedMetrics?.totalInvested || 0}
             conversionRate={leads?.qualificationRate || 0}
             trend="up"
-            hideStats={workspaceDb === 'sieg'}
+            hideStats={currentTenant?.slug === 'sieg'}
           />
         )}
 
@@ -331,7 +310,7 @@ const DashboardIndex = () => {
         </div>
 
         {/* Métricas de Atendimento - APENAS PARA SIEG */}
-        {workspaceDb === 'sieg' && (
+        {currentTenant?.slug === 'sieg' && (
           <>
             <AtendimentosKpiCards
               atendimentosHoje={atendimentosMetrics.atendimentosHoje}
@@ -353,7 +332,7 @@ const DashboardIndex = () => {
         <StrategicInsightsCard alerts={alerts} />
 
         {/* 5. Gráficos Consolidados - Linha 1 - OCULTO PARA SIEG */}
-        {workspaceDb !== 'sieg' && (
+        {currentTenant?.slug !== 'sieg' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico 1: Resumo de Performance */}
           <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
@@ -508,7 +487,7 @@ const DashboardIndex = () => {
         )}
 
         {/* 7. Tabela de Campanhas - OCULTO PARA SIEG */}
-        {workspaceDb !== 'sieg' && (
+        {currentTenant?.slug !== 'sieg' && (
         <div className="glass rounded-2xl p-6 border border-border/50">
           <h3 className="text-lg font-semibold mb-4 text-foreground">Resumo por Campanha</h3>
           <div className="overflow-x-auto">
@@ -565,7 +544,7 @@ const DashboardIndex = () => {
         )}
 
         {/* 8. Top Campaigns - OCULTO PARA SIEG */}
-        {workspaceDb !== 'sieg' && (
+        {currentTenant?.slug !== 'sieg' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-3">
             <TopCampaignsTable 

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { useConversationsData } from "@/hooks/useConversationsData";
-import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,11 +12,13 @@ import { EditableTagBadge } from "@/components/analise/components/EditableTagBad
 import { pdf } from "@react-pdf/renderer";
 import { AnalisePDF } from "@/components/reports/AnalisePDF";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
+import { TenantSelector } from "@/components/ui/TenantSelector";
+import { useTenant } from "@/contexts/TenantContext";
 
 const Conversas = () => {
-  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { currentDatabase } = useDatabase();
-  const { conversations: conversationsData, stats, isLoading, error } = useConversationsData(currentWorkspaceId);
+  const { currentTenant } = useTenant();
+  const { conversations: conversationsData, stats, isLoading, error } = useConversationsData(currentTenant?.id || '');
   const [conversations, setConversations] = useState(conversationsData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
@@ -31,10 +30,6 @@ const Conversas = () => {
   useEffect(() => {
     setConversations(conversationsData);
   }, [conversationsData]);
-
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    await setCurrentWorkspaceId(workspaceId);
-  };
 
   const filteredConversations = conversations.filter((conv) =>
     conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,14 +66,14 @@ const Conversas = () => {
         <AnalisePDF
           conversations={conversations}
           stats={stats}
-          workspaceName={currentWorkspaceId}
+          workspaceName={currentTenant?.name || currentTenant?.slug || 'Empresa'}
         />
       ).toBlob();
       
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `analise-conversas-${currentWorkspaceId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `analise-conversas-${currentTenant?.slug || 'tenant'}-${new Date().toISOString().split('T')[0]}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       
@@ -98,21 +93,24 @@ const Conversas = () => {
     }
   };
 
-  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+  const componentKey = `${currentTenant?.id || 'no-tenant'}`;
 
   return (
-    <div className="min-h-screen" key={componentKey}>
-      <Header
-        onRefresh={() => window.location.reload()} 
-        isRefreshing={isLoading} 
-        lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
-        onExportPdf={handleExportPdf}
-        isExporting={isExporting}
-      />
+    <DashboardLayout
+      key={componentKey}
+      onRefresh={() => window.location.reload()}
+      isRefreshing={isLoading}
+      lastUpdate={new Date()}
+      currentWorkspace={currentTenant?.id || null}
+      onWorkspaceChange={async () => {}}
+      onExportPdf={handleExportPdf}
+      isExporting={isExporting}
+    >
+      <div className="flex justify-end mb-4">
+        <TenantSelector />
+      </div>
 
-      <main className="container mx-auto px-6 py-8 space-y-8">
+      <main className="space-y-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">Conversas</h1>
           <p className="text-muted-foreground">
@@ -273,15 +271,7 @@ const Conversas = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
       />
-
-      <footer className="container mx-auto px-6 py-6 mt-12">
-        <div className="glass rounded-2xl p-6 text-center border border-border/50">
-          <p className="text-sm text-muted-foreground">
-            Zion App &copy; 2025 - Análise Inteligente de Conversas
-          </p>
-        </div>
-      </footer>
-    </div>
+    </DashboardLayout>
   );
 };
 

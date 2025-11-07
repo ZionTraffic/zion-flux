@@ -6,8 +6,6 @@ interface DashboardLayoutProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   lastUpdate?: Date | null;
-  currentWorkspace?: string | null;
-  onWorkspaceChange?: (workspaceId: string) => Promise<void>;
   onExportPdf?: () => void;
   isExporting?: boolean;
 }
@@ -17,8 +15,6 @@ export const DashboardLayout = ({
   onRefresh,
   isRefreshing,
   lastUpdate,
-  currentWorkspace,
-  onWorkspaceChange,
   onExportPdf,
   isExporting,
 }: DashboardLayoutProps) => {
@@ -29,8 +25,6 @@ export const DashboardLayout = ({
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
         lastUpdate={lastUpdate}
-        currentWorkspace={currentWorkspace}
-        onWorkspaceChange={onWorkspaceChange}
         onExportPdf={onExportPdf}
         isExporting={isExporting}
       />

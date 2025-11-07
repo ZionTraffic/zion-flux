@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDatabase } from '@/contexts/DatabaseContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { PERMISSIONS, PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from '@/types/permissions';
 import { logger } from '@/utils/logger';
@@ -12,7 +12,7 @@ export interface UserPermission {
 
 export function usePermissions() {
   const { supabase, currentDatabase } = useDatabase();
-  const { currentWorkspaceId } = useWorkspace();
+  const { currentTenant } = useTenant();
   const { role, isOwner } = useUserRole();
   const [permissions, setPermissions] = useState<Set<PermissionKey>>(
     // Inicializar com permissões de owner se for owner
@@ -20,8 +20,8 @@ export function usePermissions() {
   );
   const [loading, setLoading] = useState(true);
   
-  // Obter slug do workspace (database atual)
-  const workspaceSlug = currentDatabase;
+  const tenantId = currentTenant?.id ?? null;
+  const workspaceSlug = currentTenant?.slug ?? currentDatabase;
 
   const fetchPermissions = async () => {
     // Verificar se é master user
@@ -43,7 +43,7 @@ export function usePermissions() {
       return;
     }
 
-    if (!currentWorkspaceId) {
+    if (!tenantId) {
       // Se não tem workspace mas tem role, usar permissões padrão
       if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
         setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
@@ -68,7 +68,7 @@ export function usePermissions() {
       // Usar query SQL direta para evitar problemas de TypeScript
       const { data: customPermissions, error } = await supabase
         .rpc('get_user_permissions', {
-          p_workspace_id: currentWorkspaceId,
+          p_workspace_id: tenantId,
           p_user_id: userData.user.id
         });
 
@@ -101,7 +101,7 @@ export function usePermissions() {
       console.log('🔐 Permissions Debug:', {
         role,
         result,
-        currentWorkspaceId,
+        tenantId,
         userId: userData.user.id
       });
 
@@ -129,7 +129,7 @@ export function usePermissions() {
 
   useEffect(() => {
     fetchPermissions();
-  }, [currentWorkspaceId, role]);
+  }, [tenantId, role]);
 
   const hasPermission = (permission: PermissionKey): boolean => {
     return permissions.has(permission);
@@ -170,17 +170,14 @@ export function usePermissions() {
   ]);
 
   const hasCustomPermissions = () => {
-    // Se o usuário é owner/admin, não tem permissões customizadas (usa padrões)
     if (role === 'owner' || role === 'admin') return false;
-    
-    // Se tem permissões diferentes das padrões do role, tem customizadas
+
     const defaultPerms = role && DEFAULT_PERMISSIONS_BY_ROLE[role] ? DEFAULT_PERMISSIONS_BY_ROLE[role] : [];
     const currentPerms = Array.from(permissions);
-    
-    // Comparar se as permissões atuais são diferentes das padrões
+
     if (currentPerms.length !== defaultPerms.length) return true;
-    
-    return !defaultPerms.every(perm => currentPerms.includes(perm));
+
+    return !defaultPerms.every((perm) => currentPerms.includes(perm));
   };
 
   return {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 interface CSATData {
   analista: string;
@@ -10,33 +11,32 @@ interface CSATData {
   insatisfeito: number;
 }
 
-export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Date) {
+export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Date) {
   const [data, setData] = useState<CSATData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
 
   useEffect(() => {
     async function fetchCSATData() {
-      if (!workspaceId) return;
+      if (tenantLoading) return;
+      if (!tenant) {
+        setData([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // CSAT atualmente disponível apenas para Sieg
+      if (tenant.slug !== 'sieg') {
+        setData([]);
+        setIsLoading(false);
+        return;
+      }
 
       setIsLoading(true);
       setError(null);
 
       try {
-        // Buscar workspace slug para determinar a tabela
-        const { data: ws } = await supabase
-          .from('workspaces')
-          .select('slug')
-          .eq('id', workspaceId)
-          .maybeSingle();
-
-        // Por enquanto, apenas Sieg tem dados de CSAT
-        if (ws?.slug !== 'sieg') {
-          setData([]);
-          setIsLoading(false);
-          return;
-        }
-
         // Funções auxiliares para trabalhar com o CSAT
         const normalizeCsatValue = (value: string) =>
           value
@@ -82,15 +82,16 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
         }
 
         console.log('📅 DEBUG CSAT - Filtro de data:', {
+          tenantId: tenant.id,
           startDate: filterStartDate,
           endDate: filterEndDate,
         });
 
-        // Buscar dados da tabela conversas_sieg_financeiro usando a data da resposta CSAT
-        let query = (supabase as any)
-          .from('conversas_sieg_financeiro')
+        // Buscar dados da tabela tenant_conversations usando a data da resposta CSAT
+        let query = (centralSupabase as any)
+          .from('tenant_conversations')
           .select('analista, csat, data_resposta_csat')
-          .eq('id_workspace', workspaceId)
+          .eq('tenant_id', tenant.id)
           .not('analista', 'is', null)
           .neq('analista', '') // Ignorar analistas vazios
           .not('csat', 'is', null)
@@ -107,7 +108,7 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
         const { data: conversas, error: fetchError } = await query;
 
         console.log('🔍 DEBUG CSAT - Dados brutos:', {
-          workspaceId,
+          tenantId: tenant.id,
           totalRegistros: conversas?.length || 0,
           conversas: conversas?.slice(0, 5), // Primeiros 5 registros
         });
@@ -206,7 +207,7 @@ export function useCSATData(workspaceId: string, startDate?: Date, endDate?: Dat
     }
 
     fetchCSATData();
-  }, [workspaceId, startDate, endDate]);
+  }, [tenantLoading, tenant?.id, tenant?.slug, startDate, endDate]);
 
   return { data, isLoading, error };
 }

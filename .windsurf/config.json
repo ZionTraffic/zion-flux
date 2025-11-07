@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.supabase.com/mcp?project_ref=wrebkgazdlyjenbpexnc"
+      ]
+    },
+    "meta-ads": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-meta-ads"
+      ],
+      "env": {
+        "META_ACCESS_TOKEN": "${META_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
+

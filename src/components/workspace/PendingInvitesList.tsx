@@ -14,27 +14,33 @@ interface PendingInvite {
   expires_at: string;
   created_at: string;
   used_at: string | null;
+  tenant_id?: string;
 }
 
 interface PendingInvitesListProps {
-  workspaceId: string;
+  tenantId: string;
   onUpdate: () => void;
 }
 
-export function PendingInvitesList({ workspaceId, onUpdate }: PendingInvitesListProps) {
+export function PendingInvitesList({ tenantId, onUpdate }: PendingInvitesListProps) {
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInvites();
-  }, [workspaceId]);
+  }, [tenantId]);
 
   const fetchInvites = async () => {
     try {
+      if (!tenantId) {
+        setInvites([]);
+        setLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from('pending_invites')
         .select('*')
-        .eq('workspace_id', workspaceId)
+        .eq('workspace_id', tenantId)
         .is('used_at', null)
         .order('created_at', { ascending: false });
 

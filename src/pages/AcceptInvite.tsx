@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -8,17 +8,54 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+type InviteCustomData = {
+  tenant_id?: string;
+  tenant_name?: string | null;
+  tenant_slug?: string | null;
+  requester_role?: string | null;
+  requester_active?: boolean | null;
+  is_existing_member?: boolean | null;
+  [key: string]: unknown;
+};
+
+type InviteData = {
+  id: string;
+  email: string;
+  role: string;
+  token: string;
+  expires_at: string;
+  used_at: string | null;
+  custom_data?: InviteCustomData | string | null;
+  workspaces?: { name?: string | null } | null;
+};
+
 export default function AcceptInvite() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
   const [loading, setLoading] = useState(true);
-  const [inviteData, setInviteData] = useState<any>(null);
+  const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const parsedCustomData = useMemo<InviteCustomData>(() => {
+    if (!inviteData?.custom_data) return {};
+    if (typeof inviteData.custom_data === 'object') {
+      return inviteData.custom_data as InviteCustomData;
+    }
+
+    try {
+      return JSON.parse(inviteData.custom_data) as InviteCustomData;
+    } catch (error) {
+      console.warn('[AcceptInvite] Não foi possível parsear custom_data:', error);
+      return {};
+    }
+  }, [inviteData]);
+
+  const tenantName = parsedCustomData.tenant_name ?? inviteData?.workspaces?.name ?? 'empresa';
 
   useEffect(() => {
     console.log('🔍 AcceptInvite: Token from URL:', token);
@@ -68,7 +105,7 @@ export default function AcceptInvite() {
       }
 
       console.log('✅ AcceptInvite: Invite verified successfully');
-      setInviteData(data);
+      setInviteData(data as InviteData);
     } catch (error) {
       console.error('❌ AcceptInvite: Error verifying token:', error);
       toast.error('Erro ao verificar convite');
@@ -178,7 +215,7 @@ export default function AcceptInvite() {
 
       console.log('[AcceptInvite] Convite aceito com sucesso:', inviteResult);
 
-      toast.success(`Bem-vindo ao workspace ${inviteData.workspaces.name}!`);
+      toast.success(`Bem-vindo à empresa ${tenantName}!`);
       
       setTimeout(() => {
         navigate('/');
@@ -207,7 +244,7 @@ export default function AcceptInvite() {
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Aceitar Convite</h1>
           <p className="text-muted-foreground">
-            Você foi convidado para o workspace <strong className="text-foreground">{inviteData.workspaces.name}</strong>
+            Você foi convidado para a empresa <strong className="text-foreground">{tenantName}</strong>
           </p>
           <p className="text-sm text-muted-foreground mt-2">
             Email: {inviteData.email}

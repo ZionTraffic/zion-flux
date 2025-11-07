@@ -15,21 +15,40 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { supabase, setDatabase } = useDatabase();
+  const { supabase, setDatabase, setTenant } = useDatabase();
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const { toast } = useToast();
 
-  const determineDatabaseFromWorkspace = (workspaceId: string | null | undefined) => {
-    if (!workspaceId) return 'asf';
-    if (workspaceId === 'b939a331-44d9-4122-ab23-dcd60413bd46') return 'sieg';
-    return 'asf';
+  const applyWorkspaceSelection = (options: {
+    workspaceId: string;
+    role: string | null;
+    workspaceInfo?: { database?: string | null; tenant_id?: string | null; name?: string | null };
+  }) => {
+    const { workspaceId, role, workspaceInfo } = options;
+
+    setCurrentWorkspaceIdState(workspaceId);
+    setUserRole(role);
+    localStorage.setItem('currentWorkspaceId', workspaceId);
+
+    const dbKey = workspaceInfo?.database || 'asf';
+    setDatabase(dbKey);
+
+    if (workspaceInfo?.tenant_id) {
+      setTenant(workspaceInfo.tenant_id);
+    }
   };
 
-  const determineDatabaseFromMembership = (membership: any) => {
-    return (membership as any).workspaces?.database || determineDatabaseFromWorkspace(membership?.workspace_id);
+  const fetchWorkspaceInfo = async (workspaceId: string) => {
+    const { data } = await centralSupabase
+      .from('workspaces')
+      .select('name, database, tenant_id')
+      .eq('id', workspaceId)
+      .maybeSingle();
+
+    return data || null;
   };
 
   useEffect(() => {
@@ -52,11 +71,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (user.email === 'george@ziontraffic.com.br') {
           const georgeWorkspaceId = savedWorkspaceId || '01d0cff7-2de1-4731-af0d-ee62f5ba974b';
           console.log('🔓 MASTER ACCESS: george@ziontraffic.com.br - Carregando workspace:', georgeWorkspaceId);
-          setCurrentWorkspaceIdState(georgeWorkspaceId);
-          setUserRole('owner');
-          localStorage.setItem('currentWorkspaceId', georgeWorkspaceId);
-          const masterDb = determineDatabaseFromWorkspace(georgeWorkspaceId);
-          setDatabase(masterDb);
+
+          const workspaceInfo = await fetchWorkspaceInfo(georgeWorkspaceId);
+          applyWorkspaceSelection({
+            workspaceId: georgeWorkspaceId,
+            role: 'owner',
+            workspaceInfo: workspaceInfo || { database: 'asf' }
+          });
           setIsLoading(false);
           return;
         }
@@ -67,17 +88,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           
           const { data: savedMembership, error: savedError } = await centralSupabase
             .from('membros_workspace')
-            .select('workspace_id, role, workspaces(name, database)')
+            .select('workspace_id, role, workspaces(name, database, tenant_id)')
             .eq('user_id', user.id)
             .eq('workspace_id', savedWorkspaceId)
             .maybeSingle();
           
           if (!savedError && savedMembership) {
             console.log('✅ Workspace salvo restaurado com sucesso:', savedWorkspaceId);
-            setCurrentWorkspaceIdState(savedWorkspaceId);
-            setUserRole(savedMembership.role || null);
-            const dbKey = determineDatabaseFromMembership(savedMembership);
-            setDatabase(dbKey);
+            applyWorkspaceSelection({
+              workspaceId: savedWorkspaceId,
+              role: savedMembership.role || null,
+              workspaceInfo: (savedMembership as any).workspaces || undefined
+            });
             setIsLoading(false);
             return;
           } else {
@@ -91,7 +113,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         
         const { data: firstMembership, error: membershipError } = await centralSupabase
           .from('membros_workspace')
-          .select('workspace_id, role')
+          .select('workspace_id, role, workspaces(database, tenant_id)')
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle();
@@ -135,22 +157,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (targetWorkspaceId) {
           const { data: memberData } = await centralSupabase
             .from('membros_workspace')
-            .select('role, workspaces(name, database)')
+            .select('role, workspaces(name, database, tenant_id)')
             .eq('user_id', user.id)
             .eq('workspace_id', targetWorkspaceId)
             .maybeSingle();
           
           if (memberData) {
-            setCurrentWorkspaceIdState(targetWorkspaceId);
-            setUserRole(memberData.role || null);
-            localStorage.setItem('currentWorkspaceId', targetWorkspaceId);
-            const dbKey = determineDatabaseFromMembership(memberData);
-            setDatabase(dbKey);
-            
+            applyWorkspaceSelection({
+              workspaceId: targetWorkspaceId,
+              role: memberData.role || null,
+              workspaceInfo: (memberData as any).workspaces || undefined
+            });
+
             console.log('✅ Workspace carregado com sucesso:', {
               workspaceId: targetWorkspaceId,
               workspaceName: (memberData as any).workspaces?.name,
-              database: dbKey,
+              database: (memberData as any).workspaces?.database,
+              tenant: (memberData as any).workspaces?.tenant_id,
               role: memberData.role
             });
           } else {
@@ -198,7 +221,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // Validar acesso à workspace
       const { data: memberData } = await centralSupabase
         .from('membros_workspace')
-        .select('role, workspaces(name, database)')
+        .select('role, workspaces(name, database, tenant_id)')
         .eq('user_id', user.id)
         .eq('workspace_id', id)
         .maybeSingle();
@@ -213,13 +236,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
 
       // Atualizar workspace atual
-      setCurrentWorkspaceIdState(id);
-      setUserRole(memberData.role || null);
-      localStorage.setItem('currentWorkspaceId', id);
-
-      // Ajustar banco ativo conforme workspace
-      const dbKey = (memberData as any).workspaces?.database || 'asf';
-      setDatabase(dbKey);
+      applyWorkspaceSelection({
+        workspaceId: id,
+        role: memberData.role || null,
+        workspaceInfo: (memberData as any).workspaces || undefined
+      });
 
       // Salvar como workspace padrão (opcional - não crítico se falhar)
       try {

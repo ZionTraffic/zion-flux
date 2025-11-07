@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase as centralSupabase } from '@/integrations/supabase/client';
-import { useDatabase } from '@/contexts/DatabaseContext';
 import { getCurrentBrasiliaDate } from '@/lib/dateUtils';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 interface AtendimentosMetrics {
   atendimentosHoje: number;
@@ -27,8 +27,8 @@ function getNextDayStr(dateStr: string): string {
   return `${yy}-${mm}-${dd}`;
 }
 
-export function useAtendimentosMetrics(workspaceId: string | null, startDate?: Date, endDate?: Date) {
-  const { supabase: dataSupabase } = useDatabase();
+export function useAtendimentosMetrics(_workspaceId: string | null, startDate?: Date, endDate?: Date) {
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
   const [metrics, setMetrics] = useState<AtendimentosMetrics>({
     atendimentosHoje: 0,
     atendimentosIA: 0,
@@ -39,7 +39,9 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
   });
 
   useEffect(() => {
-    if (!workspaceId) {
+    if (tenantLoading) return;
+
+    if (!tenant) {
       setMetrics({
         atendimentosHoje: 0,
         atendimentosIA: 0,
@@ -52,33 +54,16 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
     }
 
     fetchMetrics();
-  }, [workspaceId, startDate, endDate]);
+  }, [tenantLoading, tenant?.id, tenant?.slug, startDate, endDate]);
 
   async function fetchMetrics() {
     try {
       setMetrics(prev => ({ ...prev, isLoading: true }));
 
-      // Buscar slug do workspace
-      const { data: ws, error: wsError } = await centralSupabase
-        .from('workspaces')
-        .select('slug')
-        .eq('id', workspaceId)
-        .maybeSingle();
+      const slug = tenant.slug;
+      const isSieg = slug === 'sieg';
 
-      if (wsError) {
-        console.error('[Atendimentos] Erro ao buscar workspace:', wsError);
-        throw wsError;
-      }
-
-      const tableName = ws?.slug === 'asf' 
-        ? 'conversas_asf' 
-        : ws?.slug === 'sieg' 
-          ? 'conversas_sieg_financeiro'
-          : 'historico_conversas';
-      
-      const isSieg = ws?.slug === 'sieg';
-      
-      // ASF não tem métricas de atendimento (colunas analista, data_transferencia)
+      // Apenas Sieg possui dados de atendimento completos
       if (!isSieg) {
         console.log('[Atendimentos] Workspace ASF - Métricas de atendimento não disponíveis');
         setMetrics({
@@ -93,9 +78,8 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
       }
 
       console.log('[Atendimentos] Buscando métricas SIEG:', { 
-        workspaceId, 
-        slug: ws?.slug, 
-        tableName 
+        tenantId: tenant.id,
+        slug
       });
 
       // Se não houver filtro de data, buscar dados gerais (todo o período)
@@ -105,10 +89,10 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
       
       console.log('[Atendimentos] Período de busca:', { dataInicio, dataFim, temFiltro: !!startDate });
 
-      // Usar função RPC para bypass RLS
-      const { data: rpcResult, error: rpcError } = await (dataSupabase.rpc as any)('get_atendimentos_metrics', {
-        p_workspace_id: workspaceId,
-        p_table_name: tableName,
+      // Usar função RPC adaptada para tenants, se existir
+      const { data: rpcResult, error: rpcError } = await (centralSupabase.rpc as any)('get_atendimentos_metrics', {
+        p_workspace_id: tenant.id,
+        p_table_name: 'tenant_conversations_legacy',
         p_data_hoje: dataFim,
         p_primeiro_dia_mes: dataInicio,
         p_ultimo_dia_mes: dataFim
@@ -117,13 +101,13 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
       if (rpcError) {
         console.warn('[Atendimentos] Erro ao buscar métricas via RPC. Usando fallback por queries.', rpcError);
         const fallback = await computeMetricsByQueries({
-          tableName,
-          workspaceId,
+          tenantId: tenant.id,
           dataHoje: dataFim,
           primeiroDiaMes: dataInicio,
           ultimoDiaMes: dataFim,
           periodoInicio: dataInicio,
           periodoFim: dataFim,
+          isSieg,
         });
         setMetrics({ ...fallback, isLoading: false });
         return;
@@ -170,15 +154,15 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
   }
 
   async function computeMetricsByQueries(params: {
-    tableName: string;
-    workspaceId: string;
+    tenantId: string;
     dataHoje: string; // YYYY-MM-DD
     primeiroDiaMes: string; // YYYY-MM-DD
     ultimoDiaMes: string; // YYYY-MM-DD
     periodoInicio: string; // YYYY-MM-DD
     periodoFim: string; // YYYY-MM-DD
+    isSieg: boolean;
   }): Promise<Omit<AtendimentosMetrics, 'isLoading'>> {
-    const { tableName, workspaceId, dataHoje, primeiroDiaMes, ultimoDiaMes, periodoInicio, periodoFim } = params;
+    const { tenantId, dataHoje, primeiroDiaMes, ultimoDiaMes, periodoInicio, periodoFim, isSieg } = params;
 
     const hojeStart = `${dataHoje}T00:00:00`;
     const hojeEndExclusive = `${getNextDayStr(dataHoje)}T00:00:00`;
@@ -186,50 +170,31 @@ export function useAtendimentosMetrics(workspaceId: string | null, startDate?: D
     const periodoEndExclusive = `${getNextDayStr(periodoFim)}T00:00:00`;
     const mesStart = `${primeiroDiaMes}T00:00:00`;
     const mesEndExclusive = `${getNextDayStr(ultimoDiaMes)}T00:00:00`;
-    const isSieg = tableName === 'conversas_sieg_financeiro';
-    console.log('[SIEG Metrics][Params]', { tableName, workspaceId, periodoInicio, periodoFim, dataHoje, primeiroDiaMes, ultimoDiaMes, isSieg });
+    console.log('[SIEG Metrics][Params]', { tenantId, periodoInicio, periodoFim, dataHoje, primeiroDiaMes, ultimoDiaMes, isSieg });
 
     async function countRange(extra: (q: any) => any) {
-      const base = (dataSupabase as any)
-        .from(tableName)
+      const base = (centralSupabase as any)
+        .from('tenant_conversations')
         .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
         .gte('created_at', periodoStart)
         .lt('created_at', periodoEndExclusive);
-      let q1 = extra(base.eq('id_workspace', workspaceId));
+      let q1 = extra(base);
       let { count, error } = await q1;
-      if (error) console.warn('[SIEG Metrics][countRange] id_workspace error:', error);
-      if (!count) {
-        let q2 = extra(base.eq('workspace_id', workspaceId));
-        ({ count, error } = await q2);
-        if (error) console.warn('[SIEG Metrics][countRange] workspace_id error:', error);
-        if (!count) {
-          let q3 = extra(base);
-          ({ count, error } = await q3);
-          if (error) console.warn('[SIEG Metrics][countRange] no workspace filter error:', error);
-        }
-      }
+      if (error) console.warn('[SIEG Metrics][countRange] error:', error);
       return count || 0;
     }
 
     async function selectRange(extra: (q: any) => any) {
-      const base = (dataSupabase as any)
-        .from(tableName)
+      const base = (centralSupabase as any)
+        .from('tenant_conversations')
         .select('analista, csat, created_at')
+        .eq('tenant_id', tenantId)
         .gte('created_at', mesStart)
         .lt('created_at', mesEndExclusive);
-      let q1 = extra(base.eq('id_workspace', workspaceId));
+      let q1 = extra(base);
       let { data, error } = await q1;
-      if (error) console.warn('[SIEG Metrics][selectRange] id_workspace error:', error);
-      if (!data || data.length === 0) {
-        let q2 = extra(base.eq('workspace_id', workspaceId));
-        ({ data, error } = await q2);
-        if (error) console.warn('[SIEG Metrics][selectRange] workspace_id error:', error);
-        if (!data || data.length === 0) {
-          let q3 = extra(base);
-          ({ data, error } = await q3);
-          if (error) console.warn('[SIEG Metrics][selectRange] no workspace filter error:', error);
-        }
-      }
+      if (error) console.warn('[SIEG Metrics][selectRange] error:', error);
       return data || [];
     }
 

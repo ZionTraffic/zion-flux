@@ -10,6 +10,7 @@ interface GenerateInviteRequest {
   email: string;
   role: string;
   workspace_id: string;
+  tenant_id?: string;
   permissions?: string[];
 }
 
@@ -72,14 +73,15 @@ serve(async (req) => {
     const body = await req.json();
     console.log('📨 Request body:', body);
     
-    const { email, role, workspace_id, permissions } = body as GenerateInviteRequest;
-    console.log('📝 Request data:', { email, role, workspace_id, permissions: permissions?.length || 0 });
+    const { email, role, tenant_id, workspace_id, permissions } = body as GenerateInviteRequest;
+    const tenantId = tenant_id ?? workspace_id;
+    console.log('📝 Request data:', { email, role, tenant_id: tenantId, permissions: permissions?.length || 0 });
 
     // Validações
-    if (!email || !role || !workspace_id) {
-      console.error('❌ Missing required fields:', { email: !!email, role: !!role, workspace_id: !!workspace_id });
+    if (!email || !role || !tenantId) {
+      console.error('❌ Missing required fields:', { email: !!email, role: !!role, tenantId: !!tenantId });
       return new Response(
-        JSON.stringify({ error: 'Email, role e workspace_id são obrigatórios' }),
+        JSON.stringify({ error: 'Email, role e tenant_id são obrigatórios' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -96,12 +98,12 @@ serve(async (req) => {
     console.log('🔍 Checking user permissions...');
 
     // Verificar se o usuário tem permissão (owner ou admin)
-    const { data: membership, error: membershipError } = await supabaseAdmin
-      .from('membros_workspace')
-      .select('role')
-      .eq('workspace_id', workspace_id)
+    const { data: requesterMembership, error: membershipError } = await supabaseAdmin
+      .from('tenant_users')
+      .select('role, active')
+      .eq('tenant_id', tenantId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (membershipError) {
       console.error('❌ Error checking membership:', membershipError);
@@ -109,13 +111,28 @@ serve(async (req) => {
     
     console.log('👤 User membership verified');
 
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    if (!requesterMembership || !['owner', 'admin'].includes(requesterMembership.role)) {
       console.error('❌ Insufficient permissions');
       return new Response(
         JSON.stringify({ error: 'Sem permissão para convidar usuários' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Buscar dados do tenant para exibir na interface
+    const { data: tenantRecord, error: tenantError } = await supabaseAdmin
+      .from('tenants_new')
+      .select('id, name, slug')
+      .eq('id', tenantId)
+      .maybeSingle();
+
+    if (tenantError) {
+      console.warn('⚠️ Não foi possível obter dados do tenant:', tenantError.message);
+    }
+
+    const tenantName = tenantRecord?.name ?? null;
+    const tenantSlug = tenantRecord?.slug ?? null;
+    const isMemberActive = requesterMembership?.active === true;
 
     console.log('🎲 Generating secure token...');
 
@@ -132,12 +149,20 @@ serve(async (req) => {
     const { data: invite, error: insertError } = await supabaseAdmin
       .from('pending_invites')
       .insert({
-        workspace_id,
+        workspace_id: tenantId,
         email: email.toLowerCase().trim(),
         role,
         token: inviteToken,
         invited_by: user.id,
         permissions: permissions ? JSON.stringify(permissions) : null,
+        custom_data: JSON.stringify({
+          tenant_id: tenantId,
+          tenant_name: tenantName,
+          tenant_slug: tenantSlug,
+          requester_role: requesterMembership.role,
+          requester_active: requesterMembership.active,
+          is_existing_member: isMemberActive
+        })
       })
       .select()
       .single();
@@ -163,7 +188,11 @@ serve(async (req) => {
         token: inviteToken,
         expires_at: invite.expires_at,
         email: invite.email,
-        role: invite.role
+        role: invite.role,
+        tenant_id: tenantId,
+        tenant_name: tenantName,
+        tenant_slug: tenantSlug,
+        already_member: isMemberActive
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

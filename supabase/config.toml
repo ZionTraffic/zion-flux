@@ -1,19 +1,24 @@
-project_id = "wrebkgazdlyjenbpexnc"
+project_id = "zion-flux"
 
-[functions.add-workspace-member]
-verify_jwt = true
+[api]
+enabled = true
+port = 54321
 
-[functions.fetch-meta-ads-data]
-verify_jwt = true
+[db]
+port = 54322
 
-[functions.analisar_fluxo_ia]
-verify_jwt = true
+[studio]
+enabled = true
+port = 54323
 
-[functions.generate-invite-link]
-verify_jwt = true
+[auth]
+enabled = true
 
-[functions.accept-workspace-invite]
-verify_jwt = true
+[edge_runtime]
+enabled = true
+
+[realtime]
+enabled = true
 
 [functions.create-workspace]
 verify_jwt = true

@@ -8,10 +8,6 @@ import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useSupabaseConnectionTest } from "@/hooks/useSupabaseConnectionTest";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { NoWorkspaceAccess } from "@/components/workspace/NoWorkspaceAccess";
-import { supabase } from "@/integrations/supabase/client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
@@ -19,10 +15,11 @@ import { cn } from "@/lib/utils";
 import { pdf } from "@react-pdf/renderer";
 import { TrafegoPDF } from "@/components/reports/TrafegoPDF";
 import { format } from "date-fns";
+import { useTenant } from "@/contexts/TenantContext";
+import { TenantSelector } from "@/components/ui/TenantSelector";
 
 const Trafego = () => {
-  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspace();
-  const { currentDatabase } = useDatabase();
+  const { currentTenant } = useTenant();
   const [userEmail, setUserEmail] = useState<string>();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -36,23 +33,15 @@ const Trafego = () => {
   });
 
   const { totals, daily, campaigns, loading, error, lastUpdate, refetch } = useMetaAdsData(
-    currentWorkspaceId || '',
+    currentTenant?.id || '',
     dateRange?.from,
     dateRange?.to
   );
-  const { testResult, testing } = useSupabaseConnectionTest(currentWorkspaceId || '');
+  const { testResult, testing } = useSupabaseConnectionTest(currentTenant?.id || '');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserEmail(user.email);
-    });
-  }, []);
-
-  // Fetch workspace database to enforce ASF-only view for Meta Ads
-
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    await setCurrentWorkspaceId(workspaceId);
-  };
+    console.log('🌐 Tráfego - tenant atual', currentTenant);
+  }, [currentTenant]);
 
   const handleRefresh = () => {
     refetch();
@@ -101,34 +90,8 @@ const Trafego = () => {
         to.setDate(new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate());
         break;
     }
-
-  // Guard: Only ASF workspaces can view Meta Ads. Others see guidance
-  if (false) {}
-
-  if (currentDatabase && currentDatabase !== 'asf') {
-    return (
-      <DashboardLayout
-        onRefresh={refetch}
-        isRefreshing={false}
-        lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
-        onExportPdf={() => {}}
-        isExporting={false}
-      >
-        <div className="min-h-[60vh] flex items-center justify-center p-6">
-          <div className="glass rounded-2xl p-8 border border-yellow-500/30 bg-yellow-500/5 max-w-lg w-full text-center">
-            <div className="text-4xl mb-3">⚙️</div>
-            <h2 className="text-xl font-semibold mb-2">Workspace sem integração de Meta Ads</h2>
-            <p className="text-sm text-muted-foreground">
-              O workspace selecionado não usa a base ASF. Esta tela só exibe dados do Meta Ads para workspaces com integração ASF.
-            </p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
     
+    // Aplicar o filtro ao estado
     setDateRange({ from, to });
     toast({
       title: "Filtro aplicado",
@@ -187,7 +150,7 @@ const Trafego = () => {
           daily={daily}
           campaigns={campaigns}
           dateRange={dateRange}
-          workspaceName={currentWorkspaceId}
+          workspaceName={currentTenant?.name || currentTenant?.slug || 'Empresa'}
         />
       ).toBlob();
       
@@ -197,7 +160,7 @@ const Trafego = () => {
       const dateStr = dateRange?.from && dateRange?.to 
         ? `${format(dateRange.from, 'yyyy-MM-dd')}-${format(dateRange.to, 'yyyy-MM-dd')}`
         : format(new Date(), 'yyyy-MM-dd');
-      link.download = `trafego-${currentWorkspaceId}-${dateStr}.pdf`;
+      link.download = `trafego-${currentTenant?.slug || 'tenant'}-${dateStr}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       
@@ -218,8 +181,31 @@ const Trafego = () => {
   };
 
   // Show no workspace screen if user has no workspace access
-  if (!currentWorkspaceId) {
-    return <NoWorkspaceAccess userEmail={userEmail} />;
+  if (!currentTenant) {
+    return (
+      <DashboardLayout
+        onRefresh={refetch}
+        isRefreshing={false}
+        lastUpdate={new Date()}
+        currentWorkspace={null}
+        onWorkspaceChange={async () => {}}
+        onExportPdf={() => {}}
+        isExporting={false}
+      >
+        <div className="min-h-[60vh] flex items-center justify-center p-6">
+          <div className="glass rounded-2xl p-8 border border-border/50 max-w-lg w-full text-center">
+            <div className="text-4xl mb-3">🏢</div>
+            <h2 className="text-xl font-semibold mb-2">Selecione uma empresa</h2>
+            <p className="text-sm text-muted-foreground">
+              Escolha um tenant para visualizar os dados de tráfego.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <TenantSelector />
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   // Diagnóstico em andamento
@@ -394,10 +380,44 @@ const Trafego = () => {
     },
   ].filter(item => item.value > 0);
 
-  const lineChartData = daily.map((d) => ({
-    day: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    value: d.conversas_iniciadas,
-  }));
+  // Filtrar dados pelo intervalo de datas selecionado
+  const filteredDaily = daily.filter(d => {
+    if (!dateRange?.from || !dateRange?.to) return true;
+    const from = dateRange.from.toISOString().split('T')[0];
+    const to = dateRange.to.toISOString().split('T')[0];
+    return d.date >= from && d.date <= to;
+  });
+
+  // Corrigir formatação de data para evitar erro de timezone
+  // Gerar dados do gráfico de "Evolução de Conversas Iniciadas"
+  // Corrigido para evitar recuo de data por timezone (UTC → -3)
+  const lineChartData = filteredDaily
+    .filter(d => d.conversas_iniciadas > 0) // <— exibe só dias com conversas reais
+    .map(d => {
+      // Quebra a data "YYYY-MM-DD" sem converter para UTC
+      const [year, month, day] = d.date.split('-');
+
+      // Converte o mês numérico em texto curto em português
+      const monthNames = [
+        'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+        'jul', 'ago', 'set', 'out', 'nov', 'dez'
+      ];
+
+      // Formata a data preservando o dia real da API
+      const label = `${day} de ${monthNames[parseInt(month, 10) - 1]}`;
+
+      return {
+        day: label, // mantém o dia real, sem recuo de fuso
+        value: d.conversas_iniciadas
+      };
+    });
+
+  // Expor globalmente para inspeção
+  (window as any).__lineChartDebug = lineChartData;
+  console.log('💡 Para inspecionar no console: __lineChartDebug');
+  console.log('📈 LINE CHART DATA CORRIGIDO:', lineChartData.slice(0, 5));
+  console.log(`✅ Último ponto visível: ${lineChartData[lineChartData.length - 1]?.day}`);
+  console.log('📊 Total conversas no período:', totals?.conversas_iniciadas);
 
   const funnelData = [
     { name: 'Impressões', value: totals?.impressions || 0 },
@@ -405,18 +425,21 @@ const Trafego = () => {
     { name: 'Conversas Iniciadas', value: totals?.conversas_iniciadas || 0 },
   ];
 
-  const componentKey = `${currentWorkspaceId}-${currentDatabase}`;
+  const componentKey = `${currentTenant?.id || 'no-tenant'}`;
 
   return (
       <DashboardLayout key={componentKey}
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}
-      currentWorkspace={currentWorkspaceId}
-      onWorkspaceChange={handleWorkspaceChange}
+      currentWorkspace={currentTenant?.id || null}
+      onWorkspaceChange={async () => {}}
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >
+      <div className="flex justify-end mb-4">
+        <TenantSelector />
+      </div>
       {/* Date Range Filter */}
       <div className="mb-6">
         <DateRangePicker

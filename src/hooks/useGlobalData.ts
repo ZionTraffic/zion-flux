@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useDatabase } from '@/contexts/DatabaseContext';
 import { format, subDays } from 'date-fns';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 export interface GlobalKpis {
   totalLeads: number;
@@ -33,12 +34,19 @@ export interface GlobalData {
 }
 
 export function useGlobalData() {
-  const { supabase } = useDatabase();
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
   const [data, setData] = useState<GlobalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchGlobalData = async () => {
+    if (tenantLoading) return;
+    if (!tenant) {
+      setData(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -47,11 +55,12 @@ export function useGlobalData() {
       const from = format(thirtyDaysAgo, 'yyyy-MM-dd');
       const to = format(new Date(), 'yyyy-MM-dd');
 
-      // Fetch all workspaces
-      const { data: workspacesData, error: workspacesError } = await supabase
-        .from('workspaces')
-        .select('*')
-        .order('name');
+      const { data: workspacesData, error: workspacesError } = await (centralSupabase.from as any)
+        ('tenant_workspaces')
+        .select('id, name, tenant_id')
+        .eq('tenant_id', tenant.id)
+        .eq('active', true)
+        .order('name', { ascending: true });
 
       if (workspacesError) throw workspacesError;
 
@@ -71,84 +80,70 @@ export function useGlobalData() {
         return;
       }
 
-      // Fetch KPIs for each workspace
       const workspacePerformances = await Promise.all(
-        workspacesData.map(async (workspace) => {
-          const { data: kpiData } = await supabase
-            .rpc('kpi_totais_periodo', {
-              p_workspace_id: workspace.id,
-              p_from: from,
-              p_to: to,
-            });
+        workspacesData.map(async (workspace: any) => {
+          const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)
+            ('tenant_conversations')
+            .select('created_at, tag')
+            .eq('tenant_id', tenant.id)
+            .gte('created_at', `${from}T00:00:00`)
+            .lte('created_at', `${to}T23:59:59`)
+            .limit(5000);
 
-          const { data: dailyData } = await supabase
-            .from('kpi_overview_daily')
-            .select('day, leads_recebidos')
-            .eq('workspace_id', workspace.id)
-            .gte('day', from)
-            .lte('day', to)
-            .order('day', { ascending: true });
+          if (leadsError) throw leadsError;
 
-          const kpi = kpiData?.[0] || {
-            recebidos: 0,
-            qualificados: 0,
-            investimento: 0,
-            cpl: 0,
-          };
+          const leads = leadsData || [];
+          const totalLeads = leads.length;
+          const conversions = leads.filter((lead) => {
+            const tag = (lead.tag || '').toLowerCase();
+            if (tenant.slug === 'sieg') {
+              return tag.includes('t3') || tag.includes('pago');
+            }
+            return tag.includes('qualificado') || tag.includes('t3');
+          }).length;
+
+          const dailyMap = new Map<string, number>();
+          leads.forEach((lead) => {
+            const day = format(new Date(lead.created_at), 'dd/MM');
+            dailyMap.set(day, (dailyMap.get(day) || 0) + 1);
+          });
 
           return {
             workspaceId: workspace.id,
             workspaceName: workspace.name,
-            leads: kpi.recebidos || 0,
-            conversions: kpi.qualificados || 0,
-            spend: typeof kpi.investimento === 'string' 
-              ? parseFloat(kpi.investimento) 
-              : kpi.investimento || 0,
-            cpl: typeof kpi.cpl === 'string' 
-              ? parseFloat(kpi.cpl) 
-              : kpi.cpl || 0,
-            dailyData: dailyData?.map(d => ({
-              day: format(new Date(d.day), 'dd/MM'),
-              leads: d.leads_recebidos || 0,
-            })) || [],
+            leads: totalLeads,
+            conversions,
+            spend: 0,
+            cpl: conversions > 0 ? 0 : 0,
+            dailyData: Array.from(dailyMap.entries()).map(([day, count]) => ({ day, leads: count })),
           };
         })
       );
 
-      // Calculate global KPIs
       const totalLeads = workspacePerformances.reduce((sum, w) => sum + w.leads, 0);
       const totalConversions = workspacePerformances.reduce((sum, w) => sum + w.conversions, 0);
-      const totalSpend = workspacePerformances.reduce((sum, w) => sum + w.spend, 0);
       const avgConversion = totalLeads > 0 ? (totalConversions / totalLeads) * 100 : 0;
-      const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0;
 
-      // Get active conversations count
-      const { data: conversations } = await supabase
-        .from('analise_ia')
-        .select('id')
-        .gte('ended_at', format(new Date(), 'yyyy-MM-dd'));
-
-      // Prepare chart data (merge all workspaces by day)
-      const chartDataMap = new Map<string, any>();
-      workspacePerformances.forEach(workspace => {
-        workspace.dailyData.forEach(day => {
-          if (!chartDataMap.has(day.day)) {
-            chartDataMap.set(day.day, { day: day.day });
-          }
-          const existing = chartDataMap.get(day.day);
+      const chartDataMap = new Map<string, Record<string, number>>();
+      workspacePerformances.forEach((workspace) => {
+        workspace.dailyData.forEach((day) => {
+          const existing = chartDataMap.get(day.day) || {};
           existing[workspace.workspaceName] = day.leads;
+          chartDataMap.set(day.day, existing);
         });
       });
 
-      const chartData = Array.from(chartDataMap.values());
+      const chartData: { day: string; [key: string]: string | number }[] = Array.from(chartDataMap.entries()).map(
+        ([dayKey, values]) => ({ day: dayKey, ...values })
+      );
 
       setData({
         kpis: {
           totalLeads,
           avgConversion,
-          avgCpl,
-          avgAiEfficiency: 141, // Mock - would calculate from conversation_summaries
-          activeConversations: conversations?.length || 0,
+          avgCpl: 0,
+          avgAiEfficiency: 0,
+          activeConversations: 0,
         },
         workspaces: workspacePerformances,
         chartData,
@@ -166,7 +161,7 @@ export function useGlobalData() {
     // Auto-refresh every 60 seconds
     const interval = setInterval(fetchGlobalData, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tenantLoading, tenant?.id]);
 
   return { data, isLoading, error, refetch: fetchGlobalData };
 }

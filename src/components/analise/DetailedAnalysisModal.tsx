@@ -11,7 +11,7 @@ import {
   generateActivityTimeline,
   identifyRiskFactors
 } from "@/utils/conversationMetrics";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface DetailedAnalysisModalProps {
   conversation: any;
@@ -27,7 +27,7 @@ export const DetailedAnalysisModal = ({
   if (!conversation) return null;
 
   const [selectedConversation, setSelectedConversation] = useState(conversation);
-  const { currentWorkspaceId } = useWorkspace();
+  const { currentTenant } = useTenant();
 
   useEffect(() => {
     if (conversation) {
@@ -98,7 +98,7 @@ export const DetailedAnalysisModal = ({
             <TabsContent value="insights" className="m-0">
               <InsightsTab
                 conversationId={selectedConversation.id}
-                workspaceId={currentWorkspaceId || ''}
+                workspaceId={currentTenant?.id || ''}
                 messages={selectedConversation.messages || []}
               />
             </TabsContent>

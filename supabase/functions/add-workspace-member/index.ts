@@ -8,8 +8,10 @@ const corsHeaders = {
 
 interface AddMemberRequest {
   email: string;
-  workspace_id: string;
+  tenant_id?: string;
+  workspace_id?: string; // compatibilidade retroativa
   role: string;
+  custom_permissions?: string[];
 }
 
 serve(async (req) => {
@@ -45,13 +47,16 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { email, workspace_id, role }: AddMemberRequest = await req.json();
+    const body = await req.json();
+    const { email, tenant_id, workspace_id, role, custom_permissions }: AddMemberRequest = body;
+
+    const tenantId = tenant_id ?? workspace_id;
 
     console.log('Add member request received');
 
     // Validate input
-    if (!email || !workspace_id || !role) {
-      throw new Error('Email, workspace_id, and role are required');
+    if (!email || !tenantId || !role) {
+      throw new Error('Email, tenant_id, and role are required');
     }
 
     // Validate role
@@ -60,16 +65,16 @@ serve(async (req) => {
       throw new Error('Invalid role. Must be one of: owner, admin, member, viewer');
     }
 
-    // Check if the requesting user is owner or admin of the workspace
+    // Check if the requesting user is owner or admin of the tenant
     const { data: requesterMembership, error: membershipError } = await supabaseClient
-      .from('membros_workspace')
-      .select('role')
-      .eq('workspace_id', workspace_id)
+      .from('tenant_users')
+      .select('role, active')
+      .eq('tenant_id', tenantId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (membershipError || !requesterMembership) {
-      throw new Error('You are not a member of this workspace');
+    if (membershipError || !requesterMembership || requesterMembership.active === false) {
+      throw new Error('You are not a member of this tenant');
     }
 
     if (!['owner', 'admin'].includes(requesterMembership.role)) {
@@ -107,7 +112,7 @@ serve(async (req) => {
         {
           redirectTo: redirectUrl,
           data: {
-            invited_to_workspace: workspace_id,
+            invited_to_tenant: tenantId,
             invited_role: role
           }
         }
@@ -143,28 +148,51 @@ serve(async (req) => {
 
     // Check if user is already a member
     const { data: existingMember } = await supabaseClient
-      .from('membros_workspace')
-      .select('user_id')
-      .eq('workspace_id', workspace_id)
+      .from('tenant_users')
+      .select('user_id, active')
+      .eq('tenant_id', tenantId)
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (existingMember) {
-      throw new Error('User is already a member of this workspace');
+    if (existingMember && existingMember.active) {
+      throw new Error('User is already a member of this tenant');
     }
 
-    // Add user to workspace
-    const { error: insertError } = await supabaseClient
-      .from('membros_workspace')
-      .insert({
-        workspace_id,
-        user_id: userId,
-        role
-      });
+    let upsertError = null;
 
-    if (insertError) {
-      console.error('Error inserting member');
-      throw new Error('Failed to add member to workspace');
+    if (existingMember) {
+      const { error } = await supabaseClient
+        .from('tenant_users')
+        .update({
+          role,
+          active: true,
+          updated_at: new Date().toISOString(),
+          invited_by: user.id,
+          custom_permissions: custom_permissions ? JSON.stringify(custom_permissions) : null,
+        })
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId);
+
+      upsertError = error;
+    } else {
+      const { error } = await supabaseClient
+        .from('tenant_users')
+        .insert({
+          tenant_id: tenantId,
+          user_id: userId,
+          role,
+          active: true,
+          invited_by: user.id,
+          invited_at: new Date().toISOString(),
+          custom_permissions: custom_permissions ? JSON.stringify(custom_permissions) : null,
+        });
+
+      upsertError = error;
+    }
+
+    if (upsertError) {
+      console.error('Error inserting member', upsertError);
+      throw new Error('Failed to add member to tenant');
     }
 
     console.log('Member added successfully');
@@ -174,7 +202,8 @@ serve(async (req) => {
         success: true, 
         message: 'Member added successfully',
         user_id: userId,
-        user_created: !foundUser // Indicates if a new user was created
+        user_created: !existingMember && !foundUser, // Indicates if a new user was created via invite
+        tenant_id: tenantId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

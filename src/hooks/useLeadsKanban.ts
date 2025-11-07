@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { MIN_DATA_DATE } from '@/lib/constants';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
 
@@ -21,74 +23,177 @@ export interface KanbanColumn {
   leads: LeadKanban[];
 }
 
-export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: Date) {
-  const [columns, setColumns] = useState<Record<LeadStage, KanbanColumn>>({
-    novo_lead: { id: 'novo_lead', title: 'Novo Lead', leads: [] },
-    qualificacao: { id: 'qualificacao', title: 'Qualificando', leads: [] },
-    qualificados: { id: 'qualificados', title: 'Qualificados', leads: [] },
-    descartados: { id: 'descartados', title: 'Desqualificados', leads: [] },
-    followup: { id: 'followup', title: 'Follow-up', leads: [] },
-  });
+interface TenantConversationRow {
+  id: number;
+  tenant_id: string;
+  nome?: string;
+  lead_name?: string;
+  phone?: string;
+  produto?: string;
+  source?: string;
+  tag?: string;
+  created_at: string;
+}
+
+const STAGES: LeadStage[] = ['novo_lead', 'qualificacao', 'qualificados', 'descartados', 'followup'];
+
+const defaultLabels: Record<LeadStage, string> = {
+  novo_lead: 'Novo Lead',
+  qualificacao: 'Qualificando',
+  qualificados: 'Qualificados',
+  descartados: 'Desqualificados',
+  followup: 'Follow-up',
+};
+
+const siegLabels: Record<LeadStage, string> = {
+  novo_lead: 'T1 - Sem Resposta',
+  qualificacao: 'T2 - Respondido',
+  qualificados: 'T3 - Pago IA',
+  descartados: 'T5 - Desqualificado',
+  followup: 'T4 - Transferido',
+};
+
+const createEmptyColumns = (labels: Record<LeadStage, string>): Record<LeadStage, KanbanColumn> =>
+  STAGES.reduce((acc, stage) => ({ ...acc, [stage]: { id: stage, title: labels[stage], leads: [] } }),
+  {} as Record<LeadStage, KanbanColumn>);
+
+const mapTagToStage = (tag?: string | null, slug?: string): LeadStage => {
+  if (!tag) return 'novo_lead';
+  const normalized = tag.toLowerCase();
+  if (slug === 'sieg') {
+    if (normalized.includes('t4') || normalized.includes('transfer')) return 'followup';
+    if (normalized.includes('t3') || normalized.includes('pago')) return 'qualificados';
+    if (normalized.includes('t2') || normalized.includes('respond')) return 'qualificacao';
+    if (normalized.includes('t5') || normalized.includes('desqual')) return 'descartados';
+    return 'novo_lead';
+  }
+  if (normalized.includes('qualificado') || normalized.includes('t3')) return 'qualificados';
+  if (normalized.includes('follow') || normalized.includes('t4')) return 'followup';
+  if (normalized.includes('descart') || normalized.includes('t5')) return 'descartados';
+  if (normalized.includes('qualific')) return 'qualificacao';
+  return 'novo_lead';
+};
+
+const mapStageToTag = (stage: LeadStage, slug?: string): string => {
+  if (slug === 'sieg') {
+    if (stage === 'followup') return 'T4 - transferido';
+    if (stage === 'qualificados') return 'T3 - pago ia';
+    if (stage === 'qualificacao') return 'T2 - respondido';
+    if (stage === 'descartados') return 'T5 - desqualificado';
+    return 'T1 - sem resposta';
+  }
+  if (stage === 'qualificados') return 'qualificado';
+  if (stage === 'qualificacao') return 'qualificando';
+  if (stage === 'followup') return 'followup';
+  if (stage === 'descartados') return 'desqualificado';
+  return 'novo_lead';
+};
+
+const normalizeLead = (row: TenantConversationRow, slug?: string): LeadKanban | null => {
+  const stage = mapTagToStage(row.tag, slug);
+  const enteredAt = row.created_at ?? new Date().toISOString();
+  if (!row.phone) return null;
+  return {
+    id: row.id,
+    nome: row.nome || row.lead_name || 'Sem nome',
+    telefone: row.phone,
+    produto: row.produto || '',
+    canal_origem: row.source || 'nicochat',
+    stage,
+    entered_at: enteredAt,
+  };
+};
+
+const buildDailySeries = (leads: LeadKanban[], onlyQualified = false) => {
+  const start = new Date(MIN_DATA_DATE);
+  const end = new Date();
+  const totals: Record<string, number> = {};
+  const current = new Date(start);
+  while (current <= end) {
+    totals[current.toISOString().split('T')[0]] = 0;
+    current.setDate(current.getDate() + 1);
+  }
+  leads
+    .filter((lead) => (onlyQualified ? lead.stage === 'qualificados' : true))
+    .forEach((lead) => {
+      const day = lead.entered_at.split('T')[0];
+      if (totals[day] !== undefined) totals[day] += 1;
+    });
+  return Object.entries(totals)
+    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+    .map(([day, value]) => ({ day: day.split('-').reverse().slice(0, 2).join('/'), value }));
+};
+
+export function useLeadsKanban(_workspaceId: string, startDate?: Date, endDate?: Date) {
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
+  const [columns, setColumns] = useState<Record<LeadStage, KanbanColumn>>(() => createEmptyColumns(defaultLabels));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeads = async () => {
-    if (!workspaceId) return;
-    
+  useEffect(() => {
+    setColumns(createEmptyColumns(tenant?.slug === 'sieg' ? siegLabels : defaultLabels));
+  }, [tenant?.slug]);
+
+  const fetchLeads = useCallback(async () => {
+    if (tenantLoading) return;
+    if (!tenant) {
+      setColumns(createEmptyColumns(defaultLabels));
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      let query = supabase
-        .from('leads')
-        .select('id, nome, telefone, produto, canal_origem, stage, entered_at')
-        .eq('workspace_id', workspaceId);
+      let query = (centralSupabase.from as any)('tenant_conversations')
+        .select('id, tenant_id, nome, lead_name, phone, produto, source, tag, created_at')
+        .eq('tenant_id', tenant.id)
+        .gte('created_at', `${MIN_DATA_DATE}T00:00:00`)
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
-      // Apply date filters if provided
       if (startDate) {
-        query = query.gte('entered_at', startDate.toISOString());
+        query = query.gte('created_at', `${startDate.toISOString().split('T')[0]}T00:00:00`);
       }
       if (endDate) {
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        query = query.lte('entered_at', endOfDay.toISOString());
+        const endNext = new Date(endDate);
+        endNext.setDate(endNext.getDate() + 1);
+        query = query.lt('created_at', `${endNext.toISOString().split('T')[0]}T00:00:00`);
       }
 
-      const { data: leads, error: leadsError } = await query.order('entered_at', { ascending: false });
-
+      const { data, error: leadsError } = await query;
       if (leadsError) throw leadsError;
 
-      // Group leads by stage
-      const grouped: Record<LeadStage, LeadKanban[]> = {
-        novo_lead: [],
-        qualificacao: [],
-        qualificados: [],
-        descartados: [],
-        followup: [],
-      };
+      const labels = tenant.slug === 'sieg' ? siegLabels : defaultLabels;
+      const grouped = STAGES.reduce<Record<LeadStage, LeadKanban[]>>((acc, stage) => {
+        acc[stage] = [];
+        return acc;
+      }, {} as Record<LeadStage, LeadKanban[]>);
 
-      leads?.forEach((lead) => {
-        const stage = lead.stage as LeadStage;
-        if (grouped[stage]) {
-          grouped[stage].push(lead as LeadKanban);
-        }
-      });
+      (data || [])
+        .map((row: TenantConversationRow) => normalizeLead(row, tenant.slug))
+        .filter((lead): lead is LeadKanban => Boolean(lead))
+        .forEach((lead) => grouped[lead.stage].push(lead));
 
-      setColumns({
-        novo_lead: { id: 'novo_lead', title: 'Novo Lead', leads: grouped.novo_lead },
-        qualificacao: { id: 'qualificacao', title: 'Qualificando', leads: grouped.qualificacao },
-        qualificados: { id: 'qualificados', title: 'Qualificados', leads: grouped.qualificados },
-        descartados: { id: 'descartados', title: 'Desqualificados', leads: grouped.descartados },
-        followup: { id: 'followup', title: 'Follow-up', leads: grouped.followup },
-      });
+      setColumns(
+        STAGES.reduce((acc, stage) => ({
+          ...acc,
+          [stage]: { id: stage, title: labels[stage], leads: grouped[stage] },
+        }), {} as Record<LeadStage, KanbanColumn>)
+      );
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message ?? 'Erro ao carregar leads');
       toast.error('Erro ao carregar leads');
-      logger.error('Error fetching leads:', err);
+      logger.error('Error fetching kanban leads:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tenantLoading, tenant?.id, tenant?.slug, startDate, endDate]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const moveLead = async (
     leadId: number,
@@ -97,126 +202,72 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
     fromIndex: number,
     toIndex: number
   ) => {
-    // Optimistic update
-    const sourceColumn = columns[fromStage];
-    const destColumn = columns[toStage];
-    const sourceLeads = [...sourceColumn.leads];
-    const destLeads = fromStage === toStage ? sourceLeads : [...destColumn.leads];
-
-    const [movedLead] = sourceLeads.splice(fromIndex, 1);
-    destLeads.splice(toIndex, 0, { ...movedLead, stage: toStage });
-
-    setColumns({
-      ...columns,
-      [fromStage]: { ...sourceColumn, leads: sourceLeads },
-      [toStage]: { ...destColumn, leads: destLeads },
-    });
+    const labels = tenant?.slug === 'sieg' ? siegLabels : defaultLabels;
+    const current = structuredClone(columns);
+    const source = current[fromStage].leads;
+    const [lead] = source.splice(fromIndex, 1);
+    current[fromStage].leads = source;
+    const destination = fromStage === toStage ? source : current[toStage].leads;
+    destination.splice(toIndex, 0, { ...lead, stage: toStage });
+    setColumns(current);
 
     try {
-      // Update lead stage in database
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({ 
-          stage: toStage,
-          entered_at: new Date().toISOString()
-        })
-        .eq('id', leadId);
+      const { error: updateError } = await (centralSupabase as any)
+        .from('tenant_conversations')
+        .update({ tag: mapStageToTag(toStage, tenant?.slug), updated_at: new Date().toISOString() })
+        .eq('id', leadId)
+        .eq('tenant_id', tenant?.id || '');
 
       if (updateError) throw updateError;
-
-      // Log stage change in historico_leads (will be handled by trigger)
-      toast.success(`Lead movido para ${destColumn.title}`);
-    } catch (err: any) {
-      // Revert on error
-      toast.error('Erro ao mover lead');
+      toast.success(`Lead movido para ${labels[toStage]}`);
+    } catch (err) {
       logger.error('Error moving lead:', err);
-      await fetchLeads(); // Refetch to restore correct state
+      toast.error('Erro ao mover lead');
+      setColumns(columns); // rollback
     }
   };
 
-  useEffect(() => {
-    fetchLeads();
-  }, [workspaceId, startDate, endDate]);
+  const allLeads = useMemo(() => STAGES.flatMap((stage) => columns[stage].leads), [columns]);
+  const kpis = useMemo(() => {
+    const totalLeads = allLeads.length;
+    const qualifiedLeads = columns.qualificados.leads.length;
+    return {
+      totalLeads,
+      qualifiedLeads,
+      qualificationRate: totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0,
+    };
+  }, [allLeads.length, columns.qualificados.leads.length]);
 
-  // Calculate KPIs
-  const totalLeads = Object.values(columns).reduce((acc, col) => acc + col.leads.length, 0);
-  const qualifiedLeads = columns.qualificados.leads.length;
-  const qualificationRate = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
+  const stageLabels = tenant?.slug === 'sieg' ? siegLabels : defaultLabels;
+  const stageDistribution = useMemo(
+    () =>
+      STAGES.map((stage) => ({
+        name: stageLabels[stage],
+        value: columns[stage].leads.length,
+      })),
+    [columns, stageLabels]
+  );
 
-  // Aggregate data for charts
-  const allLeads = Object.values(columns).flatMap(col => col.leads);
-  
-  // Daily leads (group by entered_at date)
-  const dailyLeadsMap = new Map<string, number>();
-  allLeads.forEach(lead => {
-    const date = new Date(lead.entered_at).toISOString().split('T')[0];
-    dailyLeadsMap.set(date, (dailyLeadsMap.get(date) || 0) + 1);
-  });
-  const dailyLeads = Array.from(dailyLeadsMap.entries())
-    .map(([day, value]) => ({ day, value }))
-    .sort((a, b) => a.day.localeCompare(b.day));
-
-  // Stage distribution
-  const stageDistributionMap = new Map<string, number>();
-  const stageLabels: Record<LeadStage, string> = {
-    'novo_lead': 'Novo Lead',
-    'qualificacao': 'Qualificando',
-    'qualificados': 'Qualificados',
-    'descartados': 'Desqualificados',
-    'followup': 'Follow-up'
-  };
-  allLeads.forEach(lead => {
-    const label = stageLabels[lead.stage] || lead.stage;
-    stageDistributionMap.set(label, (stageDistributionMap.get(label) || 0) + 1);
-  });
-  const stageDistribution = Array.from(stageDistributionMap.entries())
-    .map(([name, value]) => ({ name, value }));
-
-  // Daily qualified (group qualified leads by entered_at)
-  const qualifiedLeadsData = allLeads.filter(l => l.stage === 'qualificados');
-  const dailyQualifiedMap = new Map<string, number>();
-  qualifiedLeadsData.forEach(lead => {
-    const date = new Date(lead.entered_at).toISOString().split('T')[0];
-    dailyQualifiedMap.set(date, (dailyQualifiedMap.get(date) || 0) + 1);
-  });
-  const dailyQualified = Array.from(dailyQualifiedMap.entries())
-    .map(([day, value]) => ({ day, value }))
-    .sort((a, b) => a.day.localeCompare(b.day));
-
-  // Funnel data - must be exactly 5 stages as a tuple
-  const funnelData: [
-    { id: string; label: string; value: number },
-    { id: string; label: string; value: number },
-    { id: string; label: string; value: number },
-    { id: string; label: string; value: number },
-    { id: string; label: string; value: number }
-  ] = [
-    { 
-      id: 'stage-1', 
-      label: 'Novo Lead', 
-      value: columns.novo_lead.leads.length 
-    },
-    { 
-      id: 'stage-2', 
-      label: 'Qualificando', 
-      value: columns.qualificacao.leads.length
-    },
-    { 
-      id: 'stage-3', 
-      label: 'Qualificados', 
-      value: qualifiedLeads 
-    },
-    { 
-      id: 'stage-4', 
-      label: 'Desqualificados', 
-      value: columns.descartados.leads.length
-    },
-    { 
-      id: 'stage-5', 
-      label: 'Follow-up', 
-      value: columns.followup.leads.length
-    }
-  ];
+  const charts = useMemo(() => ({
+    dailyLeads: buildDailySeries(allLeads),
+    stageDistribution,
+    dailyQualified: buildDailySeries(allLeads.filter((lead) => lead.stage === 'qualificados'), true),
+    funnelData:
+      tenant?.slug === 'sieg'
+        ? [
+            { id: 'novo_lead', label: stageLabels.novo_lead, value: columns.novo_lead.leads.length },
+            { id: 'qualificacao', label: stageLabels.qualificacao, value: columns.qualificacao.leads.length },
+            { id: 'qualificados', label: stageLabels.qualificados, value: columns.qualificados.leads.length },
+            { id: 'followup', label: stageLabels.followup, value: columns.followup.leads.length },
+          ]
+        : [
+            { id: 'novo_lead', label: stageLabels.novo_lead, value: columns.novo_lead.leads.length },
+            { id: 'qualificacao', label: stageLabels.qualificacao, value: columns.qualificacao.leads.length },
+            { id: 'qualificados', label: stageLabels.qualificados, value: columns.qualificados.leads.length },
+            { id: 'followup', label: stageLabels.followup, value: columns.followup.leads.length },
+            { id: 'descartados', label: stageLabels.descartados, value: columns.descartados.leads.length },
+          ],
+  }), [allLeads, columns, stageDistribution, stageLabels, tenant?.slug]);
 
   return {
     columns,
@@ -224,16 +275,7 @@ export function useLeadsKanban(workspaceId: string, startDate?: Date, endDate?: 
     error,
     moveLead,
     refetch: fetchLeads,
-    kpis: {
-      totalLeads,
-      qualifiedLeads,
-      qualificationRate,
-    },
-    charts: {
-      dailyLeads,
-      stageDistribution,
-      dailyQualified,
-      funnelData,
-    },
+    kpis,
+    charts,
   };
 }

@@ -76,7 +76,25 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
         if (!item) return name;
         const total = data.reduce((sum, d) => sum + d.value, 0);
         const percent = ((item.value / total) * 100).toFixed(1);
-        return `${name}\n${item.value} leads (${percent}%)`;
+        
+        // Detectar se é valor monetário (investimento) ou quantidade (leads)
+        const isMonetary = name.includes('Funil') || title?.toLowerCase().includes('investimento');
+        
+        let valueFormatted: string;
+        if (isMonetary) {
+          // Formatar como moeda
+          valueFormatted = item.value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        } else {
+          // Formatar como número inteiro (leads)
+          valueFormatted = `${Math.round(item.value)} leads`;
+        }
+        
+        return `${name}\n${valueFormatted} (${percent}%)`;
       },
     },
     series: [

@@ -1,7 +1,6 @@
 import React from "react";
 import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
 import { MobileMenu } from "./MobileMenu";
@@ -18,18 +17,18 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/types/permissions";
+import { TenantSelectorCompact } from "@/components/ui/TenantSelector";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdate: Date | null;
-  currentWorkspace: string | null;
-  onWorkspaceChange: (workspaceId: string) => Promise<void>;
   onExportPdf?: () => void;
   isExporting?: boolean;
 }
 
-export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, onWorkspaceChange, onExportPdf, isExporting }: HeaderProps) => {
+export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExporting }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -41,6 +40,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
     canViewAnalysis,
     loading: permissionsLoading
   } = usePermissions();
+  const { currentTenant } = useTenant();
 
   // Verificar se é o usuário master
   const [isMasterUser, setIsMasterUser] = React.useState(false);
@@ -58,7 +58,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
 
   // Debug: Log para verificar se o Header está sendo renderizado
   console.log('[Header] Renderizando Header', { 
-    currentWorkspace, 
+    currentTenant, 
     location: location.pathname, 
     isMasterUser,
     canAccessSettings,
@@ -129,21 +129,19 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
       case 'Tráfego':
         // Master user sempre vê Tráfego, EXCETO no workspace Sieg
         if (isMasterUser) {
-          // Verificar se é workspace Sieg
-          const isSiegWorkspace = currentWorkspace?.name?.toLowerCase().includes('sieg') || 
-                                 currentWorkspace?.slug === 'sieg';
+          const isSiegWorkspace = currentTenant?.slug === 'sieg';
           shouldShow = !isSiegWorkspace; // Mostrar para ASF, ocultar para SIEG
           console.log('🔑 [Header] MASTER USER - Tráfego:', { 
             shouldShow, 
             isSiegWorkspace,
-            workspaceName: currentWorkspace?.name,
-            workspaceSlug: currentWorkspace?.slug
+            tenantName: currentTenant?.name,
+            tenantSlug: currentTenant?.slug
           });
         } else {
           shouldShow = canViewTraffic();
           console.log('🔍 [Header] Filtro Tráfego (não-master):', { 
             shouldShow, 
-            currentWorkspace, 
+            currentTenant,
             permissionsLoading
           });
         }
@@ -184,8 +182,6 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
               items={menuItems}
               activeItem={getActiveItem()}
               onItemClick={handleMenuClick}
-              currentWorkspace={currentWorkspace}
-              onWorkspaceChange={onWorkspaceChange}
             />
 
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => navigate("/")}>
@@ -213,10 +209,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, currentWorkspace, 
 
           {/* Center Section: Workspace Selector */}
           <div className="flex flex-1 justify-center items-center gap-4 max-w-2xl">
-            <WorkspaceSelector 
-              current={currentWorkspace} 
-              onChange={onWorkspaceChange} 
-            />
+            <TenantSelectorCompact />
           </div>
 
           {/* Right Section: Status + Actions */}

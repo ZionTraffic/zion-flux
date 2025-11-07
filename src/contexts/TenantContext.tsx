@@ -1,0 +1,265 @@
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { useDatabase } from '@/contexts/DatabaseContext';
+
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  database_key: string;
+  domain?: string | null;
+  settings: Record<string, any>;
+  branding: Record<string, any>;
+  active: boolean;
+  max_users: number;
+  max_leads: number;
+  plan_type: 'basic' | 'pro' | 'enterprise';
+  billing_email?: string | null;
+  created_at: string;
+}
+
+interface TenantMembership {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  active: boolean;
+  custom_permissions: Record<string, any>;
+  tenant?: Tenant;
+}
+
+interface TenantContextType {
+  currentTenant: Tenant | null;
+  currentMembership: TenantMembership | null;
+  availableTenants: Tenant[];
+  memberships: TenantMembership[];
+  isLoading: boolean;
+  error: string | null;
+  switchTenant: (tenantId: string) => Promise<void>;
+  refreshTenants: () => Promise<void>;
+}
+
+const TenantContext = createContext<TenantContextType | undefined>(undefined);
+
+interface TenantProviderProps {
+  children: ReactNode;
+}
+
+const normalizeTenant = (tenantData: any): Tenant | null => {
+  if (!tenantData) return null;
+  return {
+    id: tenantData.id,
+    name: tenantData.name,
+    slug: tenantData.slug,
+    database_key: tenantData.database_key,
+    domain: tenantData.domain ?? null,
+    settings: tenantData.settings ?? {},
+    branding: tenantData.branding ?? {},
+    active: tenantData.active ?? true,
+    max_users: tenantData.max_users ?? 50,
+    max_leads: tenantData.max_leads ?? 10000,
+    plan_type: tenantData.plan_type ?? 'basic',
+    billing_email: tenantData.billing_email ?? null,
+    created_at: tenantData.created_at ?? new Date().toISOString(),
+  };
+};
+
+const normalizeMembership = (membershipData: any): TenantMembership | null => {
+  if (!membershipData) return null;
+  const tenant = normalizeTenant(membershipData.tenant);
+  return {
+    id: membershipData.id,
+    tenant_id: membershipData.tenant_id,
+    user_id: membershipData.user_id,
+    role: membershipData.role ?? 'viewer',
+    active: membershipData.active ?? true,
+    custom_permissions: membershipData.custom_permissions ?? {},
+    tenant: tenant ?? undefined,
+  };
+};
+
+export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
+  const { setDatabase, setTenant } = useDatabase();
+  const [memberships, setMemberships] = useState<TenantMembership[]>([]);
+  const [availableTenants, setAvailableTenants] = useState<Tenant[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [currentMembership, setCurrentMembership] = useState<TenantMembership | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const applyTenantSelection = async (tenant: Tenant) => {
+    try {
+      setTenant(tenant.id);
+      setDatabase(tenant.database_key);
+      localStorage.setItem('selectedTenantId', tenant.id);
+    } catch (err) {
+      console.warn('Não foi possível aplicar contexto do tenant:', err);
+    }
+  };
+
+  const loadUserTenants = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: authData, error: authError } = await centralSupabase.auth.getUser();
+      if (authError) throw authError;
+
+      const authUser = authData?.user;
+      if (!authUser) {
+        setMemberships([]);
+        setAvailableTenants([]);
+        setCurrentTenant(null);
+        setCurrentMembership(null);
+        return;
+      }
+
+      const { data: rawMemberships, error: membershipError } = await (centralSupabase.from as any)('tenant_users')
+        .select(`
+          id,
+          tenant_id,
+          user_id,
+          role,
+          active,
+          custom_permissions,
+          tenant:tenants_new (
+            id,
+            name,
+            slug,
+            database_key,
+            domain,
+            settings,
+            branding,
+            active,
+            max_users,
+            max_leads,
+            plan_type,
+            billing_email,
+            created_at
+          )
+        `)
+        .eq('user_id', authUser.id)
+        .eq('active', true);
+
+      if (membershipError) throw membershipError;
+
+      const normalizedMemberships = (rawMemberships || [])
+        .map((item: any) => normalizeMembership(item))
+        .filter((item): item is TenantMembership => Boolean(item));
+
+      const tenantsList = normalizedMemberships
+        .map((membership) => membership.tenant)
+        .filter((tenant): tenant is Tenant => Boolean(tenant));
+
+      setMemberships(normalizedMemberships);
+      setAvailableTenants(tenantsList);
+
+      if (tenantsList.length === 0) {
+        setCurrentTenant(null);
+        setCurrentMembership(null);
+        return;
+      }
+
+      const savedTenantId = localStorage.getItem('selectedTenantId');
+      const preferredTenant = tenantsList.find((tenant) => tenant.id === savedTenantId) || tenantsList[0];
+      const preferredMembership = normalizedMemberships.find((membership) => membership.tenant_id === preferredTenant.id) || null;
+
+      setCurrentTenant(preferredTenant);
+      setCurrentMembership(preferredMembership);
+      await applyTenantSelection(preferredTenant);
+    } catch (err) {
+      console.error('Erro ao carregar tenants:', err);
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar empresas');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const switchTenant = async (tenantId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const tenant = availableTenants.find((item) => item.id === tenantId);
+      if (!tenant) {
+        throw new Error('Empresa não encontrada');
+      }
+
+      const membership = memberships.find((item) => item.tenant_id === tenant.id) || null;
+
+      setCurrentTenant(tenant);
+      setCurrentMembership(membership);
+      await applyTenantSelection(tenant);
+    } catch (err) {
+      console.error('Erro ao trocar de tenant:', err);
+      setError(err instanceof Error ? err.message : 'Falha ao trocar de empresa');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshTenants = async () => {
+    await loadUserTenants();
+  };
+
+  useEffect(() => {
+    loadUserTenants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!currentTenant && availableTenants.length > 0 && !isLoading) {
+      const savedTenantId = localStorage.getItem('selectedTenantId');
+      if (savedTenantId && availableTenants.find((tenant) => tenant.id === savedTenantId)) {
+        switchTenant(savedTenantId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, availableTenants.length]);
+
+  const value: TenantContextType = {
+    currentTenant,
+    currentMembership,
+    availableTenants,
+    memberships,
+    isLoading,
+    error,
+    switchTenant,
+    refreshTenants,
+  };
+
+  return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
+};
+
+export const useTenant = (): TenantContextType => {
+  const context = useContext(TenantContext);
+  if (context === undefined) {
+    throw new Error('useTenant deve ser usado dentro de um TenantProvider');
+  }
+  return context;
+};
+
+export const useCurrentTenant = () => {
+  const { currentTenant, currentMembership, isLoading, refreshTenants } = useTenant();
+
+  return {
+    tenant: currentTenant,
+    membership: currentMembership,
+    isLoading,
+    tenantId: currentTenant?.id ?? null,
+    tenantSlug: currentTenant?.slug ?? null,
+    databaseKey: currentTenant?.database_key ?? null,
+    userRole: currentMembership?.role ?? 'viewer',
+    isOwner: currentMembership?.role === 'owner',
+    isAdmin:
+      currentMembership?.role === 'owner' ||
+      currentMembership?.role === 'admin',
+    refreshTenants,
+  };
+};

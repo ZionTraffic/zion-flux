@@ -51,22 +51,7 @@ export type Database = {
           summary?: string | null
           workspace_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "analise_fluxos_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "historico_conversas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "analise_fluxos_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "v_qualificacao"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       analise_ia: {
         Row: {
@@ -134,6 +119,27 @@ export type Database = {
           },
         ]
       }
+      blocked_phone_numbers: {
+        Row: {
+          created_at: string | null
+          id: string
+          phone_number: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          phone_number: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          phone_number?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       contas_anuncios: {
         Row: {
           active: boolean | null
@@ -168,6 +174,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversas_asf: {
+        Row: {
+          created_at: string | null
+          data_entrada: string | null
+          id: number
+          id_workspace: string | null
+          lead_name: string | null
+          messages: Json | null
+          phone: string | null
+          source: string | null
+          tag: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: number
+          id_workspace?: string | null
+          lead_name?: string | null
+          messages?: Json | null
+          phone?: string | null
+          source?: string | null
+          tag?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: number
+          id_workspace?: string | null
+          lead_name?: string | null
+          messages?: Json | null
+          phone?: string | null
+          source?: string | null
+          tag?: string | null
+        }
+        Relationships: []
+      }
+      conversas_sieg_financeiro: {
+        Row: {
+          analista: string | null
+          created_at: string
+          csat: string | null
+          data_conclusao: string | null
+          data_resposta_csat: string | null
+          data_transferencia: string | null
+          id: number
+          id_workspace: string
+          message_automatic: string | null
+          messages: Json | null
+          nome: string | null
+          phone: string | null
+          started: string
+          tag: string | null
+          tempo_medio_resposta: string | null
+          tempo_primeira_resposta: string | null
+          updated_at: string
+          valor_em_aberto: string | null
+        }
+        Insert: {
+          analista?: string | null
+          created_at?: string
+          csat?: string | null
+          data_conclusao?: string | null
+          data_resposta_csat?: string | null
+          data_transferencia?: string | null
+          id?: number
+          id_workspace: string
+          message_automatic?: string | null
+          messages?: Json | null
+          nome?: string | null
+          phone?: string | null
+          started?: string
+          tag?: string | null
+          tempo_medio_resposta?: string | null
+          tempo_primeira_resposta?: string | null
+          updated_at?: string
+          valor_em_aberto?: string | null
+        }
+        Update: {
+          analista?: string | null
+          created_at?: string
+          csat?: string | null
+          data_conclusao?: string | null
+          data_resposta_csat?: string | null
+          data_transferencia?: string | null
+          id?: number
+          id_workspace?: string
+          message_automatic?: string | null
+          messages?: Json | null
+          nome?: string | null
+          phone?: string | null
+          started?: string
+          tag?: string | null
+          tempo_medio_resposta?: string | null
+          tempo_primeira_resposta?: string | null
+          updated_at?: string
+          valor_em_aberto?: string | null
+        }
+        Relationships: []
       }
       custo_anuncios: {
         Row: {
@@ -237,48 +342,6 @@ export type Database = {
           name?: string
           service_role_secret_name?: string | null
           url?: string
-        }
-        Relationships: []
-      }
-      historico_conversas: {
-        Row: {
-          created_at: string | null
-          ended_at: string | null
-          id: number
-          lead_name: string | null
-          messages: Json
-          phone: string
-          source: string
-          started_at: string | null
-          tag: string
-          updated_at: string | null
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          ended_at?: string | null
-          id?: number
-          lead_name?: string | null
-          messages: Json
-          phone: string
-          source?: string
-          started_at?: string | null
-          tag?: string
-          updated_at?: string | null
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string | null
-          ended_at?: string | null
-          id?: number
-          lead_name?: string | null
-          messages?: Json
-          phone?: string
-          source?: string
-          started_at?: string | null
-          tag?: string
-          updated_at?: string | null
-          workspace_id?: string
         }
         Relationships: []
       }
@@ -443,6 +506,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string | null
+          permissions: string | null
           role: string
           token: string
           used_at: string | null
@@ -454,6 +518,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          permissions?: string | null
           role: string
           token: string
           used_at?: string | null
@@ -465,6 +530,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          permissions?: string | null
           role?: string
           token?: string
           used_at?: string | null
@@ -473,6 +539,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pending_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_phone_numbers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          phone: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          phone: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          created_at: string | null
+          granted: boolean | null
+          id: string
+          permission_key: string
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          granted?: boolean | null
+          id?: string
+          permission_key: string
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          granted?: boolean | null
+          id?: string
+          permission_key?: string
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -501,6 +623,29 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          default_workspace_id: string | null
+          user_id: string
+        }
+        Insert: {
+          default_workspace_id?: string | null
+          user_id: string
+        }
+        Update: {
+          default_workspace_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_default_workspace_id_fkey"
+            columns: ["default_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string | null
@@ -527,6 +672,25 @@ export type Database = {
       }
     }
     Views: {
+      custo_anuncios_totals: {
+        Row: {
+          media_diaria: number | null
+          primeira_data: string | null
+          total_dias: number | null
+          total_investido: number | null
+          ultima_data: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spend_by_day_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_overview_daily: {
         Row: {
           cpl: number | null
@@ -548,54 +712,39 @@ export type Database = {
           },
         ]
       }
-      v_analise_fluxos: {
-        Row: {
-          conversa_id: number | null
-          created_at: string | null
-          id: number | null
-          issues: string[] | null
-          lead_name: string | null
-          phone: string | null
-          score_coerencia: number | null
-          score_fluxo: number | null
-          score_humanizacao: number | null
-          suggestions: string[] | null
-          summary: string | null
-          tag: string | null
-          workspace_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "analise_fluxos_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "historico_conversas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "analise_fluxos_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "v_qualificacao"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_qualificacao: {
-        Row: {
-          entered_at: string | null
-          id: number | null
-          lead_name: string | null
-          phone: string | null
-          source: string | null
-          stage: string | null
-          tag: string | null
-          workspace_id: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
+      add_workspace_member: {
+        Args: {
+          p_role?: Database["public"]["Enums"]["app_role"]
+          p_set_default_workspace?: boolean
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      clean_phone_number: { Args: { phone: string }; Returns: string }
+      cleanup_orphan_users: {
+        Args: never
+        Returns: {
+          deleted_count: number
+          deleted_emails: string[]
+        }[]
+      }
+      get_atendimentos_metrics: {
+        Args: {
+          p_data_hoje: string
+          p_primeiro_dia_mes: string
+          p_table_name: string
+          p_ultimo_dia_mes: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      get_user_permissions: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       get_user_workspaces: {
         Args: { _user_id: string }
         Returns: {
@@ -618,6 +767,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_phone_blocked: { Args: { phone: string }; Returns: boolean }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -632,6 +782,26 @@ export type Database = {
           qualificados: number
           recebidos: number
         }[]
+      }
+      remove_workspace_member: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
+      save_user_permissions: {
+        Args: {
+          p_permissions: string[]
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      update_conversation_tag: {
+        Args: {
+          p_conversation_id: number
+          p_new_tag: string
+          p_table_name: string
+        }
+        Returns: boolean
       }
       update_workspace_member_role: {
         Args: { p_new_role: string; p_user_id: string; p_workspace_id: string }

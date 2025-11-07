@@ -3,6 +3,7 @@ import { useMetaAdsData } from './useMetaAdsData';
 import { useLeadsFromConversations } from './useLeadsFromConversations';
 import { useConversationsData } from './useConversationsData';
 import { MIN_DATA_DATE_OBJ } from '@/lib/constants';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 export interface BusinessHealth {
   status: 'healthy' | 'warning' | 'critical';
@@ -89,17 +90,21 @@ export interface ConversationsStats {
 }
 
 export function useExecutiveDashboard(
-  workspaceId: string,
+  _workspaceId: string,
   startDate?: Date,
   endDate?: Date,
   days: number = 30
 ) {
+  const { tenant, isLoading: tenantLoading } = useCurrentTenant();
+  const workspaceKey = tenant?.id || _workspaceId;
+  const isSieg = tenant?.slug === 'sieg';
+
   // Aplicar data mínima ao startDate se fornecido
   const effectiveStartDate = startDate && startDate < MIN_DATA_DATE_OBJ ? MIN_DATA_DATE_OBJ : startDate;
   
-  const metaAds = useMetaAdsData(workspaceId, effectiveStartDate, endDate, days);
-  const leads = useLeadsFromConversations(workspaceId, effectiveStartDate, endDate);
-  const conversations = useConversationsData(workspaceId, effectiveStartDate, endDate);
+  const metaAds = useMetaAdsData(workspaceKey, effectiveStartDate, endDate, days);
+  const leads = useLeadsFromConversations(workspaceKey, effectiveStartDate, endDate);
+  const conversations = useConversationsData(workspaceKey, effectiveStartDate, endDate);
 
   // Calcular métricas de qualificação
   const qualificationMetrics: QualificationMetrics = useMemo(() => {
@@ -118,9 +123,9 @@ export function useExecutiveDashboard(
       qualifiedLeads,
       cpl,
       qualificationRate,
-      investedTrend: 15, // Mock - calcular com dados históricos
+      investedTrend: 15,
       qualifiedTrend: 23,
-      cplTrend: -8, // Negativo = melhoria (custo diminuiu)
+      cplTrend: -8,
     };
   }, [metaAds.totals, leads.kpis]);
 
@@ -164,7 +169,7 @@ export function useExecutiveDashboard(
 
     // Alerta de qualificação baixa
     const qualificationRate = qualificationMetrics.qualificationRate;
-    if (qualificationRate < 25) {
+    if (!isSieg && qualificationRate < 25) {
       alertsList.push({
         id: 'low-qualification',
         type: 'warning',
@@ -176,7 +181,7 @@ export function useExecutiveDashboard(
 
     // Alerta de CPL alto
     const cpl = qualificationMetrics.cpl;
-    if (cpl > 80) {
+    if (!isSieg && cpl > 80) {
       alertsList.push({
         id: 'high-cpl',
         type: 'critical',
@@ -209,7 +214,7 @@ export function useExecutiveDashboard(
     const totalLeads = leads.kpis?.totalLeads || 0;
     const qualifiedLeads = leads.kpis?.qualifiedLeads || 0;
 
-    return [
+    const baseFunnel: FunnelStage[] = [
       {
         name: 'Impressões',
         value: impressions,
@@ -230,18 +235,24 @@ export function useExecutiveDashboard(
         benchmark: 70,
       },
       {
-        name: 'Leads Recebidos',
+        name: isSieg ? 'T1 - Leads Recebidos' : 'Leads Recebidos',
         value: totalLeads,
         conversionRate: totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0,
-        benchmark: 30,
-        isBottleneck: totalLeads > 0 && (qualifiedLeads / totalLeads) * 100 < 20,
+        benchmark: isSieg ? 40 : 30,
+        isBottleneck: totalLeads > 0 && (qualifiedLeads / totalLeads) * 100 < (isSieg ? 30 : 20),
       },
       {
-        name: 'Leads Qualificados',
+        name: isSieg ? 'T3 - Leads Qualificados' : 'Leads Qualificados',
         value: qualifiedLeads,
       },
     ];
-  }, [metaAds.totals, leads.kpis]);
+
+    if (isSieg) {
+      return baseFunnel.filter((stage) => stage.name !== 'Impressões' && stage.name !== 'Cliques');
+    }
+
+    return baseFunnel;
+  }, [metaAds.totals, leads.kpis, isSieg]);
 
   // Top campanhas por CPL (menor custo por lead qualificado)
   const topCampaigns = useMemo(() => {
@@ -450,7 +461,7 @@ export function useExecutiveDashboard(
     funnelData,
     topCampaigns,
     worstCampaign,
-    isLoading: metaAds.loading || leads.isLoading || conversations.isLoading,
+    isLoading: tenantLoading || metaAds.loading || leads.isLoading || conversations.isLoading,
     advancedMetrics,
     trafficLeadsChart,
     leadsSourceDistribution,

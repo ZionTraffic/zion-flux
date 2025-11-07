@@ -96,6 +96,18 @@ Deno.serve(async (req) => {
 
     console.log('✅ accept-workspace-invite: Invite validated', { workspace_id: invite.workspace_id, role: invite.role });
 
+    const tenantId = invite.workspace_id;
+    let customData: { tenant_id?: string; is_existing_member?: boolean } | null = null;
+    if (invite.custom_data) {
+      try {
+        customData = JSON.parse(invite.custom_data);
+      } catch (parseError) {
+        console.warn('⚠️ accept-workspace-invite: Could not parse custom_data', parseError);
+      }
+    }
+
+    const effectiveTenantId = customData?.tenant_id ?? tenantId;
+
     // Initialize admin client for privileged operations
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -111,38 +123,71 @@ Deno.serve(async (req) => {
     console.log('✅ accept-workspace-invite: Service role key configured:', !!supabaseServiceRoleKey);
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Add user to workspace using admin client + RPC (garante roles/settings)
-    console.log('🔧 accept-workspace-invite: About to call add_workspace_member RPC');
-    console.log('📝 accept-workspace-invite: RPC payload:', {
-      workspace_id: invite.workspace_id,
+    // Add user to tenant_users (reativa se já existir)
+    console.log('🔧 accept-workspace-invite: Upserting tenant membership', {
+      tenant_id: effectiveTenantId,
       user_id,
       role: invite.role,
     });
 
-    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('add_workspace_member', {
-      p_workspace_id: invite.workspace_id.toString(),
-      p_user_id: user_id.toString(),
-      p_role: invite.role,
-      p_set_default_workspace: true,
-    });
+    const { data: existingMembership, error: membershipFetchError } = await supabaseAdmin
+      .from('tenant_users')
+      .select('user_id, active')
+      .eq('tenant_id', effectiveTenantId)
+      .eq('user_id', user_id)
+      .maybeSingle();
 
-    if (rpcError) {
-      console.error('❌ accept-workspace-invite: Error calling add_workspace_member RPC:', rpcError);
-      throw rpcError;
+    if (membershipFetchError) {
+      console.error('❌ accept-workspace-invite: Error fetching tenant membership', membershipFetchError);
+      throw membershipFetchError;
     }
 
-    console.log('✅ accept-workspace-invite: add_workspace_member RPC response:', rpcResult);
+    if (existingMembership) {
+      const { error: updateMembershipError } = await supabaseAdmin
+        .from('tenant_users')
+        .update({
+          role: invite.role,
+          active: true,
+          updated_at: new Date().toISOString(),
+          joined_at: new Date().toISOString(),
+        })
+        .eq('tenant_id', effectiveTenantId)
+        .eq('user_id', user_id);
+
+      if (updateMembershipError) {
+        console.error('❌ accept-workspace-invite: Error updating tenant membership', updateMembershipError);
+        throw updateMembershipError;
+      }
+    } else {
+      const { error: insertMembershipError } = await supabaseAdmin
+        .from('tenant_users')
+        .insert({
+          tenant_id: effectiveTenantId,
+          user_id,
+          role: invite.role,
+          active: true,
+          joined_at: new Date().toISOString(),
+          invited_by: invite.invited_by,
+          invited_at: invite.created_at,
+          custom_permissions: invite.permissions ?? null,
+        });
+
+      if (insertMembershipError) {
+        console.error('❌ accept-workspace-invite: Error inserting tenant membership', insertMembershipError);
+        throw insertMembershipError;
+      }
+    }
 
     // Process custom permissions if they exist
     if (invite.permissions) {
       try {
         console.log('🔐 accept-workspace-invite: Processing custom permissions');
         const customPermissions = JSON.parse(invite.permissions);
-        
+
         if (Array.isArray(customPermissions) && customPermissions.length > 0) {
           // Insert custom permissions
           const permissionInserts = customPermissions.map(permission => ({
-            workspace_id: invite.workspace_id,
+            workspace_id: effectiveTenantId,
             user_id: user_id,
             permission_key: permission,
             granted: true
@@ -184,7 +229,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        workspace_id: invite.workspace_id,
+        tenant_id: effectiveTenantId,
         role: invite.role 
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

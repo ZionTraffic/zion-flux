@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDatabase } from '@/contexts/DatabaseContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -14,7 +14,7 @@ const VALID_TAGS = [
 
 export const useUpdateConversationTag = () => {
   const { supabase } = useDatabase();
-  const { currentWorkspaceId } = useWorkspace();
+  const { currentTenant } = useTenant();
   const [isUpdating, setIsUpdating] = useState(false);
 
   // workspaceId é opcional para manter compatibilidade
@@ -32,24 +32,21 @@ export const useUpdateConversationTag = () => {
     
     try {
       // Usar workspace atual se não fornecido
-      const wsId = workspaceId || currentWorkspaceId;
-      
+      const wsId = workspaceId || currentTenant?.id || null;
+      const tenantSlug =
+        wsId && wsId === currentTenant?.id
+          ? currentTenant?.slug
+          : currentTenant?.slug;
+
       // Descobrir tabela por workspace
       let tableName: string = 'historico_conversas';
       if (wsId) {
-        const { data: ws, error: wsError } = await supabase
-          .from('workspaces')
-          .select('slug')
-          .eq('id', wsId)
-          .maybeSingle();
-        
-        if (wsError) {
-          logger.error('Error fetching workspace', wsError);
-          throw new Error('Erro ao buscar workspace');
-        }
-        
-        tableName = ws?.slug === 'asf' ? 'conversas_asf' : ws?.slug === 'sieg' ? 'conversas_sieg_financeiro' : 'historico_conversas';
-        logger.info('Updating tag', { tableName, conversationId, newTag, wsId, slug: ws?.slug });
+        tableName = tenantSlug === 'asf'
+          ? 'conversas_asf'
+          : tenantSlug === 'sieg'
+            ? 'conversas_sieg_financeiro'
+            : 'historico_conversas';
+        logger.info('Updating tag', { tableName, conversationId, newTag, tenantId: wsId, slug: tenantSlug });
       }
 
       // Verificar se o registro existe antes de atualizar

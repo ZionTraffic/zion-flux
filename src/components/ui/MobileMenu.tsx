@@ -7,13 +7,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { WorkspaceSelector } from "./WorkspaceSelector";
 import { SettingsMenu } from "./SettingsMenu";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { TenantSelector } from "@/components/ui/TenantSelector";
 
 interface MenuItem {
   icon: LucideIcon;
@@ -27,16 +27,12 @@ interface MobileMenuProps {
   items: MenuItem[];
   activeItem: string;
   onItemClick: (label: string) => void;
-  currentWorkspace: string | null;
-  onWorkspaceChange: (workspaceId: string) => Promise<void>;
 }
 
 export function MobileMenu({
   items,
   activeItem,
   onItemClick,
-  currentWorkspace,
-  onWorkspaceChange,
 }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const { canAccessSettings } = useUserRole();
@@ -66,10 +62,7 @@ export function MobileMenu({
 
         {/* Workspace Selector Mobile */}
         <div className="mt-6 mb-4 pb-4 border-b border-border/50">
-          <WorkspaceSelector
-            current={currentWorkspace}
-            onChange={onWorkspaceChange}
-          />
+          <TenantSelector />
         </div>
 
         {/* Navigation Items */}

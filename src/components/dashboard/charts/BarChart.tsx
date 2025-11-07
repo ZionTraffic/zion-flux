@@ -60,7 +60,8 @@ export const BarChart = ({ data, title = 'Valor Levado', valueType = 'currency' 
         fontSize: 11,
         fontWeight: 600,
         rotate: 45,
-        interval: 0,
+        interval: 'auto', // Mostra apenas labels que cabem sem sobrepor
+        hideOverlap: true, // Esconde labels sobrepostas
       },
     },
     yAxis: {

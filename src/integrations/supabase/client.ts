@@ -37,6 +37,10 @@ export const createSupabaseClient = (url: string, anonKey: string, storageKey: s
 };
 
 // Default client (for backward compatibility)
+const DEFAULT_STORAGE_KEY = SUPABASE_URL
+  ? `sb-${SUPABASE_URL.split('//')[1]?.split('.')[0] || 'default'}`
+  : 'sb-default';
+
 export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
-  ? createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, 'sb-asf')
-  : createSupabaseClient('http://localhost', 'invalid-key', 'sb-asf');
+  ? createSupabaseClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, DEFAULT_STORAGE_KEY)
+  : createSupabaseClient('http://localhost', 'invalid-key', 'sb-default');

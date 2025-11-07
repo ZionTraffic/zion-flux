@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { DatabaseProvider } from "@/contexts/DatabaseContext";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { AutoRedirect } from "@/components/auth/AutoRedirect";
@@ -40,7 +40,7 @@ const App = () => (
               {/* Protected Routes - Single WorkspaceProvider for all */}
               <Route path="/*" element={
                 <ProtectedRoute>
-                  <WorkspaceProvider>
+                  <TenantProvider>
                     <AutoRedirect />
                     <Routes>
                       <Route path="/" element={<DashboardIndex />} />
@@ -52,7 +52,7 @@ const App = () => (
                       <Route path="/no-access" element={<NoAccess />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </WorkspaceProvider>
+                  </TenantProvider>
                 </ProtectedRoute>
               } />
             </Routes>

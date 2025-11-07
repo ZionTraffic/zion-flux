@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useDatabase } from '@/contexts/DatabaseContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { logger } from '@/utils/logger';
+import { useTenant } from '@/contexts/TenantContext';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
 
 /**
  * SECURITY NOTE: Client-side role checks are for UX purposes only.
@@ -22,78 +21,52 @@ interface UseUserRoleReturn {
 }
 
 export function useUserRole(): UseUserRoleReturn {
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { currentWorkspaceId } = useWorkspace();
-  const { supabase } = useDatabase();
+  const { currentTenant, currentMembership, isLoading: tenantsLoading } = useTenant();
+  const [isMasterUser, setIsMasterUser] = useState(false);
+  const [checkingMaster, setCheckingMaster] = useState(true);
 
   useEffect(() => {
-    async function fetchUserRole() {
-      if (!currentWorkspaceId) {
-        setRole(null);
-        setLoading(false);
-        return;
-      }
+    let isMounted = true;
 
+    const verifyMasterUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setRole(null);
-          setLoading(false);
-          return;
-        }
-
-        // CORREÇÃO TEMPORÁRIA: Forçar owner para George em qualquer workspace
-        if (user.email === 'george@ziontraffic.com.br') {
-          console.log('✅ [useUserRole] George detectado - Definindo role como owner');
-          setRole('owner');
-          setLoading(false);
-          return;
-        }
-
-        console.log('🔍 [useUserRole] Buscando role:', { workspaceId: currentWorkspaceId, userId: user.id, email: user.email });
-
-        const { data, error } = await supabase
-          .from('membros_workspace')
-          .select('role')
-          .eq('workspace_id', currentWorkspaceId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) {
-          console.warn('⚠️ [useUserRole] Error fetching user role', error);
-          setRole(null);
-        } else {
-          console.log('✅ [useUserRole] Role encontrado:', data?.role);
-          setRole(data?.role as UserRole || null);
-        }
-      } catch (error) {
-        logger.error('Error in fetchUserRole', error);
-        setRole(null);
+        const { data } = await centralSupabase.auth.getUser();
+        const email = data.user?.email ?? null;
+        if (!isMounted) return;
+        setIsMasterUser(email === 'george@ziontraffic.com.br');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setCheckingMaster(false);
+        }
       }
-    }
+    };
 
-    fetchUserRole();
-  }, [currentWorkspaceId, supabase]);
+    verifyMasterUser();
 
-  const isOwner = role === 'owner';
-  const isAdmin = role === 'admin';
-  const isMember = role === 'member';
-  const isViewer = role === 'viewer';
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const derivedRole: UserRole | null = isMasterUser
+    ? 'owner'
+    : (currentMembership?.role as UserRole | undefined) ?? null;
+
+  const isOwner = derivedRole === 'owner';
+  const isAdmin = derivedRole === 'admin';
+  const isMember = derivedRole === 'member';
+  const isViewer = derivedRole === 'viewer';
   const canAccessSettings = isOwner || isAdmin;
   const canAccessAnalysis = isOwner || isAdmin;
 
   return {
-    role,
+    role: derivedRole,
     isOwner,
     isAdmin,
     isMember,
     isViewer,
     canAccessSettings,
     canAccessAnalysis,
-    loading,
+    loading: tenantsLoading || checkingMaster,
   };
 }

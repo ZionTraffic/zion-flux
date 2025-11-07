@@ -12,18 +12,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PendingInvitesList } from './PendingInvitesList';
 import { PermissionSelector } from '@/components/permissions/PermissionSelector';
 import { PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from '@/types/permissions';
-import type { Workspace } from '@/hooks/useWorkspaces';
+import { useCurrentTenant } from '@/contexts/TenantContext';
 
 interface AddMemberModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddMember: (email: string, role: string, workspaceId: string) => Promise<void>;
-  workspaces: Workspace[];
-  currentWorkspaceId: string | null;
+  onAddMember: (email: string, role: string, tenantId: string) => Promise<void>;
+  currentTenantId: string | null;
+  currentTenantName?: string | null;
 }
 
 const addMemberSchema = z.object({
-  workspace_id: z.string().uuid('Workspace inválido'),
+  tenant_id: z.string().uuid('Empresa inválida'),
   email: z.string()
     .trim()
     .email('Email inválido')
@@ -33,8 +33,11 @@ const addMemberSchema = z.object({
   })
 });
 
-export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, currentWorkspaceId }: AddMemberModalProps) {
-  const [workspaceId, setWorkspaceId] = useState<string>(currentWorkspaceId || '');
+export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantId, currentTenantName }: AddMemberModalProps) {
+  const { tenant } = useCurrentTenant();
+  const effectiveTenantId = tenant?.id || currentTenantId || '';
+  const effectiveTenantName = tenant?.name || currentTenantName || 'Empresa';
+  const [tenantId, setTenantId] = useState<string>(effectiveTenantId);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>('member');
   const [selectedPermissions, setSelectedPermissions] = useState<PermissionKey[]>(
@@ -48,8 +51,8 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
 
   // Carregar template salvo quando workspace mudar
   useEffect(() => {
-    if (workspaceId) {
-      const templateKey = `permission_template_${workspaceId}`;
+    if (tenantId) {
+      const templateKey = `permission_template_${tenantId}`;
       const savedTemplate = localStorage.getItem(templateKey);
       
       if (savedTemplate) {
@@ -59,7 +62,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
           setSelectedPermissions(template.permissions || [...DEFAULT_PERMISSIONS_BY_ROLE.member]);
           setHasTemplate(true);
           
-          toast.info(`Template carregado para ${template.workspaceName}`, {
+          toast.info(`Template carregado para ${template.tenantName}`, {
             description: `${template.permissions?.length || 0} permissões configuradas`
           });
         } catch (error) {
@@ -70,13 +73,12 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         setHasTemplate(false);
       }
     }
-  }, [workspaceId]);
+  }, [tenantId]);
 
   const handleSavePermissions = async () => {
     try {
-      // Validar se workspace está selecionado
-      if (!workspaceId) {
-        toast.error('Selecione um workspace primeiro');
+      if (!tenantId) {
+        toast.error('Nenhuma empresa selecionada');
         return;
       }
 
@@ -99,7 +101,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         body: {
           email: email.toLowerCase().trim(),
           role: role,
-          workspace_id: workspaceId,
+          tenant_id: tenantId,
           permissions: selectedPermissions
         }
       });
@@ -116,12 +118,12 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
       console.log('Convite gerado com permissões customizadas:', data);
 
       // Salvar template também
-      const templateKey = `permission_template_${workspaceId}`;
+      const templateKey = `permission_template_${tenantId}`;
       const template = {
         role,
         permissions: selectedPermissions,
         savedAt: new Date().toISOString(),
-        workspaceName: workspaces.find(w => w.id === workspaceId)?.name || 'Workspace'
+        tenantName: effectiveTenantName,
       };
 
       localStorage.setItem(templateKey, JSON.stringify(template));
@@ -145,7 +147,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
   };
 
   const handleClose = () => {
-    setWorkspaceId(currentWorkspaceId || '');
+    setTenantId(effectiveTenantId);
     setEmail('');
     setRole('member');
     setSelectedPermissions([...DEFAULT_PERMISSIONS_BY_ROLE.member] as PermissionKey[]);
@@ -158,10 +160,10 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
   const handleGenerateLink = async () => {
     setError(null);
     
-    const targetWorkspaceId = workspaceId || currentWorkspaceId;
+    const targetTenantId = tenantId || effectiveTenantId;
     
-    if (!targetWorkspaceId) {
-      setError('Selecione um workspace');
+    if (!targetTenantId) {
+      setError('Nenhuma empresa selecionada');
       return;
     }
 
@@ -181,7 +183,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
       }
 
       const validation = addMemberSchema.parse({
-        workspace_id: targetWorkspaceId,
+        tenant_id: targetTenantId,
         email,
         role
       });
@@ -192,7 +194,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         body: {
           email: validation.email,
           role: validation.role,
-          workspace_id: validation.workspace_id,
+          tenant_id: validation.tenant_id,
           permissions: selectedPermissions
         }
       });
@@ -233,7 +235,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
         <DialogHeader>
           <DialogTitle className="text-foreground">Gerenciar Convites</DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="generate" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="generate">Gerar Convite</TabsTrigger>
@@ -242,19 +244,10 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
 
           <TabsContent value="generate" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="workspace">Workspace</Label>
-              <Select value={workspaceId} onValueChange={setWorkspaceId} disabled={isLoading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um workspace" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
-                  {workspaces.map((ws) => (
-                    <SelectItem key={ws.id} value={ws.id} className="cursor-pointer">
-                      {ws.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Empresa selecionada</Label>
+              <div className="px-3 py-2 rounded-lg border border-border/60 bg-background/80 text-sm">
+                {effectiveTenantName}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -365,7 +358,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, workspaces, cu
 
           <TabsContent value="pending" className="mt-4">
             <PendingInvitesList 
-              workspaceId={workspaceId || currentWorkspaceId || ''} 
+              tenantId={tenantId || effectiveTenantId} 
               onUpdate={() => {}}
             />
           </TabsContent>
