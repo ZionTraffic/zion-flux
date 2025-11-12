@@ -151,7 +151,7 @@ export function useLeadsKanban(_workspaceId: string, startDate?: Date, endDate?:
         .eq('tenant_id', tenant.id)
         .gte('created_at', `${MIN_DATA_DATE}T00:00:00`)
         .order('created_at', { ascending: false })
-        .limit(1000);
+        .limit(50000);
 
       if (startDate) {
         query = query.gte('created_at', `${startDate.toISOString().split('T')[0]}T00:00:00`);

@@ -50,7 +50,10 @@ export function useMetaAdsData(
   // Função para buscar dados reais da API do Meta Ads
   const fetchMetaAdsDataFromAPI = async () => {
     try {
+      console.log('🚀 fetchMetaAdsDataFromAPI iniciado');
+      
       if (!tenant) {
+        console.log('❌ Sem tenant, zerando dados');
         setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
         setDaily([]);
         setCampaigns([]);
@@ -58,15 +61,24 @@ export function useMetaAdsData(
         return;
       }
 
+      console.log('✅ Tenant encontrado:', { id: tenant.id, name: tenant.name, slug: tenant.slug });
+
       // Buscar contas Meta Ads vinculadas ao workspace
+      console.log('🔍 Buscando contas Meta Ads...');
       const { data: metaAccounts, error: accountsError } = await (centralSupabase as any)
         .from('meta_ads_accounts')
         .select('account_id, account_name')
         .eq('workspace_id', tenant.id)
         .eq('is_active', true);
 
+      console.log('📊 Resultado meta_ads_accounts:', {
+        error: accountsError,
+        contas: metaAccounts?.length || 0,
+        nomes: metaAccounts?.map(a => a.account_name)
+      });
+
       if (accountsError || !metaAccounts || metaAccounts.length === 0) {
-        console.log('⚠️ Nenhuma conta Meta Ads vinculada ao workspace');
+        console.log('⚠️ Nenhuma conta Meta Ads vinculada, usando fallback');
         await loadFallbackData();
         return;
       }
@@ -121,6 +133,12 @@ export function useMetaAdsData(
           const insightsData = await insightsResponse.json();
           
           console.log(`📊 Resposta da API para ${account.account_name}:`, insightsData);
+
+          // Se houver erro na API, pular esta conta
+          if (insightsData.error) {
+            console.error(`❌ Erro na API do Meta para ${account.account_name}:`, insightsData.error);
+            continue;
+          }
 
           if (insightsData.data && insightsData.data.length > 0) {
             // Processar dados diários
@@ -224,7 +242,20 @@ export function useMetaAdsData(
       // Usar apenas conversões reais, sem estimar
       const conversions = totalConversions;
       
-      console.log(`📊 Total de conversões: ${conversions} (reais: ${totalConversions}, cliques: ${totalClicks})`);
+      console.log(`📊 Totais da API:`, {
+        impressions: totalImpressions,
+        clicks: totalClicks,
+        spend: totalSpend,
+        conversions: totalConversions
+      });
+      
+      // Se não conseguiu buscar nenhum dado da API, usar fallback
+      if (totalImpressions === 0 && totalClicks === 0 && totalSpend === 0) {
+        console.log('⚠️ API do Meta não retornou dados, usando fallback do banco');
+        await loadFallbackData();
+        return;
+      }
+
       const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
       const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
@@ -288,13 +319,18 @@ export function useMetaAdsData(
   // Função para carregar dados do banco quando Meta Ads falhar
   const loadFallbackData = async () => {
     try {
+      console.log('🔄 loadFallbackData iniciado');
+      
       if (!tenant) {
+        console.log('❌ loadFallbackData: Sem tenant');
         setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
         setDaily([]);
         setCampaigns([]);
         setLoading(false);
         return;
       }
+
+      console.log('✅ loadFallbackData: Tenant encontrado:', { id: tenant.id, name: tenant.name });
 
       // Calcular range de datas
       let from = new Date();
@@ -310,13 +346,31 @@ export function useMetaAdsData(
       const toDateStr = to.toISOString().split('T')[0];
 
       // Buscar dados da tabela custo_anuncios COM FILTRO DE DATAS
-      const { data: custoData } = await (centralSupabase as any)
+      console.log('🔍 Buscando dados de tenant_ad_costs:', {
+        tenant_id: tenant.id,
+        tenant_name: tenant.name,
+        from: fromDateStr,
+        to: toDateStr
+      });
+
+      const { data: custoData, error: custoError } = await (centralSupabase as any)
         .from('tenant_ad_costs')
         .select('*')
         .eq('tenant_id', tenant.id)
         .gte('day', fromDateStr)
         .lte('day', toDateStr)
         .order('day', { ascending: true });
+
+      if (custoError) {
+        console.error('❌ Erro ao buscar tenant_ad_costs:', custoError);
+      }
+
+      console.log('📊 Resultado tenant_ad_costs:', {
+        encontrado: !!custoData,
+        quantidade: custoData?.length || 0,
+        primeiroRegistro: custoData?.[0],
+        ultimoRegistro: custoData?.[custoData.length - 1]
+      });
 
       if (custoData && custoData.length > 0) {
         console.log('📅 Período dos dados:', {
@@ -435,28 +489,68 @@ export function useMetaAdsData(
   };
 
   async function fetchData() {
-    if (tenantLoading) return;
+    console.log('🎯 fetchData chamado:', { 
+      tenantLoading, 
+      hasTenant: !!tenant,
+      tenantId: tenant?.id,
+      tenantName: tenant?.name 
+    });
+    
+    if (tenantLoading) {
+      console.log('⏳ Aguardando tenant carregar...');
+      return;
+    }
+    
     if (!tenant) {
+      console.log('❌ Sem tenant, abortando');
       setLoading(false);
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    // Sistema de retry com backoff exponencial
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // PRIORIDADE: Tentar buscar dados reais da API do Meta Ads
-      await fetchMetaAdsDataFromAPI();
-      
-      // Se a API falhar, loadFallbackData já é chamado dentro de fetchMetaAdsDataFromAPI
-      return;
-    } catch (err) {
-      logger.error('Error fetching data', err);
-      setError('Erro ao carregar dados');
-      setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
-      setDaily([]);
-      setCampaigns([]);
-      setLoading(false);
+        console.log(`🚀 Tentativa ${attempt + 1}/${maxRetries} - Iniciando busca de dados...`);
+        
+        // PRIORIDADE: Tentar buscar dados reais da API do Meta Ads
+        await fetchMetaAdsDataFromAPI();
+        
+        // Se chegou aqui, sucesso!
+        console.log('✅ Dados carregados com sucesso!');
+        return;
+        
+      } catch (err) {
+        attempt++;
+        logger.error(`Error fetching data (attempt ${attempt}/${maxRetries})`, err);
+        
+        if (attempt >= maxRetries) {
+          // Última tentativa falhou, usar fallback
+          console.log('⚠️ Todas as tentativas falharam, usando fallback...');
+          try {
+            await loadFallbackData();
+          } catch (fallbackErr) {
+            logger.error('Fallback also failed', fallbackErr);
+            setError('Erro ao carregar dados');
+            setTotals({ impressions: 0, clicks: 0, spend: 0, cpc: 0, ctr: 0, conversions: 0, conversas_iniciadas: 0 });
+            setDaily([]);
+            setCampaigns([]);
+          }
+        } else {
+          // Aguardar antes de tentar novamente (backoff exponencial)
+          const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ Aguardando ${waitTime}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      } finally {
+        setLoading(false);
+        setLastUpdate(new Date());
+      }
     }
   }
 

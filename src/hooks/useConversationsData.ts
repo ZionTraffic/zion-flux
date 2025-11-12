@@ -177,14 +177,21 @@ function analyzeSentimentFromMessages(messages: any[]): {
 
 function generateSummaryFromMessages(messages: any[]): string {
   if (!messages || messages.length === 0) {
-    return "Conversa sem mensagens registradas";
+    return "Conversa iniciada - aguardando mensagens";
   }
   
-  const userMessages = messages.filter(m => m.role === "user");
+  // Filtrar mensagens válidas (com conteúdo não vazio)
+  const validMessages = messages.filter(m => m.content && m.content.trim() !== '' && m.content !== 'undefined' && !m.content.includes('[wa_template]: undefined'));
+  
+  if (validMessages.length === 0) {
+    return `Conversa com ${messages.length} mensagem(ns) - conteúdo em processamento`;
+  }
+  
+  const userMessages = validMessages.filter(m => m.role === "user");
   const firstUserMsg = userMessages[0];
   
   if (!firstUserMsg) {
-    return `Conversa com ${messages.length} mensagens do assistente`;
+    return `Conversa com ${validMessages.length} mensagens do assistente`;
   }
   
   const preview = firstUserMsg.content?.substring(0, 80) || "...";
@@ -238,7 +245,7 @@ export function useConversationsData(_workspaceId: string, startDate?: Date, end
           query = query.lt('created_at', `${endNextStr}T00:00:00`);
         }
 
-        query = query.order('created_at', { ascending: false }).limit(1000);
+        query = query.order('created_at', { ascending: false }).limit(50000);
 
         const { data: conversationsData, error: conversationsError } = await query;
 
@@ -283,32 +290,52 @@ export function useConversationsData(_workspaceId: string, startDate?: Date, end
             // Verificar se messages existe e tem conteúdo
             const messages = conv.messages;
             
-            // Se messages for um array válido com tamanho > 0
-            if (Array.isArray(messages) && messages.length > 0) {
+            // Aceitar qualquer conversa que tenha o campo messages preenchido (não null/undefined)
+            // Mesmo que seja um array vazio ou objeto vazio, incluir para análise
+            if (messages !== null && messages !== undefined) {
               return true;
             }
             
-            // Se messages for um objeto JSONB válido com conteúdo
-            if (messages && typeof messages === 'object' && Object.keys(messages).length > 0) {
-              return true;
-            }
-            
-            return false; // Filtrar conversas sem mensagens
+            return false; // Filtrar apenas conversas sem o campo messages
           })
           .map(conv => {
-            // Mensagens já vêm direto da tabela
-            let messages: Message[] = Array.isArray(conv.messages) 
-              ? (conv.messages as unknown as Message[])
-              : [];
+            // Mensagens podem vir em dois formatos:
+            // 1. Array de objetos: [{role: "user", content: "..."}]
+            // 2. Array de strings: ["Bot: ...", "You: ..."]
+            let messages: Message[] = [];
             
-            // Filtrar mensagens inválidas (wa_template: undefined, etc)
-            messages = messages.filter(msg => {
-              // Remover mensagens com conteúdo inválido
-              if (!msg.content || msg.content.trim() === '') return false;
-              if (msg.content.includes('[wa_template]: undefined')) return false;
-              if (msg.content === 'undefined') return false;
-              return true;
-            });
+            if (Array.isArray(conv.messages)) {
+              messages = conv.messages.map((msg: any) => {
+                // Se já é um objeto com role e content, usar diretamente
+                if (typeof msg === 'object' && msg.role && msg.content) {
+                  return msg as Message;
+                }
+                
+                // Se é uma string no formato "Bot: ..." ou "You: ...", converter
+                if (typeof msg === 'string') {
+                  if (msg.startsWith('Bot: ')) {
+                    return {
+                      role: 'assistant',
+                      content: msg.substring(5), // Remove "Bot: "
+                      timestamp: undefined
+                    };
+                  } else if (msg.startsWith('You: ')) {
+                    return {
+                      role: 'user',
+                      content: msg.substring(5), // Remove "You: "
+                      timestamp: undefined
+                    };
+                  }
+                }
+                
+                // Fallback: retornar como mensagem do assistente
+                return {
+                  role: 'assistant',
+                  content: typeof msg === 'string' ? msg : JSON.stringify(msg),
+                  timestamp: undefined
+                };
+              });
+            }
 
             // Calcular sentimento diretamente das mensagens
             const sentimentData = analyzeSentimentFromMessages(messages);

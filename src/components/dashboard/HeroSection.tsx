@@ -18,6 +18,8 @@ export function HeroSection({
   trend = "stable",
   hideStats = false
 }: HeroSectionProps) {
+  console.log('🔍 HeroSection - hideStats:', hideStats, 'workspaceName:', workspaceName);
+  
   const greeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Bom dia";
@@ -71,7 +73,7 @@ export function HeroSection({
       }} />
 
       <div className="relative z-10">
-        <div className="flex items-start justify-between mb-6">
+        <div className={`flex items-start justify-between ${!hideStats ? 'mb-6' : ''}`}>
           <div>
             <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg flex items-center gap-2">
               {greeting()}, {userName?.split('@')[0] || 'Usuário'}!

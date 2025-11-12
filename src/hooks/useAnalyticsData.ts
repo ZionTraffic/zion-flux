@@ -22,6 +22,17 @@ export interface DailyData {
   cpl: number;
 }
 
+const normalizeMetricValue = (value: number | string | null | undefined): number => {
+  if (typeof value === 'number' && !Number.isNaN(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
 export function useAnalyticsData(workspaceId: string) {
   const { supabase } = useDatabase();
   const [totals, setTotals] = useState<TotalsData | null>(null);
@@ -44,24 +55,13 @@ export function useAnalyticsData(workspaceId: string) {
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
 
-      // Buscar totais via RPC
-      const { data: totalsData, error: totalsError } = await supabase.rpc('kpi_totais_periodo', {
-        p_workspace_id: workspaceId,
-        p_from: startDateStr,
-        p_to: endDateStr,
-      });
-
-      if (totalsError) {
-        logger.error('Erro ao carregar totais:', totalsError.message);
-        throw totalsError;
-      }
-
       // Buscar dados diários
       const { data: dailyData, error: dailyError } = await supabase
         .from('kpi_overview_daily')
         .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
         .eq('workspace_id', workspaceId)
         .gte('day', startDate.toISOString())
+        .limit(5000)
         .order('day', { ascending: true });
 
       if (dailyError) {
@@ -69,17 +69,36 @@ export function useAnalyticsData(workspaceId: string) {
         throw dailyError;
       }
 
-      // A RPC retorna campos com nomes diferentes, então mapeamos
-      const mappedTotals = totalsData?.[0] ? {
-        leads_recebidos: totalsData[0].recebidos,
-        leads_qualificados: totalsData[0].qualificados,
-        leads_followup: totalsData[0].followup,
-        leads_descartados: totalsData[0].descartados,
-        investimento: totalsData[0].investimento,
-        cpl: totalsData[0].cpl,
-      } : null;
-      
-      setTotals(mappedTotals);
+      const aggregates = (dailyData || []).reduce(
+        (acc, day) => {
+          acc.leads_recebidos += normalizeMetricValue(day.leads_recebidos);
+          acc.leads_qualificados += normalizeMetricValue(day.leads_qualificados);
+          acc.leads_followup += normalizeMetricValue(day.leads_followup);
+          acc.leads_descartados += normalizeMetricValue(day.leads_descartados);
+          acc.investimento += normalizeMetricValue(day.investimento);
+          return acc;
+        },
+        {
+          leads_recebidos: 0,
+          leads_qualificados: 0,
+          leads_followup: 0,
+          leads_descartados: 0,
+          investimento: 0,
+        }
+      );
+
+      const totalQualified = aggregates.leads_qualificados;
+      const totalInvest = aggregates.investimento;
+      const computedCpl = totalQualified > 0 ? totalInvest / totalQualified : 0;
+
+      setTotals({
+        leads_recebidos: aggregates.leads_recebidos,
+        leads_qualificados: totalQualified,
+        leads_followup: aggregates.leads_followup,
+        leads_descartados: aggregates.leads_descartados,
+        investimento: Number(totalInvest.toFixed(2)),
+        cpl: Number(computedCpl.toFixed(2)),
+      });
       setDaily(dailyData || []);
       setLastUpdate(new Date());
     } catch (error: any) {

@@ -42,28 +42,18 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
   } = usePermissions();
   const { currentTenant } = useTenant();
 
-  // Verificar se é o usuário master
-  const [isMasterUser, setIsMasterUser] = React.useState(false);
+  // Verificar se é o usuário master de forma síncrona
+  const [userEmail, setUserEmail] = React.useState<string | null>(null);
   
   React.useEffect(() => {
-    const checkMasterUser = async () => {
+    const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email === 'george@ziontraffic.com.br') {
-        setIsMasterUser(true);
-        console.log('🔓 MASTER USER - Mostrando todos os itens do menu');
-      }
+      setUserEmail(user?.email || null);
     };
-    checkMasterUser();
+    checkUser();
   }, []);
-
-  // Debug: Log para verificar se o Header está sendo renderizado
-  console.log('[Header] Renderizando Header', { 
-    currentTenant, 
-    location: location.pathname, 
-    isMasterUser,
-    canAccessSettings,
-    shouldShowSettings: isMasterUser || canAccessSettings
-  });
+  
+  const isMasterUser = userEmail === 'george@ziontraffic.com.br';
 
   const handleLogout = async () => {
     try {
@@ -114,51 +104,50 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
   ];
 
   // Filter menu items based on user permissions
-  // Master user vê todos os itens, EXCETO regras específicas de workspace (como Tráfego para Sieg)
-  const menuItems = allMenuItems.filter(item => {
-    // Se ainda está carregando permissões, mostrar todos os itens temporariamente
-    if (permissionsLoading) {
-      return true;
+  // Master user vê todos os itens, EXCETO regras específicas de workspace (como Tráfego e Análise para Sieg)
+  const menuItems = React.useMemo(() => {
+    // Se ainda está carregando permissões ou não tem email do usuário, retornar array vazio
+    if (permissionsLoading || userEmail === null) {
+      return [];
     }
     
-    let shouldShow = true;
-    switch (item.label) {
-      case 'Dashboard':
-        shouldShow = isMasterUser || canViewDashboard();
-        break;
-      case 'Tráfego':
-        // Master user sempre vê Tráfego, EXCETO no workspace Sieg
-        if (isMasterUser) {
-          const isSiegWorkspace = currentTenant?.slug === 'sieg';
-          shouldShow = !isSiegWorkspace; // Mostrar para ASF, ocultar para SIEG
-          console.log('🔑 [Header] MASTER USER - Tráfego:', { 
-            shouldShow, 
-            isSiegWorkspace,
-            tenantName: currentTenant?.name,
-            tenantSlug: currentTenant?.slug
-          });
-        } else {
-          shouldShow = canViewTraffic();
-          console.log('🔍 [Header] Filtro Tráfego (não-master):', { 
-            shouldShow, 
-            currentTenant,
-            permissionsLoading
-          });
-        }
-        break;
-      case 'Qualificação':
-        shouldShow = isMasterUser || canViewQualification();
-        break;
-      case 'Análise':
-        shouldShow = isMasterUser || canViewAnalysis();
-        break;
-      default:
-        shouldShow = true;
-    }
-    return shouldShow;
-  });
-  
-  console.log('📋 [Header] Menu items filtrados:', menuItems.map(i => i.label));
+    const isSiegWorkspace = currentTenant?.slug === 'sieg' || currentTenant?.slug?.startsWith('sieg-');
+    
+    return allMenuItems.filter(item => {
+      let shouldShow = true;
+      switch (item.label) {
+        case 'Dashboard':
+          shouldShow = isMasterUser || canViewDashboard();
+          break;
+        case 'Tráfego':
+          // Ocultar Tráfego para workspace Sieg (Financeiro e Pré Vendas)
+          if (isSiegWorkspace) {
+            shouldShow = false;
+          } else if (isMasterUser) {
+            shouldShow = true;
+          } else {
+            shouldShow = canViewTraffic();
+          }
+          break;
+        case 'Qualificação':
+          shouldShow = isMasterUser || canViewQualification();
+          break;
+        case 'Análise':
+          // Ocultar Análise para workspace Sieg (Financeiro e Pré Vendas)
+          if (isSiegWorkspace) {
+            shouldShow = false;
+          } else if (isMasterUser) {
+            shouldShow = true;
+          } else {
+            shouldShow = canViewAnalysis();
+          }
+          break;
+        default:
+          shouldShow = true;
+      }
+      return shouldShow;
+    });
+  }, [permissionsLoading, userEmail, isMasterUser, currentTenant?.slug, canViewDashboard, canViewTraffic, canViewQualification, canViewAnalysis]);
 
   const getActiveItem = () => {
     const path = location.pathname;

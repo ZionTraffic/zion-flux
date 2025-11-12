@@ -9,10 +9,7 @@ import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useExecutiveDashboard } from "@/hooks/useExecutiveDashboard";
 import { useLeadsFromConversations } from "@/hooks/useLeadsFromConversations";
-import { PeriodSummaryCard } from "@/components/dashboard/executive/PeriodSummaryCard";
-import { MoneyKpiCard } from "@/components/dashboard/executive/MoneyKpiCard";
 import { StrategicInsightsCard } from "@/components/dashboard/executive/StrategicInsightsCard";
-import { CompleteFunnelChart } from "@/components/dashboard/executive/CompleteFunnelChart";
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { HeroSection } from "@/components/dashboard/HeroSection";
 import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
@@ -24,6 +21,9 @@ import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
 import { useTenant } from "@/contexts/TenantContext";
+import { ExportDropdown } from "@/components/export/ExportDropdown";
+import { ConversationHistorySection } from "@/components/dashboard/ConversationHistorySection";
+import { useConversationsData } from "@/hooks/useConversationsData";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -86,6 +86,14 @@ const DashboardIndex = () => {
     dateRange?.from,
     dateRange?.to
   );
+
+  const {
+    conversations: conversationHistory,
+    stats: conversationStats,
+    isLoading: conversationsLoading,
+  } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
+
+  const isSiegWorkspace = currentTenant?.slug === 'sieg' || currentTenant?.slug === 'sieg-pre-vendas';
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -234,8 +242,6 @@ const DashboardIndex = () => {
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
         lastUpdate={new Date()}
-        currentWorkspace={currentTenant?.id || null}
-        onWorkspaceChange={async () => {}}
         onExportPdf={handleExportPdf}
         isExporting={isExporting}
       />
@@ -243,17 +249,21 @@ const DashboardIndex = () => {
 
       <main className="container mx-auto px-6 py-8 space-y-8">
         {/* Hero Section */}
-        {!isLoading && (
-          <HeroSection
-            userName={userEmail}
-            workspaceName={currentTenant?.name || 'Carregando...'}
-            totalLeads={leads?.totalLeads || 0}
-            totalInvested={advancedMetrics?.totalInvested || 0}
-            conversionRate={leads?.qualificationRate || 0}
-            trend="up"
-            hideStats={currentTenant?.slug === 'sieg'}
-          />
-        )}
+        {!isLoading && (() => {
+          const shouldHideStats = currentTenant?.slug === 'sieg' || currentTenant?.slug === 'sieg-pre-vendas';
+          console.log('🔍 DashboardIndex - currentTenant:', currentTenant?.name, 'slug:', currentTenant?.slug, 'hideStats:', shouldHideStats);
+          return (
+            <HeroSection
+              userName={userEmail}
+              workspaceName={currentTenant?.name || 'Carregando...'}
+              totalLeads={leads?.totalLeads || 0}
+              totalInvested={advancedMetrics?.totalInvested || 0}
+              conversionRate={leads?.qualificationRate || 0}
+              trend="up"
+              hideStats={shouldHideStats}
+            />
+          );
+        })()}
 
         {/* Date Range Filter */}
         <div className="flex items-center justify-between gap-4">
@@ -264,20 +274,34 @@ const DashboardIndex = () => {
             minDays={1}
             maxDays={90}
           />
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
-            <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
-              {isRefreshing ? '🔄' : '✅'}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {lastUpdate.toLocaleTimeString('pt-BR')}
-            </span>
+          <div className="flex items-center gap-2">
+            {currentTenant?.slug === 'sieg' && (
+              <ExportDropdown
+                tenantId={currentTenant?.id || ''}
+                tenantName={currentTenant?.name}
+                startDate={dateRange?.from}
+                endDate={dateRange?.to}
+                disabled={isRefreshing}
+              />
+            )}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
+              <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
+                {isRefreshing ? '🔄' : '✅'}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {lastUpdate.toLocaleTimeString('pt-BR')}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Enhanced KPIs with Trends */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Enhanced KPIs with Trends - Labels condicionais por workspace */}
+        <div className={currentTenant?.slug === 'sieg' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6" 
+          : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        }>
           <EnhancedKpiCard
-            label="T1 - SEM RESPOSTA"
+            label={currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
             value={(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
             icon="🎯"
             variant="blue"
@@ -285,7 +309,7 @@ const DashboardIndex = () => {
           />
 
           <EnhancedKpiCard
-            label="T2 - RESPONDIDO"
+            label={currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO'}
             value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
             icon="💬"
             variant="blue"
@@ -293,7 +317,7 @@ const DashboardIndex = () => {
           />
 
           <EnhancedKpiCard
-            label="T3 - PAGO IA"
+            label={currentTenant?.slug === 'asf' ? 'T3 - QUALIFICADO' : 'T3 - PAGO IA'}
             value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
             icon="💎"
             variant="gray"
@@ -301,12 +325,26 @@ const DashboardIndex = () => {
           />
 
           <EnhancedKpiCard
-            label="T4 - TRANSFERIDO"
-            value={(leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')}
+            label={currentTenant?.slug === 'asf' ? 'T5 - DESQUALIFICADO' : 'T4 - TRANSFERIDO'}
+            value={currentTenant?.slug === 'asf' 
+              ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
+              : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
+            }
             icon="💰"
             variant="blue"
             delay={0.3}
           />
+
+          {/* T5 - Passível de Suspensão - APENAS PARA SIEG */}
+          {currentTenant?.slug === 'sieg' && (
+            <EnhancedKpiCard
+              label="T5 - PASSÍVEL DE SUSPENSÃO"
+              value={(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
+              icon="⚠️"
+              variant="red"
+              delay={0.4}
+            />
+          )}
         </div>
 
         {/* Métricas de Atendimento - APENAS PARA SIEG */}
@@ -328,11 +366,21 @@ const DashboardIndex = () => {
           </>
         )}
 
+        {/* Histórico de conversas para workspaces Sieg */}
+        {isSiegWorkspace && (
+          <ConversationHistorySection
+            conversations={conversationHistory}
+            stats={conversationStats}
+            isLoading={conversationsLoading}
+            workspaceSlug={currentTenant?.slug}
+          />
+        )}
+
         {/* 3. Insights Estratégicos */}
-        <StrategicInsightsCard alerts={alerts} />
+        {!isSiegWorkspace && <StrategicInsightsCard alerts={alerts} />}
 
         {/* 5. Gráficos Consolidados - Linha 1 - OCULTO PARA SIEG */}
-        {currentTenant?.slug !== 'sieg' && (
+        {!isSiegWorkspace && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico 1: Resumo de Performance */}
           <div className="glass rounded-2xl p-6 border border-border/50 shadow-premium">
@@ -487,7 +535,7 @@ const DashboardIndex = () => {
         )}
 
         {/* 7. Tabela de Campanhas - OCULTO PARA SIEG */}
-        {currentTenant?.slug !== 'sieg' && (
+        {!isSiegWorkspace && (
         <div className="glass rounded-2xl p-6 border border-border/50">
           <h3 className="text-lg font-semibold mb-4 text-foreground">Resumo por Campanha</h3>
           <div className="overflow-x-auto">
@@ -544,7 +592,7 @@ const DashboardIndex = () => {
         )}
 
         {/* 8. Top Campaigns - OCULTO PARA SIEG */}
-        {currentTenant?.slug !== 'sieg' && (
+        {!isSiegWorkspace && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-3">
             <TopCampaignsTable 

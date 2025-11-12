@@ -9,7 +9,7 @@ interface EnhancedKpiCardProps {
     value: number;
     direction: "up" | "down" | "stable";
   };
-  variant?: "blue" | "gray";
+  variant?: "blue" | "gray" | "red";
   delay?: number;
 }
 
@@ -23,6 +23,11 @@ const variantStyles = {
     gradient: "#6b7280, #4b5563",
     iconBg: "bg-gradient-to-br from-gray-500 to-gray-600",
     shadow: "shadow-gray-500/30",
+  },
+  red: {
+    gradient: "#ef4444, #dc2626",
+    iconBg: "bg-gradient-to-br from-red-500 to-red-600",
+    shadow: "shadow-red-500/30",
   },
 };
 

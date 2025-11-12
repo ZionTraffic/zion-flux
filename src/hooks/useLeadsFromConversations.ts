@@ -16,6 +16,10 @@ export interface LeadFromConversation {
   stage: LeadStage;
   entered_at: string;
   reference_date: string;
+  // Campos financeiros SIEG
+  valor_em_aberto?: string | null;
+  valor_recuperado_ia?: string | null;
+  valor_recuperado_humano?: string | null;
 }
 
 export interface KanbanColumn {
@@ -35,6 +39,10 @@ interface TenantConversationRow {
   messages?: any;
   created_at: string;
   updated_at?: string;
+  // Campos financeiros SIEG
+  valor_em_aberto?: string;
+  valor_recuperado_ia?: string;
+  valor_recuperado_humano?: string;
 }
 
 // Map tag to stage
@@ -47,11 +55,17 @@ const mapTagToStage = (tag: string | null, workspaceSlug?: string): LeadStage =>
   
   if (isSieg) {
     // SIEG FINANCEIRO - Regras específicas
-    // T1 - SEM RESPOSTA: Lead entrou mas não respondeu nenhuma mensagem da IA
-    if (normalizedTag.includes('t1') || normalizedTag.includes('sem resposta')) return 'novo_lead';
-    
     // T2 - RESPONDIDO: Disparo enviado e cliente respondeu à IA (interação inicial)
-    if (normalizedTag.includes('t2') || normalizedTag.includes('respondido')) return 'qualificacao';
+    if (
+      normalizedTag.includes('t2') ||
+      normalizedTag.includes('respondido') ||
+      normalizedTag.includes('respondeu')
+    ) {
+      return 'qualificacao';
+    }
+
+    // T1 - SEM RESPOSTA: Lead entrou mas não respondeu nenhuma mensagem da IA
+    if (normalizedTag.includes('t1') || normalizedTag.includes('sem resposta') || normalizedTag.includes('prelive')) return 'novo_lead';
     
     // T3 - PAGO IA: Cliente confirmou pagamento ou enviou comprovante para a IA
     if (normalizedTag.includes('t3') || normalizedTag.includes('pago ia') || normalizedTag.includes('pago')) return 'qualificados';
@@ -175,42 +189,67 @@ export const useLeadsFromConversations = (
 
     try {
       const dateField = 'created_at';
-      let query = (centralSupabase as any)
-        .from('tenant_conversations')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .order(dateField, { ascending: false })
-        .limit(1000);
+      const pageSize = 1000;
 
-      // Aplicar filtros de data diretamente na query, garantindo intervalo inclusivo
+      let startISO: string | null = null;
       if (startDate) {
         const year = startDate.getFullYear();
         const month = String(startDate.getMonth() + 1).padStart(2, '0');
         const day = String(startDate.getDate()).padStart(2, '0');
         const startDateStr = `${year}-${month}-${day}`;
-        const startISO = new Date(`${startDateStr}T00:00:00-03:00`).toISOString();
+        startISO = new Date(`${startDateStr}T00:00:00-03:00`).toISOString();
         console.log('🔍 Start date filter:', { startDate: startISO });
-        query = query.gte(dateField, startISO);
       } else {
-        // Se não houver startDate, usar data bem antiga para pegar todos os dados
-        query = query.gte(dateField, '2025-01-01T00:00:00');
+        startISO = '2025-01-01T00:00:00-03:00';
         console.log('📅 Usando data mínima: 2025-01-01');
       }
+
+      let endExclusiveISO: string | null = null;
       if (endDate) {
         const endNext = new Date(endDate);
         endNext.setDate(endNext.getDate() + 1);
         const endNextStr = endNext.toISOString().split('T')[0];
-        const endExclusiveISO = new Date(`${endNextStr}T00:00:00-03:00`).toISOString();
+        endExclusiveISO = new Date(`${endNextStr}T00:00:00-03:00`).toISOString();
         console.log('🔍 End date exclusive filter:', { endExclusiveISO });
-        query = query.lt(dateField, endExclusiveISO);
       }
 
-      const { data, error: fetchError } = await query;
-      if (fetchError) {
-        console.error('❌ Erro ao buscar leads:', fetchError);
-        throw fetchError;
+      const paginatedResults: TenantConversationRow[] = [];
+      for (let page = 0; page < 200; page++) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        let pageQuery = (centralSupabase as any)
+          .from('tenant_conversations')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .order(dateField, { ascending: false })
+          .range(from, to);
+
+        if (startISO) {
+          pageQuery = pageQuery.gte(dateField, startISO);
+        }
+        if (endExclusiveISO) {
+          pageQuery = pageQuery.lt(dateField, endExclusiveISO);
+        }
+
+        const { data: pageData, error: fetchError } = await pageQuery;
+        if (fetchError) {
+          console.error('❌ Erro ao buscar leads:', fetchError);
+          throw fetchError;
+        }
+
+        if (!pageData || pageData.length === 0) {
+          break;
+        }
+
+        paginatedResults.push(...pageData as TenantConversationRow[]);
+
+        if (pageData.length < pageSize) {
+          break;
+        }
       }
-      const filteredData = (data || []) as TenantConversationRow[];
+
+      const filteredData = paginatedResults;
       const toDateStr = toBrasiliaDateString;
 
       console.log('📊 Fetched tenant leads:', filteredData.length);
@@ -224,11 +263,16 @@ export const useLeadsFromConversations = (
       };
 
       filteredData.forEach((conversation) => {
-        // Usar mapeamento do banco de dados (se disponível) ou fallback para lógica antiga
-        const stage = (conversation.tag && !mappingsLoading) 
-          ? getStageFromTag(conversation.tag) as LeadStage
-          : mapTagToStage(conversation.tag ?? null, tenant.slug);
-        
+        // Usar mapeamento do banco de dados (se disponível)
+        let stage: LeadStage;
+        if (conversation.tag && !mappingsLoading) {
+          const mapped = getStageFromTag(conversation.tag) as LeadStage;
+          const heuristic = mapTagToStage(conversation.tag ?? null, tenant.slug);
+          stage = mapped !== 'novo_lead' ? mapped : heuristic;
+        } else {
+          stage = mapTagToStage(conversation.tag ?? null, tenant.slug);
+        }
+
         // SEMPRE usar created_at como data de entrada do lead
         const enteredAt = conversation.created_at || new Date().toISOString();
         
@@ -246,6 +290,10 @@ export const useLeadsFromConversations = (
           stage,
           entered_at: enteredAt,
           reference_date: referenceDate,
+          // Campos financeiros SIEG
+          valor_em_aberto: conversation.valor_em_aberto || null,
+          valor_recuperado_ia: conversation.valor_recuperado_ia || null,
+          valor_recuperado_humano: conversation.valor_recuperado_humano || null,
         };
         leadsByStage[stage].push(lead);
       });
@@ -319,10 +367,37 @@ export const useLeadsFromConversations = (
     .flatMap((col) => col.leads).length;
   const qualificationRate = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
 
+  // KPIs Financeiros (SIEG)
+  const parseValor = (valor?: string | null): number => {
+    if (!valor) return 0;
+    const cleaned = valor.replace(/[^0-9,.-]/g, '').replace(',', '.');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const valorTotalPendente = allLeads.reduce((sum, lead) => 
+    sum + parseValor(lead.valor_em_aberto), 0
+  );
+  
+  const valorRecuperadoIA = allLeads.reduce((sum, lead) => 
+    sum + parseValor(lead.valor_recuperado_ia), 0
+  );
+  
+  const valorRecuperadoHumano = allLeads.reduce((sum, lead) => 
+    sum + parseValor(lead.valor_recuperado_humano), 0
+  );
+  
+  const valorTotalRecuperado = valorRecuperadoIA + valorRecuperadoHumano;
+
   const kpis = {
     totalLeads,
     qualifiedLeads,
     qualificationRate,
+    // KPIs Financeiros
+    valorTotalPendente,
+    valorRecuperadoIA,
+    valorRecuperadoHumano,
+    valorTotalRecuperado,
   };
 
   // Chart data - sempre começar de MIN_DATA_DATE até hoje

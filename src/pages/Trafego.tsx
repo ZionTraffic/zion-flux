@@ -17,10 +17,14 @@ import { TrafegoPDF } from "@/components/reports/TrafegoPDF";
 import { format } from "date-fns";
 import { useTenant } from "@/contexts/TenantContext";
 import { TenantSelector } from "@/components/ui/TenantSelector";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle, Mail } from "lucide-react";
 
 const Trafego = () => {
   const { currentTenant } = useTenant();
   const [userEmail, setUserEmail] = useState<string>();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [renderError, setRenderError] = useState<Error | null>(null);
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   
@@ -42,6 +46,40 @@ const Trafego = () => {
   useEffect(() => {
     console.log('🌐 Tráfego - tenant atual', currentTenant);
   }, [currentTenant]);
+
+  // Verificar se é usuário administrador
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          setUserEmail(user.email);
+          setIsAdmin(user.email === 'george@ziontraffic.com.br');
+        }
+      } catch (err) {
+        console.error('❌ Erro ao verificar admin:', err);
+        // Não bloquear a página por este erro
+      }
+    };
+    checkAdmin();
+  }, []);
+
+  // Proteção contra erros de renderização
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('🚨 Erro global capturado:', event.error);
+      setRenderError(event.error);
+      event.preventDefault();
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  const handleRetry = () => {
+    setRenderError(null);
+    window.location.reload();
+  };
 
   const handleRefresh = () => {
     refetch();
@@ -454,50 +492,151 @@ const Trafego = () => {
       {/* Error Messages */}
       {error === 'TOKEN_EXPIRED' && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <span className="text-2xl">🔑</span>
+          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-700 dark:text-red-400">
-              Token do Meta Ads expirado
+              {isAdmin ? 'Token do Meta Ads expirado' : 'Erro de Conexão com Meta Ads'}
             </h3>
-            <p className="text-sm text-red-600 dark:text-red-300 mt-1">
-              Seu token de acesso expirou. Renove a conexão com o Meta Business.
-            </p>
-            <Button
-              onClick={() => window.open('https://business.facebook.com', '_blank')}
-              variant="destructive"
-              size="sm"
-              className="mt-3"
-            >
-              🔄 Renovar Conexão
-            </Button>
+            {isAdmin ? (
+              <>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                  <strong>Erro Técnico:</strong> Token de acesso expirado.
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                  <strong>Código:</strong> TOKEN_EXPIRED
+                </p>
+                <Button
+                  onClick={() => window.open('https://business.facebook.com', '_blank')}
+                  variant="destructive"
+                  size="sm"
+                  className="mt-3"
+                >
+                  🔄 Renovar Conexão
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-2">
+                  Não foi possível carregar os dados de tráfego no momento.
+                </p>
+                <div className="mt-3 p-3 bg-red-500/5 rounded-lg border border-red-500/20">
+                  <p className="text-sm text-red-700 dark:text-red-300 font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Por favor, entre em contato com o suporte:
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                    📧 <strong>george@ziontraffic.com.br</strong>
+                  </p>
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                    Código do erro: <code className="bg-red-500/10 px-2 py-0.5 rounded">TOKEN_EXPIRED</code>
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {error === 'CREDENTIALS_MISSING' && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <span className="text-2xl">⚙️</span>
+          <AlertCircle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">
-              Credenciais não configuradas
+              {isAdmin ? 'Credenciais não configuradas' : 'Configuração Pendente'}
             </h3>
-            <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
-              Configure as credenciais do Meta Ads no sistema para ver os dados.
-            </p>
+            {isAdmin ? (
+              <>
+                <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
+                  <strong>Erro Técnico:</strong> Credenciais do Meta Ads não encontradas.
+                </p>
+                <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
+                  <strong>Código:</strong> CREDENTIALS_MISSING
+                </p>
+                <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
+                  Configure as credenciais no arquivo .env ou nas configurações do sistema.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-2">
+                  O sistema ainda não foi configurado para exibir dados de tráfego.
+                </p>
+                <div className="mt-3 p-3 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Entre em contato com o administrador:
+                  </p>
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
+                    📧 <strong>george@ziontraffic.com.br</strong>
+                  </p>
+                  <p className="text-xs text-yellow-500 dark:text-yellow-400 mt-2">
+                    Código: <code className="bg-yellow-500/10 px-2 py-0.5 rounded">CREDENTIALS_MISSING</code>
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Erro Genérico */}
+      {error && error !== 'TOKEN_EXPIRED' && error !== 'CREDENTIALS_MISSING' && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-700 dark:text-red-400">
+              {isAdmin ? 'Erro ao Carregar Dados' : 'Erro no Sistema'}
+            </h3>
+            {isAdmin ? (
+              <>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                  <strong>Erro Técnico:</strong> {error}
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-2">
+                  Verifique os logs do console para mais detalhes.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-2">
+                  Ocorreu um erro ao carregar os dados de tráfego.
+                </p>
+                <div className="mt-3 p-3 bg-red-500/5 rounded-lg border border-red-500/20">
+                  <p className="text-sm text-red-700 dark:text-red-300 font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Por favor, reporte este erro ao suporte:
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                    📧 <strong>george@ziontraffic.com.br</strong>
+                  </p>
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                    Código do erro: <code className="bg-red-500/10 px-2 py-0.5 rounded">{error}</code>
+                  </p>
+                  <p className="text-xs text-red-400 dark:text-red-500 mt-1">
+                    Inclua este código ao entrar em contato com o suporte.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {!error && totals && totals.impressions === 0 && !loading && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <span className="text-2xl">📊</span>
+          <AlertCircle className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-blue-700 dark:text-blue-400">
               Nenhuma campanha ativa
             </h3>
             <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-              Não há dados de campanhas nos últimos 30 dias para esta conta.
+              Não há dados de campanhas no período selecionado para esta conta.
             </p>
+            {!isAdmin && (
+              <p className="text-xs text-blue-500 dark:text-blue-400 mt-2">
+                Se você acredita que isso é um erro, contate: <strong>george@ziontraffic.com.br</strong>
+              </p>
+            )}
           </div>
         </div>
       )}

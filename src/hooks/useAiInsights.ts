@@ -33,7 +33,7 @@ export function useAiInsights() {
           .eq('tenant_id', tenant.id)
           .gte('created_at', `${from}T00:00:00`)
           .lte('created_at', `${to}T23:59:59`)
-          .limit(5000);
+          .limit(50000);
 
         if (leadsError) throw leadsError;
 

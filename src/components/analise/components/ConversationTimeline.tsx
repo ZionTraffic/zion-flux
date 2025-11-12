@@ -14,17 +14,30 @@ interface ConversationTimelineProps {
 }
 
 export const ConversationTimeline = ({ messages }: ConversationTimelineProps) => {
-  if (!messages || messages.length === 0) {
+  // Filtrar mensagens válidas para exibição
+  const validMessages = messages?.filter(msg => {
+    // Aceitar mensagens com conteúdo válido
+    if (!msg.content) return false;
+    if (msg.content.trim() === '') return false;
+    if (msg.content === 'undefined') return false;
+    if (msg.content.includes('[wa_template]: undefined')) return false;
+    return true;
+  }) || [];
+
+  if (!validMessages || validMessages.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p>Nenhuma mensagem disponível</p>
+        {messages && messages.length > 0 && (
+          <p className="text-xs mt-2">({messages.length} mensagens no total, mas sem conteúdo válido)</p>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-4 py-4">
-      {messages.map((message, index) => {
+      {validMessages.map((message, index) => {
         const isUser = message.role === 'user';
         const isAssistant = message.role === 'assistant';
         

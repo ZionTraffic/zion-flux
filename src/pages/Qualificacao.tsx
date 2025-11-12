@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
 import { TenantSelector } from "@/components/ui/TenantSelector";
+import { ExportDropdown } from "@/components/export/ExportDropdown";
 
 const Qualificacao = () => {
   const { currentTenant } = useTenant();
@@ -225,6 +226,38 @@ const Qualificacao = () => {
     },
   ];
 
+  // Cards Financeiros - APENAS PARA SIEG
+  const kpiCardsFinanceiros = workspaceSlug === 'sieg' ? [
+    {
+      label: "Valores Pendentes",
+      value: `R$ ${(kpis.valorTotalPendente || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: "⏳",
+      variant: 'blue' as const,
+      delay: 0,
+    },
+    {
+      label: "Recuperado pela IA",
+      value: `R$ ${(kpis.valorRecuperadoIA || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: "🤖",
+      variant: 'blue' as const,
+      delay: 0.1,
+    },
+    {
+      label: "Recuperado pelo Agente",
+      value: `R$ ${(kpis.valorRecuperadoHumano || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: "👤",
+      variant: 'blue' as const,
+      delay: 0.2,
+    },
+    {
+      label: "Total Recuperado",
+      value: `R$ ${(kpis.valorTotalRecuperado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: "💰",
+      variant: 'blue' as const,
+      delay: 0.3,
+    },
+  ] : [];
+
   const componentKey = `${currentTenant?.id || 'no-tenant'}`;
 
   return (
@@ -237,7 +270,18 @@ const Qualificacao = () => {
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-2 mb-4">
+        {workspaceSlug === 'sieg' && (
+          <ExportDropdown
+            tenantId={currentTenant?.id || ''}
+            tenantName={currentTenant?.name}
+            startDate={dateRange?.from}
+            endDate={dateRange?.to}
+            kpis={kpis}
+            showKPIsOption={true}
+            disabled={isLoading}
+          />
+        )}
         <TenantSelector />
       </div>
       {/* Date Range Filter */}
@@ -265,6 +309,23 @@ const Qualificacao = () => {
           <PremiumKpiCard key={card.label} {...card} />
         ))}
       </div>
+
+      {/* KPI Cards Financeiros - APENAS PARA SIEG */}
+      {workspaceSlug === 'sieg' && kpiCardsFinanceiros.length > 0 && (
+        <>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold">Indicadores Financeiros</h2>
+            <p className="text-muted-foreground">
+              Valores pendentes e recuperados no período
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {kpiCardsFinanceiros.map((card) => (
+              <PremiumKpiCard key={card.label} {...card} />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Charts Grid - Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
