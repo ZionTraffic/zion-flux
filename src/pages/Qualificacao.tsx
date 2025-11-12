@@ -265,8 +265,6 @@ const Qualificacao = () => {
       onRefresh={refetch}
       isRefreshing={isLoading}
       lastUpdate={new Date()}
-      currentWorkspace={currentTenant?.id || null}
-      onWorkspaceChange={async () => {}}
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >

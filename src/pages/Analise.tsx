@@ -101,8 +101,6 @@ const Conversas = () => {
       onRefresh={() => window.location.reload()}
       isRefreshing={isLoading}
       lastUpdate={new Date()}
-      currentWorkspace={currentTenant?.id || null}
-      onWorkspaceChange={async () => {}}
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >

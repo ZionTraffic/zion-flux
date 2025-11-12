@@ -154,8 +154,6 @@ const Leads = () => {
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}
-      currentWorkspace={currentWorkspaceId}
-      onWorkspaceChange={handleWorkspaceChange}
     >
       {/* No Data Warning */}
       {showNoDataWarning && (

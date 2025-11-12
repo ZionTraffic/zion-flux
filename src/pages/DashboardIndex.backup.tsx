@@ -218,8 +218,6 @@ const DashboardIndex = () => {
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
         lastUpdate={new Date()}
-        currentWorkspace={currentWorkspaceId}
-        onWorkspaceChange={handleWorkspaceChange}
         onExportPdf={handleExportPdf}
         isExporting={isExporting}
       />

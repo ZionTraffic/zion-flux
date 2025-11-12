@@ -225,8 +225,6 @@ const Trafego = () => {
         onRefresh={refetch}
         isRefreshing={false}
         lastUpdate={new Date()}
-        currentWorkspace={null}
-        onWorkspaceChange={async () => {}}
         onExportPdf={() => {}}
         isExporting={false}
       >
@@ -470,8 +468,6 @@ const Trafego = () => {
       onRefresh={refetch}
       isRefreshing={loading}
       lastUpdate={lastUpdate}
-      currentWorkspace={currentTenant?.id || null}
-      onWorkspaceChange={async () => {}}
       onExportPdf={handleExportPdf}
       isExporting={isExporting}
     >
