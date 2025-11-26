@@ -51,7 +51,20 @@ export function useWorkspaces() {
         throw new Error('Sessão não encontrada');
       }
 
-      const { data: tenantWorkspaces, error: tenantWsError } = await (centralSupabase.from as any)('tenant_workspaces')
+      // Obter workspaces via RPC
+      const { data: workspaceIds, error: tenantWsError } = await centralSupabase
+        .rpc('get_user_workspaces', { _user_id: session.user.id });
+
+      if (tenantWsError) throw tenantWsError;
+
+      if (!workspaceIds || workspaceIds.length === 0) {
+        setWorkspaces([]);
+        return;
+      }
+
+      // Buscar detalhes dos workspaces usando os IDs
+      const workspaceIdsList = workspaceIds.map(w => w.workspace_id);
+      const { data: tenantWorkspaces, error: detailsError } = await (centralSupabase.from as any)('workspaces')
         .select(`
           id,
           name,
@@ -62,17 +75,30 @@ export function useWorkspaces() {
           primary_color,
           status,
           tenant_id,
-          tenant:tenants_new(name),
-          role,
           database_config:database_configs(database_key)
         `)
-        .eq('tenant_id', tenant.id)
+        .in('id', workspaceIdsList)
         .eq('active', true)
         .order('created_at', { ascending: false });
 
-      if (tenantWsError) {
-        console.error('Error fetching tenant workspaces:', tenantWsError);
-        throw tenantWsError;
+      if (detailsError) {
+        console.warn('Erro ao buscar detalhes dos workspaces, usando IDs básicos:', detailsError);
+        // Fallback: usar dados básicos da RPC
+        const basicWorkspaces = workspaceIds.map(w => ({
+          id: w.workspace_id,
+          name: `Workspace ${w.workspace_id}`,
+          slug: 'unknown',
+          database: tenant.database_key || 'default', // Adicionar campo database faltante
+          created_at: null,
+          segment: null,
+          logo_url: null,
+          primary_color: null,
+          status: 'active',
+          tenant_id: null,
+          database_config: null
+        }));
+        setWorkspaces(basicWorkspaces);
+        return;
       }
 
       const workspacesData: Workspace[] = (tenantWorkspaces || []).map((workspace: any) => ({

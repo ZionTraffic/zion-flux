@@ -24,7 +24,10 @@ type InviteData = {
   role: string;
   token: string;
   expires_at: string;
-  used_at: string | null;
+  used_at?: string | null;
+  accepted_at?: string | null;
+  workspace_id?: string;
+  permissions?: string | null;
   custom_data?: InviteCustomData | string | null;
   workspaces?: { name?: string | null } | null;
 };
@@ -76,9 +79,9 @@ export default function AcceptInvite() {
       
       const { data, error } = await supabase
         .from('pending_invites')
-        .select('*, workspaces(name), permissions')
+        .select('*')
         .eq('token', token)
-        .is('used_at', null)
+        .is('accepted_at', null)
         .gt('expires_at', new Date().toISOString())
         .single();
 
@@ -136,8 +139,11 @@ export default function AcceptInvite() {
     setIsProcessing(true);
 
     try {
-      let { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: inviteData.email,
+      let userId: string | undefined;
+      
+      // Tentar criar conta
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: inviteData!.email,
         password,
         options: {
           data: {
@@ -152,7 +158,7 @@ export default function AcceptInvite() {
           console.log('[AcceptInvite] Email já cadastrado, tentando fazer login...');
           
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: inviteData.email,
+            email: inviteData!.email,
             password
           });
 
@@ -160,67 +166,99 @@ export default function AcceptInvite() {
             console.error('[AcceptInvite] Erro ao fazer login:', signInError);
             setIsProcessing(false);
             toast.error(
-              'Este email já está cadastrado. Por favor, use a senha da sua conta existente para aceitar o convite.',
+              'Este email já está cadastrado. Por favor, use a senha da sua conta existente.',
               { duration: 5000 }
             );
             return;
           }
 
           console.log('[AcceptInvite] Login realizado com sucesso');
-          // Atualizar authData com os dados do login
-          authData = signInData;
+          userId = signInData.user?.id;
         } else {
           throw signUpError;
         }
+      } else {
+        userId = authData.user?.id;
       }
 
-      const userId = authData.user?.id;
       if (!userId) {
-        throw new Error('Erro ao criar usuário');
+        throw new Error('Erro ao criar/autenticar usuário');
       }
 
-      // Aguardar um pouco para garantir que a sessão está estabelecida
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Aguardar sessão
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Obter sessão atualizada
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não estabelecida. Por favor, faça login novamente.');
-      }
-
-      console.log('[AcceptInvite] Chamando Edge Function com sessão válida');
-
-      // Call edge function to add user to workspace (bypasses RLS)
-      const { data: inviteResult, error: inviteAcceptError } = await supabase.functions.invoke(
-        'accept-workspace-invite',
-        {
-          body: { token, user_id: userId }
-        }
-      );
-
-      if (inviteAcceptError || !inviteResult?.success) {
-        console.error('[AcceptInvite] Erro ao aceitar convite:', inviteAcceptError);
-        
-        // Se falhou ao adicionar ao workspace, deletar o usuário criado
+      // Parsear custom_data para obter tenant_id
+      let workspaceId = inviteData!.workspace_id;
+      if (!workspaceId && inviteData!.custom_data) {
         try {
-          console.log('[AcceptInvite] Revertendo criação de usuário...');
-          await supabase.auth.admin.deleteUser(userId);
-          console.log('[AcceptInvite] Usuário revertido com sucesso');
-        } catch (deleteError) {
-          console.error('[AcceptInvite] Erro ao reverter usuário:', deleteError);
+          const customData = typeof inviteData!.custom_data === 'string' 
+            ? JSON.parse(inviteData!.custom_data) 
+            : inviteData!.custom_data;
+          workspaceId = customData.tenant_id;
+        } catch (e) {
+          console.warn('Erro ao parsear custom_data:', e);
         }
-        
-        throw new Error(inviteAcceptError?.message || 'Erro ao processar convite. Por favor, tente novamente.');
       }
 
-      console.log('[AcceptInvite] Convite aceito com sucesso:', inviteResult);
+      // Parsear permissões
+      let permissions: string[] = [];
+      if (inviteData!.permissions) {
+        try {
+          permissions = typeof inviteData!.permissions === 'string'
+            ? JSON.parse(inviteData!.permissions)
+            : inviteData!.permissions;
+        } catch (e) {
+          console.warn('Erro ao parsear permissions:', e);
+        }
+      }
+
+      console.log('[AcceptInvite] Adicionando usuário ao workspace:', { userId, workspaceId, role: inviteData!.role });
+
+      // Adicionar usuário ao workspace diretamente (usando any para contornar tipagem)
+      const { error: memberError } = await (supabase as any)
+        .from('tenant_users')
+        .insert({
+          tenant_id: workspaceId,
+          user_id: userId,
+          role: inviteData!.role,
+          active: true,
+          custom_permissions: permissions.length > 0 ? permissions : null
+        });
+
+      if (memberError) {
+        // Se já é membro, apenas atualizar
+        if (memberError.code === '23505') {
+          console.log('[AcceptInvite] Usuário já é membro, atualizando...');
+          await (supabase as any)
+            .from('tenant_users')
+            .update({ 
+              role: inviteData!.role, 
+              active: true,
+              custom_permissions: permissions.length > 0 ? permissions : null
+            })
+            .eq('tenant_id', workspaceId)
+            .eq('user_id', userId);
+        } else {
+          console.error('[AcceptInvite] Erro ao adicionar membro:', memberError);
+          throw new Error('Erro ao adicionar ao workspace');
+        }
+      }
+
+      // Marcar convite como aceito
+      await (supabase as any)
+        .from('pending_invites')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('token', token);
+
+      console.log('[AcceptInvite] Convite aceito com sucesso!');
 
       toast.success(`Bem-vindo à empresa ${tenantName}!`);
       
+      // Forçar reload completo para recarregar todos os contextos
       setTimeout(() => {
-        navigate('/');
-        window.location.reload();
-      }, 1000);
+        window.location.href = '/';
+      }, 1500);
 
     } catch (error: any) {
       console.error('Erro ao aceitar convite:', error);

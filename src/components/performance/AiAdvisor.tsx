@@ -45,12 +45,25 @@ export function AiAdvisor({ workspaceId }: AiAdvisorProps) {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: kpiData } = await supabase
-          .rpc('kpi_totais_periodo', {
-            p_workspace_id: targetWorkspaceId,
-            p_from: thirtyDaysAgo.toISOString().split('T')[0],
-            p_to: new Date().toISOString().split('T')[0]
-          });
+        let kpiData: any[] = [];
+        try {
+          const { data: data, error: rpcError } = await supabase
+            .rpc('kpi_totais_periodo', {
+              p_workspace_id: targetWorkspaceId,
+              p_from: thirtyDaysAgo.toISOString().split('T')[0],
+              p_to: new Date().toISOString().split('T')[0]
+            });
+            
+          if (rpcError) {
+            console.warn('RPC kpi_totais_periodo não acessível no AiAdvisor:', rpcError.message);
+            kpiData = [];
+          } else {
+            kpiData = data || [];
+          }
+        } catch (err) {
+          console.warn('Erro ao chamar RPC kpi_totais_periodo no AiAdvisor:', err);
+          kpiData = [];
+        }
 
         const { data: workspaceData } = await supabase
           .from('workspaces')

@@ -1,28 +1,30 @@
 import { useState } from 'react';
-import { useDatabase } from '@/contexts/DatabaseContext';
-import { useTenant } from '@/contexts/TenantContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
+import { useCurrentTenant } from '@/contexts/TenantContext';
+import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { STAGES } from '@/hooks/useLeadsShared';
 
-const VALID_TAGS = [
-  'T1 - NOVO LEAD',
-  'T2 - QUALIFICANDO',
-  'T3 - QUALIFICADO',
-  'T4 - FOLLOW-UP',
-  'T5 - DESQUALIFICADO'
-] as const;
+const STAGE_MAP: Record<string, string> = {
+  'T1 - NOVO LEAD': 'novo_lead',
+  'T2 - QUALIFICANDO': 'qualificacao',
+  'T3 - QUALIFICADO': 'qualificados',
+  'T4 - FOLLOW-UP': 'followup',
+  'T5 - DESQUALIFICADO': 'descartados',
+};
 
 export const useUpdateConversationTag = () => {
-  const { supabase } = useDatabase();
-  const { currentTenant } = useTenant();
+  const { tenant: currentTenant } = useCurrentTenant();
   const [isUpdating, setIsUpdating] = useState(false);
 
   // workspaceId é opcional para manter compatibilidade
-  const updateTag = async (conversationId: number, newTag: string, workspaceId?: string) => {
-    if (!VALID_TAGS.includes(newTag as any)) {
+  const updateTag = async (conversationId: string, newTag: string) => {
+    const stage = STAGE_MAP[newTag];
+
+    if (!stage || !STAGES.includes(stage as any)) {
       toast({
         title: "Erro",
-        description: "Tag inválida selecionada",
+        description: "Tag/estágio inválido selecionado",
         variant: "destructive",
       });
       return { success: false };
@@ -31,69 +33,46 @@ export const useUpdateConversationTag = () => {
     setIsUpdating(true);
     
     try {
-      // Usar workspace atual se não fornecido
-      const wsId = workspaceId || currentTenant?.id || null;
-      const tenantSlug =
-        wsId && wsId === currentTenant?.id
-          ? currentTenant?.slug
-          : currentTenant?.slug;
-
-      // Descobrir tabela por workspace
-      let tableName: string = 'historico_conversas';
-      if (wsId) {
-        tableName = tenantSlug === 'asf'
-          ? 'conversas_asf'
-          : tenantSlug === 'sieg'
-            ? 'conversas_sieg_financeiro'
-            : 'historico_conversas';
-        logger.info('Updating tag', { tableName, conversationId, newTag, tenantId: wsId, slug: tenantSlug });
+      const tenantId = currentTenant?.id;
+      if (!tenantId) {
+        throw new Error('Tenant não encontrado.');
       }
 
-      // Verificar se o registro existe antes de atualizar
-      const { data: existingRecord, error: checkError } = await (supabase.from as any)(tableName)
-        .select('id, tag')
+      const { data: existingRecord, error: checkError } = await (centralSupabase.from as any)('conversas_leads')
+        .select('id, lead_id, tag, empresa_id')
         .eq('id', conversationId)
+        .eq('empresa_id', tenantId)
         .maybeSingle();
-      
+
       if (checkError) {
-        logger.error('Error checking if record exists', { checkError, tableName, conversationId });
-        throw new Error('Erro ao verificar registro');
+        logger.error('Error checking conversation record', { checkError, conversationId, tenantId });
+        throw new Error('Erro ao verificar conversa');
       }
-      
+
       if (!existingRecord) {
-        logger.error('Record not found', { tableName, conversationId });
-        throw new Error(`Registro com ID ${conversationId} não encontrado na tabela ${tableName}`);
+        logger.error('Conversation not found', { conversationId, tenantId });
+        throw new Error(`Conversa ${conversationId} não encontrada`);
       }
-      
-      logger.info('Record found, current tag:', { existingRecord });
 
-      // Tentar atualizar usando RPC (função do Supabase) para contornar RLS
-      try {
-        const { error: rpcError, data: rpcData } = await supabase.rpc('update_conversation_tag', {
-          p_table_name: tableName,
-          p_conversation_id: conversationId,
-          p_new_tag: newTag
-        });
+      logger.info('Updating conversation stage', { conversationId, newTag, stage });
 
-        if (!rpcError && rpcData) {
-          logger.info('Tag updated via RPC successfully', { rpcData });
-          toast({
-            title: "Sucesso",
-            description: "Tag atualizada com sucesso!",
-          });
-          return { success: true };
+      // Atualizar lead com novo estágio
+      if (existingRecord.lead_id) {
+        const { error: leadError } = await (centralSupabase.from as any)('leads')
+          .update({ status: stage })
+          .eq('id', existingRecord.lead_id)
+          .eq('empresa_id', tenantId);
+
+        if (leadError) {
+          logger.error('Error updating lead stage', { leadError, conversationId, stage });
+          throw new Error('Erro ao atualizar estágio do lead');
         }
-        
-        logger.warn('RPC not available, falling back to direct update', { rpcError });
-      } catch (rpcErr) {
-        logger.warn('RPC failed, trying direct update', { rpcErr });
       }
 
-      // Fallback: tentar update direto
-      const { error, data } = await (supabase.from as any)(tableName)
+      const { error } = await (centralSupabase.from as any)('conversas_leads')
         .update({ tag: newTag })
         .eq('id', conversationId)
-        .select();
+        .eq('empresa_id', tenantId);
 
       if (error) {
         logger.error('Error updating tag in database', { 
@@ -101,25 +80,15 @@ export const useUpdateConversationTag = () => {
           errorMessage: error.message,
           errorDetails: error.details,
           errorHint: error.hint,
-          tableName, 
+          tableName: 'conversas_leads', 
           conversationId, 
           newTag 
         });
         
-        // Mensagem mais clara sobre permissões
-        if (error.message?.includes('permission') || error.code === '42501') {
-          throw new Error('Sem permissão para atualizar tags. Contate o administrador.');
-        }
-        
         throw error;
       }
-      
-      if (!data || data.length === 0) {
-        logger.error('No rows updated - RLS policy blocking', { tableName, conversationId, newTag });
-        throw new Error('Política de segurança (RLS) bloqueou a atualização. Contate o administrador para ajustar as permissões.');
-      }
-      
-      logger.info('Tag updated successfully', { data, rowsUpdated: data.length });
+
+      logger.info('Tag updated successfully');
 
       toast({
         title: "Sucesso",

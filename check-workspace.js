@@ -57,12 +57,12 @@ async function main() {
   
   try {
     // Etapa 1: Criar tabela tenants_new
-    console.log('📊 ETAPA 1/7: Criando tabela tenants_new');
-    await executeStep('create_tenants', 'Criar tabela tenants_new');
+    console.log('📊 ETAPA 1/7: Criando tabela empresas');
+    await executeStep('create_tenants', 'Criar tabela empresas');
     
-    // Etapa 2: Criar tabela tenant_users
-    console.log('👥 ETAPA 2/7: Criando tabela tenant_users');
-    await executeStep('create_tenant_users', 'Criar tabela tenant_users');
+    // Etapa 2: Criar tabela usuarios_empresas
+    console.log('👥 ETAPA 2/7: Criando tabela usuarios_empresas');
+    await executeStep('create_tenant_users', 'Criar tabela usuarios_empresas');
     
     // Etapa 3: Criar funções helper
     console.log('🔧 ETAPA 3/7: Criando funções helper');
@@ -70,7 +70,7 @@ async function main() {
     
     // Etapa 4: Criar tabelas de dados
     console.log('📊 ETAPA 4/7: Criando tabelas de dados');
-    await executeStep('create_data_tables', 'Criar tabelas tenant_leads, tenant_conversations, tenant_ad_costs');
+    await executeStep('create_data_tables', 'Criar tabelas leads, conversas_leads, tenant_ad_costs');
     
     // Etapa 5: Migrar dados existentes
     console.log('🔄 ETAPA 5/7: Migrando dados existentes');
@@ -95,10 +95,10 @@ async function main() {
     console.log('4. Implementar seletor de tenant');
     console.log('');
     console.log('📊 Tabelas criadas:');
-    console.log('- tenants_new (empresas/clientes)');
-    console.log('- tenant_users (usuários por tenant)');
-    console.log('- tenant_leads (leads isolados)');
-    console.log('- tenant_conversations (conversas isoladas)');
+    console.log('- empresas (empresas/clientes)');
+    console.log('- usuarios_empresas (usuários por empresa)');
+    console.log('- leads (leads isolados)');
+    console.log('- conversas_leads (conversas isoladas)');
     console.log('- tenant_ad_costs (custos isolados)');
     console.log('');
     console.log('🔒 Segurança:');

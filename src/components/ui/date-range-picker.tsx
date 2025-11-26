@@ -144,107 +144,100 @@ export function DateRangePicker({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-        <DatePickerField
-          date={dateRange?.from}
-          onDateChange={handleFromDateChange}
-          label="Data de Início"
-          maxDate={dateRange?.to || new Date()}
-        />
-        
-        <DatePickerField
-          date={dateRange?.to}
-          onDateChange={handleToDateChange}
-          label="Data de Término"
-          minDate={dateRange?.from}
-          maxDate={new Date()}
-        />
-        
-        {onClearFilter && (
-          <Button
-            variant="outline"
-            onClick={onClearFilter}
-            className={cn(
-              "glass-medium hover:border-destructive/50 hover:text-destructive transition-all",
-              "sm:self-end w-full sm:w-auto"
-            )}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Limpar Filtro
-          </Button>
-        )}
-      </div>
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Date Pickers */}
+      <DatePickerField
+        date={dateRange?.from}
+        onDateChange={handleFromDateChange}
+        label="Data de Início"
+        maxDate={dateRange?.to || new Date()}
+        compact
+      />
+      
+      <DatePickerField
+        date={dateRange?.to}
+        onDateChange={handleToDateChange}
+        label="Data de Término"
+        minDate={dateRange?.from}
+        maxDate={new Date()}
+        compact
+      />
+      
+      {onClearFilter && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onClearFilter}
+          className="glass-medium hover:border-destructive/50 hover:text-destructive transition-all h-9"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
 
+      {/* Separator */}
+      <div className="h-6 w-px bg-border/50" />
+
+      {/* Quick Filter Buttons */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('today')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Hoje
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('yesterday')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Ontem
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('last7')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Últimos 7 Dias
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('last30')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Últimos 30 Dias
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('thisMonth')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Este Mês
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleQuickFilter('lastMonth')}
+        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+      >
+        Mês Passado
+      </Button>
+
+      {/* Period indicator */}
+      {dateRange?.from && dateRange?.to && isCustomRange() && (
+        <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+          Personalizado
+        </span>
+      )}
+
+      {/* Error message */}
       {error && (
         <p className="text-sm text-destructive animate-fade-in">{error}</p>
       )}
-
-      {dateRange?.from && dateRange?.to && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>
-            Exibindo: {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
-            {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
-          </span>
-          {isCustomRange() && (
-            <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-              Personalizado
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Quick Filter Buttons */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('today')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Hoje
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('yesterday')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Ontem
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('last7')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Últimos 7 Dias
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('last30')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Últimos 30 Dias
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('thisMonth')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Este Mês
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickFilter('lastMonth')}
-          className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs"
-        >
-          Mês Passado
-        </Button>
-      </div>
     </div>
   );
 }

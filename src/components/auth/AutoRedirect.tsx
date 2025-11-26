@@ -36,11 +36,44 @@ export function AutoRedirect() {
       return;
     }
 
+    // Ignorar rotas públicas que não precisam de verificação de permissão
+    const publicRoutes = ['/reset-password', '/no-access', '/auth', '/accept-invite', '/complete-signup'];
+    if (publicRoutes.some(route => location.pathname.startsWith(route))) {
+      return;
+    }
+
     // Não fazer nada enquanto está carregando permissões
-    if (roleLoading || permissionsLoading) return;
+    if (roleLoading || permissionsLoading) {
+      console.log('⏳ [AutoRedirect] Aguardando permissões carregarem...');
+      return;
+    }
 
     // Owners têm acesso a tudo, não precisam de redirecionamento
     if (isOwner) return;
+
+    // Verificar se tem pelo menos a permissão de dashboard (mínimo para qualquer usuário)
+    const hasDashboard = canViewDashboard();
+    
+    // Debug
+    console.log('🔐 [AutoRedirect] Verificando permissões:', {
+      hasDashboard,
+      pathname: location.pathname,
+      isOwner,
+      roleLoading,
+      permissionsLoading
+    });
+
+    // Se o usuário tem permissão de dashboard, permitir acesso
+    if (hasDashboard) {
+      console.log('✅ [AutoRedirect] Usuário tem acesso ao dashboard');
+      // Se está tentando acessar uma página que não tem permissão, redirecionar para home
+      if (location.pathname !== '/' && location.pathname !== '/trafego' && location.pathname !== '/qualificacao' && location.pathname !== '/analise') {
+        return; // Deixar outras rotas serem tratadas normalmente
+      }
+      if (location.pathname === '/') {
+        return; // Tem acesso ao dashboard, não redirecionar
+      }
+    }
 
     // Lista de páginas em ordem de prioridade
     const routes = [
@@ -61,9 +94,9 @@ export function AutoRedirect() {
       if (firstAccessibleRoute) {
         console.log(`[REDIRECT] Redirecting to ${firstAccessibleRoute.path} - no permission for ${location.pathname}`);
         navigate(firstAccessibleRoute.path, { replace: true });
-      } else {
-        // Usuário não tem acesso a nenhuma página
-        console.log('❌ User has no access to any page');
+      } else if (!hasDashboard) {
+        // Só redirecionar para no-access se realmente não tem nenhuma permissão
+        console.log('❌ User has no access to any page - redirecting to /no-access');
         navigate('/no-access', { replace: true });
       }
     }

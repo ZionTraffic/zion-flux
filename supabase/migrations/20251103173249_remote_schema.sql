@@ -1,9 +1,9 @@
--- Migration: Create tenants table for multi-tenancy
+-- Migration: Create empresas table for multi-tenancy
 -- Created: 2024-11-03
 -- Description: Base table for multi-tenant architecture
 
--- Create tenants table
-CREATE TABLE IF NOT EXISTS public.tenants_new (
+-- Create empresas table
+CREATE TABLE IF NOT EXISTS public.empresas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -30,9 +30,9 @@ CREATE TABLE IF NOT EXISTS public.tenants_new (
 );
 
 -- Índices para performance
-CREATE INDEX IF NOT EXISTS idx_tenants_new_slug ON tenants_new(slug);
-CREATE INDEX IF NOT EXISTS idx_tenants_new_database_key ON tenants_new(database_key);
-CREATE INDEX IF NOT EXISTS idx_tenants_new_active ON tenants_new(active) WHERE active = true;
+CREATE INDEX IF NOT EXISTS idx_empresas_slug ON empresas(slug);
+CREATE INDEX IF NOT EXISTS idx_empresas_database_key ON empresas(database_key);
+CREATE INDEX IF NOT EXISTS idx_empresas_active ON empresas(active) WHERE active = true;
 
 -- Trigger para updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -43,15 +43,15 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_tenants_new_updated_at 
-    BEFORE UPDATE ON tenants_new 
+CREATE TRIGGER update_empresas_updated_at 
+    BEFORE UPDATE ON empresas 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Comentários para documentação
-COMMENT ON TABLE tenants_new IS 'Tabela principal para multi-tenancy - representa cada empresa/cliente';
-COMMENT ON COLUMN tenants_new.database_key IS 'Chave única para identificar o banco/schema da empresa';
-COMMENT ON COLUMN tenants_new.settings IS 'Configurações específicas da empresa (JSON)';
-COMMENT ON COLUMN tenants_new.branding IS 'Configurações de marca: cores, logo, tema (JSON)';
-COMMENT ON COLUMN tenants_new.max_users IS 'Limite máximo de usuários para este tenant';
-COMMENT ON COLUMN tenants_new.max_leads IS 'Limite máximo de leads para este tenant';
+COMMENT ON TABLE empresas IS 'Tabela principal para multi-tenancy - representa cada empresa/cliente';
+COMMENT ON COLUMN empresas.database_key IS 'Chave única para identificar o banco/schema da empresa';
+COMMENT ON COLUMN empresas.settings IS 'Configurações específicas da empresa (JSON)';
+COMMENT ON COLUMN empresas.branding IS 'Configurações de marca: cores, logo, tema (JSON)';
+COMMENT ON COLUMN empresas.max_users IS 'Limite máximo de usuários para esta empresa';
+COMMENT ON COLUMN empresas.max_leads IS 'Limite máximo de leads para esta empresa';

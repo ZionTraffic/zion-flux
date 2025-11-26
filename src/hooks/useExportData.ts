@@ -5,9 +5,9 @@ import {
   exportToExcel, 
   ExportColumn,
   formatDateForExport,
-  formatCurrencyForExport,
-  formatPhoneForExport
+  formatCurrencyForExport
 } from '@/lib/exportUtils';
+import { MIN_DATA_DATE } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 
 export function useExportData() {
@@ -26,36 +26,39 @@ export function useExportData() {
     setIsExporting(true);
     
     try {
-      // Buscar dados do Supabase
-      let query = (centralSupabase as any)
-        .from('tenant_conversations')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
+      const startISO = startDate ? toStartOfDay(startDate) : `${MIN_DATA_DATE}T00:00:00`;
+      const endISO = endDate ? buildEndExclusive(endDate) : buildEndExclusive(new Date());
 
-      // Aplicar filtros de data
-      if (startDate) {
-        const startISO = new Date(startDate.setHours(0, 0, 0, 0)).toISOString();
-        query = query.gte('created_at', startISO);
-      }
-      
-      if (endDate) {
-        const endNext = new Date(endDate);
-        endNext.setDate(endNext.getDate() + 1);
-        const endISO = new Date(endNext.setHours(0, 0, 0, 0)).toISOString();
-        query = query.lt('created_at', endISO);
-      }
-
-      const { data, error } = await query;
+      const { data: rawConversations, error } = await (centralSupabase.from as any)('conversas_leads')
+        .select('id, lead_id, empresa_id, nome, telefone, tag, source, data_transferencia, data_conclusao, analista, csat, csat_feedback, origem_atendimento, data_resposta_csat, conversas')
+        .eq('empresa_id', tenantId)
+        .gte('data_resposta_csat', startISO)
+        .lt('data_resposta_csat', endISO)
+        .order('data_resposta_csat', { ascending: false });
 
       if (error) throw error;
-      if (!data || data.length === 0) {
+      if (!rawConversations || rawConversations.length === 0) {
         toast({
           title: "⚠️ Sem dados",
           description: "Não há dados para exportar no período selecionado",
           variant: "destructive",
         });
         return;
+      }
+
+      const leadIds = rawConversations.map((conv: any) => conv.lead_id).filter(Boolean);
+      let leadsById: Record<string, any> = {};
+
+      if (leadIds.length > 0) {
+        const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)('leads')
+          .select('id, nome, telefone, email, tags_atuais, metadados')
+          .in('id', leadIds)
+          .eq('empresa_id', tenantId);
+
+        if (leadsError) throw leadsError;
+        (leadsData || []).forEach((lead: any) => {
+          leadsById[lead.id] = lead;
+        });
       }
 
       // Definir colunas para exportação
@@ -65,27 +68,36 @@ export function useExportData() {
         { 
           key: 'phone', 
           label: 'Telefone',
-          format: formatPhoneForExport
+          format: formatPhoneLocal
         },
+        { key: 'cnpj', label: 'CNPJ' },
         { key: 'tag', label: 'Tag/Estágio' },
+        { key: 'status_conversa', label: 'Status Conversa' },
         { key: 'analista', label: 'Analista' },
-        { key: 'csat', label: 'CSAT' },
+        { key: 'origem_atendimento', label: 'Origem Atendimento' },
+        { key: 'csat', label: 'CSAT (1-5)' },
+        { key: 'csat_feedback', label: 'Justificativa CSAT' },
+        { 
+          key: 'data_resposta_csat', 
+          label: 'Data Resposta CSAT',
+          format: formatDateForExport
+        },
         { 
           key: 'valor_em_aberto', 
-          label: 'Valor Pendente',
+          label: 'Valor em Aberto',
           format: formatCurrencyForExport
         },
         { 
           key: 'valor_recuperado_ia', 
-          label: 'Recuperado pela IA',
+          label: 'Valor Recuperado IA',
           format: formatCurrencyForExport
         },
         { 
           key: 'valor_recuperado_humano', 
-          label: 'Recuperado pelo Agente',
+          label: 'Valor Recuperado Humano',
           format: formatCurrencyForExport
         },
-        { key: 'source', label: 'Origem' },
+        { key: 'source', label: 'Origem Lead' },
         { 
           key: 'started', 
           label: 'Data Início',
@@ -108,7 +120,7 @@ export function useExportData() {
         { key: 'validation_status', label: 'Status Validação' },
         { key: 'payment_type', label: 'Tipo Pagamento' },
         { 
-          key: 'created_at', 
+          key: 'criado_em', 
           label: 'Data Criação',
           format: formatDateForExport
         },
@@ -122,10 +134,48 @@ export function useExportData() {
       const filename = `sieg_conversas_${dateStr}`;
 
       // Exportar
+      const rows = (rawConversations as any[]).map((conv) => {
+        const lead = conv.lead_id ? leadsById[conv.lead_id] : null;
+        const financeMeta = lead?.metadados?.financeiro ?? lead?.metadados;
+        
+        // Determinar status da conversa
+        let statusConversa = 'Em andamento';
+        if (conv.data_conclusao) statusConversa = 'Concluído';
+        else if (conv.data_transferencia) statusConversa = 'Transferido';
+        
+        return {
+          id: conv.id,
+          nome: lead?.nome || conv.nome || '',
+          phone: formatPhoneLocal(lead?.telefone || conv.telefone || ''),
+          cnpj: lead?.metadados?.cnpj || financeMeta?.cnpj || '',
+          tag: conv.tag || (lead?.tags_atuais ? lead.tags_atuais[0] : ''),
+          status_conversa: statusConversa,
+          analista: conv.analista || '',
+          origem_atendimento: conv.origem_atendimento || '',
+          csat: conv.csat || '',
+          csat_feedback: conv.csat_feedback || '',
+          data_resposta_csat: formatDateForExport(conv.data_resposta_csat || ''),
+          valor_em_aberto: formatCurrencyForExport(financeMeta?.valor_em_aberto || 0),
+          valor_recuperado_ia: formatCurrencyForExport(financeMeta?.valor_recuperado_ia || 0),
+          valor_recuperado_humano: formatCurrencyForExport(financeMeta?.valor_recuperado_humano || 0),
+          source: conv.source || lead?.metadados?.origem || '',
+          started: formatDateForExport(conv.data_resposta_csat),
+          data_transferencia: formatDateForExport(conv.data_transferencia || ''),
+          data_conclusao: formatDateForExport(conv.data_conclusao || ''),
+          tempo_primeira_resposta: lead?.metadados?.tempo_primeira_resposta || '',
+          tempo_medio_resposta: lead?.metadados?.tempo_medio_resposta || '',
+          followup_count: lead?.metadados?.followup_count || '',
+          status_followup: lead?.metadados?.status_followup || '',
+          validation_status: lead?.metadados?.validation_status || '',
+          payment_type: lead?.metadados?.payment_type || '',
+          criado_em: formatDateForExport(conv.data_resposta_csat),
+        };
+      });
+
       if (format === 'csv') {
-        exportToCSV(data, columns, filename);
+        exportToCSV(rows, columns, filename);
       } else {
-        exportToExcel(data, columns, filename, 'Conversas SIEG');
+        exportToExcel(rows, columns, filename, 'Conversas SIEG');
       }
 
       toast({
@@ -228,4 +278,22 @@ export function useExportData() {
     exportKPIs,
     isExporting
   };
+}
+
+function formatPhoneLocal(value: any) {
+  if (!value) return '';
+  return String(value).replace(/[^0-9]+/g, '');
+}
+
+function toStartOfDay(date: Date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString();
+}
+
+function buildEndExclusive(date: Date) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + 1);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString();
 }

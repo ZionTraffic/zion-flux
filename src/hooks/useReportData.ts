@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { supabase as centralSupabase } from '@/integrations/supabase/client';
 import { useCurrentTenant } from '@/contexts/TenantContext';
+import { useTagMappings } from '@/hooks/useTagMappings';
+import {
+  toStartOfDayIso,
+  buildEndExclusiveIso,
+  extractPrimaryTag,
+  normalizeStage,
+} from '@/hooks/useLeadsShared';
+import { format, eachDayOfInterval } from 'date-fns';
 
 export interface ReportData {
   workspace: {
@@ -39,13 +46,14 @@ export interface ReportData {
 
 export function useReportData(workspaceId: string | null, fromDate: Date, toDate: Date) {
   const { tenant, isLoading: tenantLoading } = useCurrentTenant();
+  const { getStageFromTag, loading: mappingsLoading } = useTagMappings(tenant?.id || null);
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReportData = async () => {
-      if (tenantLoading) return;
+      if (tenantLoading || mappingsLoading) return;
       if (!tenant) {
         setData(null);
         setIsLoading(false);
@@ -56,70 +64,85 @@ export function useReportData(workspaceId: string | null, fromDate: Date, toDate
       setError(null);
 
       try {
-        const from = format(fromDate, 'yyyy-MM-dd');
-        const to = format(toDate, 'yyyy-MM-dd');
-        const workspaceFilter = workspaceId ? { key: 'workspace_id', value: workspaceId } : null;
+        const startISO = toStartOfDayIso(fromDate);
+        const endISO = buildEndExclusiveIso(toDate);
 
-        const { data: conversationData, error: convError } = await (centralSupabase.from as any)
-          ('tenant_conversations')
-          .select('created_at, tag, workspace_id')
-          .eq('tenant_id', tenant.id)
-          .gte('created_at', `${from}T00:00:00`)
-          .lte('created_at', `${to}T23:59:59`)
+        const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)
+          ('leads')
+          .select('id, empresa_id, criado_em, status, tags_atuais, metadados, origem')
+          .eq('empresa_id', tenant.id)
+          .gte('criado_em', startISO)
+          .lt('criado_em', endISO)
           .limit(50000);
 
-        if (convError) throw convError;
+        if (leadsError) throw leadsError;
 
-        const filteredConversations = (conversationData || []).filter((conversation: any) => {
-          if (!workspaceFilter) return true;
-          return conversation.workspace_id === workspaceFilter.value;
+        const leadIds = (leadsData || []).map((lead: any) => lead.id);
+        let conversaByLead: Record<string, any> = {};
+
+        if (leadIds.length > 0) {
+          const { data: conversasData, error: conversasError } = await (centralSupabase.from as any)
+            ('conversas_leads')
+            .select('lead_id, tag, source, created_at, data_transferencia, data_conclusao, analista, csat, data_resposta_csat')
+            .in('lead_id', leadIds)
+            .eq('empresa_id', tenant.id);
+
+          if (conversasError) throw conversasError;
+          (conversasData || []).forEach((conv: any) => {
+            if (conv.lead_id) conversaByLead[conv.lead_id] = conv;
+          });
+        }
+
+        const leads = (leadsData || []).map((lead: any) => {
+          const conversa = conversaByLead[lead.id];
+          const primaryTag = extractPrimaryTag(lead.metadados, lead.tags_atuais) ?? conversa?.tag;
+          const mappedStage = primaryTag && getStageFromTag ? getStageFromTag(primaryTag) : undefined;
+          const stage = normalizeStage(mappedStage ?? lead.status, tenant.slug, primaryTag);
+          return {
+            ...lead,
+            stage,
+            conversa,
+          };
         });
 
-        const leadsRecebidos = filteredConversations.length;
-
-        const mapTag = (tag?: string | null) => {
-          const normalized = (tag || '').toLowerCase();
-          if (tenant.slug === 'sieg') {
-            if (normalized.includes('t3') || normalized.includes('pago')) return 'qualificados';
-            if (normalized.includes('t4') || normalized.includes('transfer')) return 'followup';
-            if (normalized.includes('t5') || normalized.includes('desqual')) return 'descartados';
-            return 'novo_lead';
-          }
-          if (normalized.includes('qualificado') || normalized.includes('t3')) return 'qualificados';
-          if (normalized.includes('follow') || normalized.includes('t4')) return 'followup';
-          if (normalized.includes('descart') || normalized.includes('t5')) return 'descartados';
-          return 'novo_lead';
-        };
-
-        const leadsQualificados = filteredConversations.filter((conversation: any) => mapTag(conversation.tag) === 'qualificados').length;
-        const leadsFollowup = filteredConversations.filter((conversation: any) => mapTag(conversation.tag) === 'followup').length;
-        const leadsDescartados = filteredConversations.filter((conversation: any) => mapTag(conversation.tag) === 'descartados').length;
+        const leadsRecebidos = leads.length;
+        const leadsQualificados = leads.filter((lead) => lead.stage === 'qualificados').length;
+        const leadsFollowup = leads.filter((lead) => lead.stage === 'followup').length;
+        const leadsDescartados = leads.filter((lead) => lead.stage === 'descartados').length;
 
         const { data: costsData, error: costsError } = await (centralSupabase.from as any)
-          ('tenant_ad_costs')
-          .select('day, amount')
+          ('custos_anuncios_tenant')
+          .select('dia, valor')
           .eq('tenant_id', tenant.id)
-          .gte('day', from)
-          .lte('day', to);
+          .gte('dia', format(fromDate, 'yyyy-MM-dd'))
+          .lte('dia', format(toDate, 'yyyy-MM-dd'));
 
         if (costsError) throw costsError;
 
         const totalInvestment = (costsData || []).reduce((sum: number, cost: any) => {
-          const amount = typeof cost.amount === 'string' ? parseFloat(cost.amount) : cost.amount || 0;
+          const amount = typeof cost.valor === 'string' ? parseFloat(cost.valor) : cost.valor || 0;
           return sum + amount;
         }, 0);
 
+        const intervalDays = eachDayOfInterval({ start: fromDate, end: toDate });
         const dailyMap = new Map<string, { leads: number; investment: number }>();
-        filteredConversations.forEach((conversation: any) => {
-          const dayKey = format(new Date(conversation.created_at), 'dd/MM');
+        intervalDays.forEach((day) => {
+          const key = format(day, 'dd/MM');
+          dailyMap.set(key, { leads: 0, investment: 0 });
+        });
+
+        leads.forEach((lead: any) => {
+          const createdAt = lead.criado_em || lead.conversa?.created_at;
+          if (!createdAt) return;
+          const dayKey = format(new Date(createdAt), 'dd/MM');
           const existing = dailyMap.get(dayKey) || { leads: 0, investment: 0 };
           existing.leads += 1;
           dailyMap.set(dayKey, existing);
         });
 
         (costsData || []).forEach((cost: any) => {
-          const dayKey = format(new Date(cost.day), 'dd/MM');
-          const amount = typeof cost.amount === 'string' ? parseFloat(cost.amount) : cost.amount || 0;
+          const dayKey = format(new Date(cost.dia), 'dd/MM');
+          const amount = typeof cost.valor === 'string' ? parseFloat(cost.valor) : cost.valor || 0;
           const existing = dailyMap.get(dayKey) || { leads: 0, investment: 0 };
           existing.investment += amount;
           dailyMap.set(dayKey, existing);
@@ -155,11 +178,7 @@ export function useReportData(workspaceId: string | null, fromDate: Date, toDate
         const trainable = Math.max(0, leadsDescartados - Math.floor(leadsDescartados * 0.3));
         const critical = leadsFollowup;
 
-        const { data: workspaceRow } = await (centralSupabase.from as any)
-          ('tenant_workspaces')
-          .select('id, name')
-          .eq('id', workspaceId)
-          .maybeSingle();
+        const workspaceRow = { id: workspaceId || tenant.id, name: tenant.name }; // Usar tenant diretamente
 
         const reportData: ReportData = {
           workspace: {
@@ -167,8 +186,8 @@ export function useReportData(workspaceId: string | null, fromDate: Date, toDate
             name: workspaceRow?.name || tenant.name,
           },
           period: {
-            from,
-            to,
+            from: format(fromDate, 'yyyy-MM-dd'),
+            to: format(toDate, 'yyyy-MM-dd'),
           },
           kpis,
           dailyData,
@@ -191,7 +210,7 @@ export function useReportData(workspaceId: string | null, fromDate: Date, toDate
     };
 
     fetchReportData();
-  }, [tenantLoading, tenant?.id, tenant?.slug, workspaceId, fromDate, toDate]);
+  }, [tenantLoading, mappingsLoading, tenant?.id, tenant?.slug, workspaceId, fromDate, toDate, getStageFromTag]);
 
   return { data, isLoading, error };
 }

@@ -85,10 +85,10 @@ export function useAllWorkspaces(): UseAllWorkspacesResult {
 
       const [asfMembersRes, siegMembersRes] = await Promise.allSettled([
         asfUserId
-          ? asf.from('membros_workspace').select('workspace_id').eq('user_id', asfUserId)
+          ? asf.rpc('get_user_workspaces', { _user_id: asfUserId })
           : Promise.resolve({ data: null }),
         sieg && siegUserId
-          ? sieg.from('membros_workspace').select('workspace_id').eq('user_id', siegUserId)
+          ? sieg.rpc('get_user_workspaces', { _user_id: siegUserId })
           : Promise.resolve({ data: null }),
       ]);
 

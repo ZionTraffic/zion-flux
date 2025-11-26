@@ -42,13 +42,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchWorkspaceInfo = async (workspaceId: string) => {
-    const { data } = await centralSupabase
-      .from('workspaces')
-      .select('name, database, tenant_id')
-      .eq('id', workspaceId)
-      .maybeSingle();
-
-    return data || null;
+    // Retornar dados básicos sem acessar tabela workspaces
+    // O database será determinado pelo tenant context
+    return { database: 'asf' }; // Default, será sobrescrito pelo tenant
   };
 
   useEffect(() => {
@@ -86,37 +82,41 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (savedWorkspaceId) {
           console.log(`🔄 Tentando restaurar workspace salvo:`, savedWorkspaceId);
           
-          const { data: savedMembership, error: savedError } = await centralSupabase
-            .from('membros_workspace')
-            .select('workspace_id, role, workspaces(name, database, tenant_id)')
-            .eq('user_id', user.id)
-            .eq('workspace_id', savedWorkspaceId)
-            .maybeSingle();
-          
-          if (!savedError && savedMembership) {
-            console.log('✅ Workspace salvo restaurado com sucesso:', savedWorkspaceId);
-            applyWorkspaceSelection({
-              workspaceId: savedWorkspaceId,
-              role: savedMembership.role || null,
-              workspaceInfo: (savedMembership as any).workspaces || undefined
+          // Verificar se usuário tem acesso ao workspace salvo usando RPC
+          const { data: isMember, error: savedError } = await centralSupabase
+            .rpc('is_workspace_member', { 
+              _user_id: user.id, 
+              _workspace_id: savedWorkspaceId 
             });
-            setIsLoading(false);
-            return;
-          } else {
-            console.log('⚠️ Workspace salvo não encontrado ou sem acesso, buscando alternativa');
-            localStorage.removeItem('currentWorkspaceId');
+          
+          if (!savedError && isMember) {
+            console.log('✅ Workspace salvo restaurado com sucesso:', savedWorkspaceId);
+            // Buscar informações do workspace via RPC get_user_workspaces
+            const { data: workspaceIds } = await centralSupabase
+              .rpc('get_user_workspaces', { _user_id: user.id });
+            
+            const hasAccess = workspaceIds?.some((w: any) => w.workspace_id === savedWorkspaceId);
+            
+            if (hasAccess) {
+              applyWorkspaceSelection({
+                workspaceId: savedWorkspaceId,
+                role: 'member', // Role padrão, pode ser ajustado se necessário
+                workspaceInfo: undefined // Será carregado depois se necessário
+              });
+              setIsLoading(false);
+              return;
+            }
           }
+          
+          console.log('⚠️ Workspace salvo não encontrado ou sem acesso, buscando alternativa');
+          localStorage.removeItem('currentWorkspaceId');
         }
 
-        // PRIORIDADE 2: Buscar primeira workspace disponível
+        // PRIORIDADE 2: Buscar primeira workspace disponível usando RPC
         console.log(`🔍 Buscando workspaces para usuário:`, user.email);
         
-        const { data: firstMembership, error: membershipError } = await centralSupabase
-          .from('membros_workspace')
-          .select('workspace_id, role, workspaces(database, tenant_id)')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+        const { data: workspaceIds, error: membershipError } = await centralSupabase
+          .rpc('get_user_workspaces', { _user_id: user.id });
         
         if (membershipError) {
           console.error('❌ Erro ao buscar membership:', membershipError);
@@ -140,14 +140,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           } catch (fallbackError) {
             console.error('❌ Fallback também falhou:', fallbackError);
           }
+          setIsLoading(false);
           return;
         }
         
         let targetWorkspaceId = null;
         
-        if (firstMembership) {
-          targetWorkspaceId = firstMembership.workspace_id;
-          setUserRole(firstMembership.role || null);
+        if (workspaceIds && workspaceIds.length > 0) {
+          targetWorkspaceId = workspaceIds[0].workspace_id;
+          setUserRole('member'); // Role padrão
           console.log('✅ Workspace encontrado:', targetWorkspaceId);
         } else {
           console.log('❌ Nenhum workspace encontrado para o usuário');
@@ -155,30 +156,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         // 3. Se encontrou workspace, validar acesso e carregar
         if (targetWorkspaceId) {
-          const { data: memberData } = await centralSupabase
-            .from('membros_workspace')
-            .select('role, workspaces(name, database, tenant_id)')
-            .eq('user_id', user.id)
-            .eq('workspace_id', targetWorkspaceId)
-            .maybeSingle();
-          
-          if (memberData) {
-            applyWorkspaceSelection({
-              workspaceId: targetWorkspaceId,
-              role: memberData.role || null,
-              workspaceInfo: (memberData as any).workspaces || undefined
-            });
+          // Já validamos o acesso via RPC, apenas aplicar seleção
+          applyWorkspaceSelection({
+            workspaceId: targetWorkspaceId,
+            role: 'member',
+            workspaceInfo: undefined // Será carregado depois se necessário
+          });
 
-            console.log('✅ Workspace carregado com sucesso:', {
-              workspaceId: targetWorkspaceId,
-              workspaceName: (memberData as any).workspaces?.name,
-              database: (memberData as any).workspaces?.database,
-              tenant: (memberData as any).workspaces?.tenant_id,
-              role: memberData.role
-            });
-          } else {
-            console.log('❌ Usuário perdeu acesso ao workspace padrão');
-          }
+          console.log('✅ Workspace carregado com sucesso:', {
+            workspaceId: targetWorkspaceId,
+            role: 'member'
+          });
         } else {
           console.log('❌ Usuário não tem workspace atribuído após todas as tentativas');
         }
@@ -218,15 +206,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Validar acesso à workspace
-      const { data: memberData } = await centralSupabase
-        .from('membros_workspace')
-        .select('role, workspaces(name, database, tenant_id)')
-        .eq('user_id', user.id)
-        .eq('workspace_id', id)
-        .maybeSingle();
+      // Validar acesso à workspace usando RPC
+      const { data: isMember, error: memberError } = await centralSupabase
+        .rpc('is_workspace_member', { 
+          _user_id: user.id, 
+          _workspace_id: id 
+        });
       
-      if (!memberData) {
+      if (memberError || !isMember) {
         toast({
           title: 'Acesso negado',
           description: 'Você não tem acesso a esta workspace',
@@ -238,8 +225,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // Atualizar workspace atual
       applyWorkspaceSelection({
         workspaceId: id,
-        role: memberData.role || null,
-        workspaceInfo: (memberData as any).workspaces || undefined
+        role: 'member', // Role padrão
+        workspaceInfo: undefined // Será carregado pelo tenant context
       });
 
       // Salvar como workspace padrão (opcional - não crítico se falhar)
@@ -259,7 +246,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       
       toast({
         title: 'Workspace alterado',
-        description: `Agora visualizando: ${(memberData.workspaces as any)?.name || 'workspace'}`,
+        description: `Workspace alterado com sucesso`,
       });
     } catch (error) {
       console.error('Failed to switch workspace:', error);

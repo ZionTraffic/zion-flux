@@ -74,18 +74,44 @@ export function usePerformanceData(workspaceId?: string) {
       // Fetch metrics for each workspace
       const metricsPromises = workspacesData.map(async (workspace) => {
         // Current period
-        const { data: currentKpi } = await supabase.rpc('kpi_totais_periodo', {
-          p_workspace_id: workspace.id,
-          p_from: format(sevenDaysAgo, 'yyyy-MM-dd'),
-          p_to: to,
-        });
+        let currentKpi: any[] = [];
+        try {
+          const { data: data, error: rpcError } = await supabase.rpc('kpi_totais_periodo', {
+            p_workspace_id: workspace.id,
+            p_from: format(sevenDaysAgo, 'yyyy-MM-dd'),
+            p_to: to,
+          });
+          
+          if (rpcError) {
+            console.warn(`RPC kpi_totais_periodo não acessível para workspace ${workspace.id}:`, rpcError.message);
+            currentKpi = [];
+          } else {
+            currentKpi = data || [];
+          }
+        } catch (err) {
+          console.warn(`Erro ao chamar RPC kpi_totais_periodo para workspace ${workspace.id}:`, err);
+          currentKpi = [];
+        }
 
         // Previous period for comparison
-        const { data: previousKpi } = await supabase.rpc('kpi_totais_periodo', {
-          p_workspace_id: workspace.id,
-          p_from: format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'),
-          p_to: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
-        });
+        let previousKpi: any[] = [];
+        try {
+          const { data: data, error: rpcError } = await supabase.rpc('kpi_totais_periodo', {
+            p_workspace_id: workspace.id,
+            p_from: format(subDays(sevenDaysAgo, 7), 'yyyy-MM-dd'),
+            p_to: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+          });
+          
+          if (rpcError) {
+            console.warn(`RPC kpi_totais_periodo não acessível (período anterior) para workspace ${workspace.id}:`, rpcError.message);
+            previousKpi = [];
+          } else {
+            previousKpi = data || [];
+          }
+        } catch (err) {
+          console.warn(`Erro ao chamar RPC kpi_totais_periodo (período anterior) para workspace ${workspace.id}:`, err);
+          previousKpi = [];
+        }
 
         const current = currentKpi?.[0] || { recebidos: 0, qualificados: 0, investimento: 0, cpl: 0 };
         const previous = previousKpi?.[0] || { recebidos: 0, qualificados: 0, investimento: 0, cpl: 0 };
@@ -206,13 +232,28 @@ export function usePerformanceData(workspaceId?: string) {
 
       // Generate predictive data (mock implementation)
       if (workspaceId) {
-        const { data: dailyData } = await supabase
-          .from('kpi_overview_daily')
-          .select('day, leads_recebidos')
-          .eq('workspace_id', workspaceId)
-          .gte('day', from)
-          .lte('day', to)
-          .order('day', { ascending: true });
+        let dailyData: any[] = [];
+        
+        try {
+          const { data: kpiData, error: kpiError } = await supabase
+            .from('kpi_overview_daily')
+            .select('day, leads_recebidos')
+            .eq('workspace_id', workspaceId)
+            .gte('day', from)
+            .lte('day', to)
+            .order('day', { ascending: true });
+            
+          if (kpiError) {
+            console.warn('Tabela kpi_overview_daily não acessível, usando dados mock:', kpiError.message);
+            // Usar dados mock se a tabela não estiver acessível
+            dailyData = [];
+          } else {
+            dailyData = kpiData || [];
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar dados KPI, usando dados mock:', err);
+          dailyData = [];
+        }
 
         const historical = dailyData?.map(d => ({
           day: format(new Date(d.day), 'dd/MM'),

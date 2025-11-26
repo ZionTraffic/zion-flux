@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
-import { format, subDays } from 'date-fns';
+import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { supabase as centralSupabase } from '@/integrations/supabase/client';
 import { useCurrentTenant } from '@/contexts/TenantContext';
+import { useTagMappings } from '@/hooks/useTagMappings';
+import { MIN_DATA_DATE_OBJ } from '@/lib/constants';
+import {
+  toStartOfDayIso,
+  buildEndExclusiveIso,
+  extractPrimaryTag,
+  normalizeStage,
+} from '@/hooks/useLeadsShared';
+import { logger } from '@/utils/logger';
 
 export interface GlobalKpis {
   totalLeads: number;
@@ -35,12 +44,13 @@ export interface GlobalData {
 
 export function useGlobalData() {
   const { tenant, isLoading: tenantLoading } = useCurrentTenant();
+  const { getStageFromTag, loading: mappingsLoading } = useTagMappings(tenant?.id || null);
   const [data, setData] = useState<GlobalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchGlobalData = async () => {
-    if (tenantLoading) return;
+    if (tenantLoading || mappingsLoading) return;
     if (!tenant) {
       setData(null);
       setIsLoading(false);
@@ -51,18 +61,14 @@ export function useGlobalData() {
     setError(null);
 
     try {
-      const thirtyDaysAgo = subDays(new Date(), 30);
-      const from = format(thirtyDaysAgo, 'yyyy-MM-dd');
-      const to = format(new Date(), 'yyyy-MM-dd');
+      const today = new Date();
+      const thirtyDaysAgo = subDays(today, 30);
+      const effectiveStart = thirtyDaysAgo > MIN_DATA_DATE_OBJ ? thirtyDaysAgo : MIN_DATA_DATE_OBJ;
+      const startISO = toStartOfDayIso(effectiveStart);
+      const endISO = buildEndExclusiveIso(today);
 
-      const { data: workspacesData, error: workspacesError } = await (centralSupabase.from as any)
-        ('tenant_workspaces')
-        .select('id, name, tenant_id')
-        .eq('tenant_id', tenant.id)
-        .eq('active', true)
-        .order('name', { ascending: true });
-
-      if (workspacesError) throw workspacesError;
+      // Usar tenant atual como workspace único
+      const workspacesData = [{ id: tenant.id, name: tenant.name, tenant_id: tenant.id }];
 
       if (!workspacesData || workspacesData.length === 0) {
         setData({
@@ -80,43 +86,61 @@ export function useGlobalData() {
         return;
       }
 
+      const dateRangeDays = eachDayOfInterval({ start: effectiveStart, end: today }).map(date => format(date, 'dd/MM'));
+
       const workspacePerformances = await Promise.all(
         workspacesData.map(async (workspace: any) => {
-          const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)
-            ('tenant_conversations')
-            .select('created_at, tag')
-            .eq('tenant_id', tenant.id)
-            .gte('created_at', `${from}T00:00:00`)
-            .lte('created_at', `${to}T23:59:59`)
-            .limit(50000);
+          try {
+            const { data: leadsData, error: leadsError } = await (centralSupabase.from as any)
+              ('leads')
+              .select('id, criado_em, status, tags_atuais, metadados')
+              .eq('empresa_id', tenant.id)
+              .eq('workspace_id', workspace.id)
+              .gte('criado_em', startISO)
+              .lt('criado_em', endISO)
+              .limit(50000);
 
-          if (leadsError) throw leadsError;
+            if (leadsError) throw leadsError;
 
-          const leads = leadsData || [];
-          const totalLeads = leads.length;
-          const conversions = leads.filter((lead) => {
-            const tag = (lead.tag || '').toLowerCase();
-            if (tenant.slug === 'sieg') {
-              return tag.includes('t3') || tag.includes('pago');
-            }
-            return tag.includes('qualificado') || tag.includes('t3');
-          }).length;
+            const leads = leadsData || [];
+            const normalized = leads.map((lead: any) => {
+              const inferredTag = extractPrimaryTag(lead.metadados, lead.tags_atuais);
+              const mappedStage = inferredTag && getStageFromTag ? getStageFromTag(inferredTag) : undefined;
+              const stage = normalizeStage(mappedStage ?? lead.status, tenant.slug, inferredTag);
+              return {
+                id: lead.id,
+                createdAt: lead.criado_em,
+                stage,
+              };
+            });
 
-          const dailyMap = new Map<string, number>();
-          leads.forEach((lead) => {
-            const day = format(new Date(lead.created_at), 'dd/MM');
-            dailyMap.set(day, (dailyMap.get(day) || 0) + 1);
-          });
+            const totalLeads = normalized.length;
+            const conversions = normalized.filter((lead) => lead.stage === 'qualificados').length;
+            const dailyMap = new Map<string, number>();
 
-          return {
-            workspaceId: workspace.id,
-            workspaceName: workspace.name,
-            leads: totalLeads,
-            conversions,
-            spend: 0,
-            cpl: conversions > 0 ? 0 : 0,
-            dailyData: Array.from(dailyMap.entries()).map(([day, count]) => ({ day, leads: count })),
-          };
+            normalized.forEach((lead) => {
+              const dayKey = format(new Date(lead.createdAt), 'dd/MM');
+              dailyMap.set(dayKey, (dailyMap.get(dayKey) || 0) + 1);
+            });
+
+            const dailyData = dateRangeDays.map(day => ({ day, leads: dailyMap.get(day) || 0 }));
+
+            return {
+              workspaceId: workspace.id,
+              workspaceName: workspace.name,
+              leads: totalLeads,
+              conversions,
+              spend: 0,
+              cpl: conversions > 0 ? 0 : 0,
+              dailyData,
+            };
+          } catch (wsError) {
+            logger.error('Erro ao montar métricas globais por workspace', {
+              workspaceId: workspace.id,
+              error: wsError,
+            });
+            throw wsError;
+          }
         })
       );
 
@@ -124,18 +148,14 @@ export function useGlobalData() {
       const totalConversions = workspacePerformances.reduce((sum, w) => sum + w.conversions, 0);
       const avgConversion = totalLeads > 0 ? (totalConversions / totalLeads) * 100 : 0;
 
-      const chartDataMap = new Map<string, Record<string, number>>();
-      workspacePerformances.forEach((workspace) => {
-        workspace.dailyData.forEach((day) => {
-          const existing = chartDataMap.get(day.day) || {};
-          existing[workspace.workspaceName] = day.leads;
-          chartDataMap.set(day.day, existing);
+      const chartData = dateRangeDays.map((day) => {
+        const row: { day: string; [workspaceName: string]: number | string } = { day };
+        workspacePerformances.forEach((workspace) => {
+          const dailyEntry = workspace.dailyData.find(entry => entry.day === day);
+          row[workspace.workspaceName] = dailyEntry ? dailyEntry.leads : 0;
         });
+        return row;
       });
-
-      const chartData: { day: string; [key: string]: string | number }[] = Array.from(chartDataMap.entries()).map(
-        ([dayKey, values]) => ({ day: dayKey, ...values })
-      );
 
       setData({
         kpis: {
@@ -149,6 +169,7 @@ export function useGlobalData() {
         chartData,
       });
     } catch (err: any) {
+      logger.error('Erro ao carregar dados globais', { error: err });
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -161,7 +182,7 @@ export function useGlobalData() {
     // Auto-refresh every 60 seconds
     const interval = setInterval(fetchGlobalData, 60000);
     return () => clearInterval(interval);
-  }, [tenantLoading, tenant?.id]);
+  }, [tenantLoading, tenant?.id, mappingsLoading, getStageFromTag]);
 
   return { data, isLoading, error, refetch: fetchGlobalData };
 }

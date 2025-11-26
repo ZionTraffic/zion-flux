@@ -56,17 +56,25 @@ export function useAnalyticsData(workspaceId: string) {
       const endDateStr = endDate.toISOString().split('T')[0];
 
       // Buscar dados diários
-      const { data: dailyData, error: dailyError } = await supabase
-        .from('kpi_overview_daily')
-        .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
-        .eq('workspace_id', workspaceId)
-        .gte('day', startDate.toISOString())
-        .limit(5000)
-        .order('day', { ascending: true });
+      let dailyData: any[] = [];
+      try {
+        const { data: data, error: dailyError } = await supabase
+          .from('kpi_overview_daily')
+          .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
+          .eq('workspace_id', workspaceId)
+          .gte('day', startDate.toISOString())
+          .limit(5000)
+          .order('day', { ascending: true });
 
-      if (dailyError) {
-        logger.error('Erro ao carregar dados diários:', dailyError.message);
-        throw dailyError;
+        if (dailyError) {
+          console.warn('Tabela kpi_overview_daily não acessível no AnalyticsData:', dailyError.message);
+          dailyData = [];
+        } else {
+          dailyData = data || [];
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar dados KPI no AnalyticsData:', err);
+        dailyData = [];
       }
 
       const aggregates = (dailyData || []).reduce(

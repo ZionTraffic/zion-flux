@@ -21,10 +21,61 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Função para recuperar senha
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Email necessário",
+        description: "Digite seu email no campo acima para recuperar a senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+    } catch (error: any) {
+      console.error('Erro ao enviar email de recuperação:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível enviar o email de recuperação.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   useEffect(() => {
+    // Verificar se é um link de recovery (reset password)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    
+    if (type === 'recovery' && accessToken) {
+      console.log('[Auth] Recovery token detected, redirecting to reset-password');
+      // Redirecionar para reset-password mantendo o hash
+      navigate(`/reset-password${window.location.hash}`, { replace: true });
+      return;
+    }
+
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -199,9 +250,14 @@ const Auth = () => {
                   <label className="text-sm font-medium text-foreground">
                     Senha
                   </label>
-                  <a href="#" className="text-xs text-blue-500 hover:underline transition-apple-fast">
-                    Esqueceu a senha?
-                  </a>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={isResettingPassword}
+                    className="text-xs text-blue-500 hover:underline transition-apple-fast disabled:opacity-50"
+                  >
+                    {isResettingPassword ? 'Enviando...' : 'Esqueceu a senha?'}
+                  </button>
                 </div>
                 <div className="relative">
                   <input

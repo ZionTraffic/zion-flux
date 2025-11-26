@@ -27,24 +27,46 @@ export function useWorkspaceMembers() {
 
     try {
       setLoading(true);
-      const { data, error } = await (supabase as any)
+      
+      // Buscar membros do tenant
+      const { data: tenantUsers, error: tenantError } = await (supabase as any)
         .from('tenant_users')
-        .select(`
-          user_id,
-          role,
-          user:auth.users(email, raw_user_meta_data)
-        `)
+        .select('user_id, role, custom_permissions')
         .eq('tenant_id', tenant.id)
         .eq('active', true);
 
-      if (error) throw error;
+      if (tenantError) throw tenantError;
 
-      const mappedMembers = (data || []).map((member: any) => ({
-        user_id: member.user_id,
-        role: member.role,
-        user_email: member.user?.email ?? 'sem-email@zion.app',
-        user_name: member.user?.raw_user_meta_data?.full_name ?? member.user?.email ?? 'Usuário'
-      }));
+      if (!tenantUsers || tenantUsers.length === 0) {
+        setMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar dados dos usuários via view perfis_usuarios
+      const userIds = tenantUsers.map((m: any) => m.user_id);
+      
+      let userProfiles: any[] = [];
+      try {
+        const { data: profiles } = await (supabase as any)
+          .from('perfis_usuarios')
+          .select('id, email, nome_completo')
+          .in('id', userIds);
+        userProfiles = profiles || [];
+      } catch (e) {
+        console.log('Erro ao buscar perfis:', e);
+      }
+
+      // Mapear membros com dados disponíveis
+      const mappedMembers = tenantUsers.map((member: any) => {
+        const profile = userProfiles.find((p: any) => p.id === member.user_id);
+        return {
+          user_id: member.user_id,
+          role: member.role,
+          user_email: profile?.email ?? `user-${member.user_id.slice(0, 8)}@workspace`,
+          user_name: profile?.nome_completo ?? profile?.email ?? 'Usuário'
+        };
+      });
 
       setMembers(mappedMembers);
     } catch (error) {
@@ -126,22 +148,63 @@ export function useWorkspaceMembers() {
     }
   };
 
-  const removeMember = async (userId: string) => {
+  const removeMember = async (userId: string, deleteCompletely: boolean = true) => {
     if (!tenant?.id) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from('tenant_users')
-        .update({ active: false })
-        .eq('tenant_id', tenant.id)
-        .eq('user_id', userId);
+      if (deleteCompletely) {
+        // Deletar de tenant_users (todos os workspaces)
+        const { error: tenantError } = await (supabase as any)
+          .from('tenant_users')
+          .delete()
+          .eq('user_id', userId);
 
-      if (error) throw error;
+        if (tenantError) {
+          console.error('Erro ao deletar de tenant_users:', tenantError);
+        }
 
-      toast({
-        title: 'Membro removido',
-        description: 'O membro foi removido do workspace com sucesso.',
-      });
+        // Deletar convites pendentes
+        const { error: inviteError } = await (supabase as any)
+          .from('pending_invites')
+          .delete()
+          .eq('invited_by', userId);
+
+        if (inviteError) {
+          console.error('Erro ao deletar convites:', inviteError);
+        }
+
+        // Deletar do auth.users via RPC (precisa de função no banco)
+        const { error: authError } = await (supabase as any)
+          .rpc('deletar_usuario_completo', { usuario_id: userId });
+
+        if (authError) {
+          console.error('Erro ao deletar do auth:', authError);
+          // Se falhar, tentar apenas desativar
+          await (supabase as any)
+            .from('tenant_users')
+            .update({ active: false })
+            .eq('user_id', userId);
+        }
+
+        toast({
+          title: 'Usuário excluído',
+          description: 'O usuário foi removido completamente do sistema.',
+        });
+      } else {
+        // Apenas desativar no workspace atual
+        const { error } = await (supabase as any)
+          .from('tenant_users')
+          .update({ active: false })
+          .eq('tenant_id', tenant.id)
+          .eq('user_id', userId);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Membro removido',
+          description: 'O membro foi removido do workspace.',
+        });
+      }
 
       await fetchMembers();
     } catch (error) {

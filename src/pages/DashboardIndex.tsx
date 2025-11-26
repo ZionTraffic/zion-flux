@@ -24,6 +24,8 @@ import { useTenant } from "@/contexts/TenantContext";
 import { ExportDropdown } from "@/components/export/ExportDropdown";
 import { ConversationHistorySection } from "@/components/dashboard/ConversationHistorySection";
 import { useConversationsData } from "@/hooks/useConversationsData";
+import { ValoresPendentesCard } from "@/components/dashboard/ValoresPendentesCard";
+import { useValoresFinanceiros } from "@/hooks/useValoresFinanceiros";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -48,6 +50,9 @@ const DashboardIndex = () => {
   // Hook para dados de CSAT (com filtro de data)
   const csatData = useCSATData('', dateRange?.from, dateRange?.to);
   
+  // Hook para valores financeiros (com filtro de data)
+  const valoresFinanceiros = useValoresFinanceiros(dateRange?.from, dateRange?.to);
+  
   // Debug: Log workspace info
   useEffect(() => {
     if (currentTenant) {
@@ -55,6 +60,7 @@ const DashboardIndex = () => {
         id: currentTenant.id,
         slug: currentTenant.slug,
         name: currentTenant.name,
+        isSiegFinanceiro: currentTenant.slug === 'sieg' || currentTenant.slug === 'sieg-financeiro' || currentTenant.slug?.includes('financeiro'),
       });
     }
   }, [currentTenant]);
@@ -93,7 +99,9 @@ const DashboardIndex = () => {
     isLoading: conversationsLoading,
   } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
 
-  const isSiegWorkspace = currentTenant?.slug === 'sieg' || currentTenant?.slug === 'sieg-pre-vendas';
+  // Slugs padronizados: sieg-financeiro, sieg-pré-vendas (com acento), asf-finance
+  const isSiegWorkspace = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug === 'sieg-pre-vendas' || currentTenant?.slug === 'sieg-pré-vendas' || currentTenant?.slug?.includes('sieg');
+  const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -250,7 +258,7 @@ const DashboardIndex = () => {
       <main className="container mx-auto px-6 py-8 space-y-8">
         {/* Hero Section */}
         {!isLoading && (() => {
-          const shouldHideStats = currentTenant?.slug === 'sieg' || currentTenant?.slug === 'sieg-pre-vendas';
+          const shouldHideStats = currentTenant?.slug === 'sieg-pre-vendas' || currentTenant?.slug === 'sieg-pré-vendas';
           console.log('🔍 DashboardIndex - currentTenant:', currentTenant?.name, 'slug:', currentTenant?.slug, 'hideStats:', shouldHideStats);
           return (
             <HeroSection
@@ -261,6 +269,9 @@ const DashboardIndex = () => {
               conversionRate={leads?.qualificationRate || 0}
               trend="up"
               hideStats={shouldHideStats}
+              isSiegFinanceiro={isSiegFinanceiro}
+              valorEmAberto={valoresFinanceiros.data.valorPendente}
+              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
             />
           );
         })()}
@@ -274,29 +285,10 @@ const DashboardIndex = () => {
             minDays={1}
             maxDays={90}
           />
-          <div className="flex items-center gap-2">
-            {currentTenant?.slug === 'sieg' && (
-              <ExportDropdown
-                tenantId={currentTenant?.id || ''}
-                tenantName={currentTenant?.name}
-                startDate={dateRange?.from}
-                endDate={dateRange?.to}
-                disabled={isRefreshing}
-              />
-            )}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
-              <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
-                {isRefreshing ? '🔄' : '✅'}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {lastUpdate.toLocaleTimeString('pt-BR')}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Enhanced KPIs with Trends - Labels condicionais por workspace */}
-        <div className={currentTenant?.slug === 'sieg' 
+        <div className={isSiegFinanceiro 
           ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6" 
           : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         }>
@@ -335,20 +327,29 @@ const DashboardIndex = () => {
             delay={0.3}
           />
 
-          {/* T5 - Passível de Suspensão - APENAS PARA SIEG */}
-          {currentTenant?.slug === 'sieg' && (
+          {/* T5 - Passível de Suspensão - APENAS PARA SIEG FINANCEIRO */}
+          {isSiegFinanceiro && (
             <EnhancedKpiCard
               label="T5 - PASSÍVEL DE SUSPENSÃO"
               value={(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
               icon="⚠️"
               variant="red"
               delay={0.4}
+              tooltip={{
+                title: "Passível de Suspensão",
+                description: "Clientes que estão em risco de suspensão por inadimplência ou outros motivos. Requer atenção imediata da equipe.",
+                items: [
+                  { label: "Status", value: "Crítico" },
+                  { label: "Ação recomendada", value: "Contato urgente" },
+                  { label: "Prazo médio", value: "48 horas" },
+                ]
+              }}
             />
           )}
         </div>
 
-        {/* Métricas de Atendimento - APENAS PARA SIEG */}
-        {currentTenant?.slug === 'sieg' && (
+        {/* Métricas de Atendimento - APENAS PARA SIEG FINANCEIRO */}
+        {isSiegFinanceiro && (
           <>
             <AtendimentosKpiCards
               atendimentosHoje={atendimentosMetrics.atendimentosHoje}
@@ -360,8 +361,20 @@ const DashboardIndex = () => {
 
             <CSATAnalystTable
               data={csatData.data}
+              totals={csatData.totals}
+              feedbacks={csatData.feedbacks}
               isLoading={csatData.isLoading}
               dateRange={dateRange}
+              onDateRangeChange={(range) => setDateRange(range)}
+            />
+
+            {/* Valores Pendentes e Recuperações */}
+            <ValoresPendentesCard
+              valorPendente={valoresFinanceiros.data.valorPendente}
+              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
+              valorEmNegociacao={valoresFinanceiros.data.valorEmNegociacao}
+              metaMensal={valoresFinanceiros.data.metaMensal}
+              isLoading={valoresFinanceiros.isLoading}
             />
           </>
         )}

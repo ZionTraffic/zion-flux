@@ -48,7 +48,9 @@ export function usePermissions() {
       if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
         setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
       } else {
-        setPermissions(new Set());
+        // Fallback: dar pelo menos permissão de visualizar dashboard
+        console.log('⚠️ Sem tenant e sem role, dando permissões mínimas de viewer');
+        setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.viewer));
       }
       setLoading(false);
       return;
@@ -78,7 +80,9 @@ export function usePermissions() {
         if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
           setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
         } else {
-          setPermissions(new Set());
+          // Fallback mínimo: viewer
+          console.log('⚠️ RPC falhou e sem role, dando permissões de viewer');
+          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.viewer));
         }
         setLoading(false);
         return;
@@ -92,7 +96,9 @@ export function usePermissions() {
         if (role && DEFAULT_PERMISSIONS_BY_ROLE[role]) {
           setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE[role]));
         } else {
-          setPermissions(new Set());
+          // Fallback mínimo: viewer
+          console.log('⚠️ Result não success e sem role, dando permissões de viewer');
+          setPermissions(new Set(DEFAULT_PERMISSIONS_BY_ROLE.viewer));
         }
         return;
       }

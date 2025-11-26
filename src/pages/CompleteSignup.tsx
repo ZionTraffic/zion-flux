@@ -86,16 +86,17 @@ const CompleteSignup = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: workspaceData } = await supabase
-          .from('membros_workspace')
-          .select('workspace_id, role')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+        // Usar RPC para obter workspaces do usuário
+        const { data: workspaceIds } = await supabase
+          .rpc('get_user_workspaces', { _user_id: user.id });
+        
+        const workspaceData = workspaceIds && workspaceIds.length > 0 
+          ? [{ workspace_id: workspaceIds[0].workspace_id, role: 'member' }]
+          : null;
         
         if (workspaceData) {
           // Salvar workspace no localStorage para o WorkspaceContext
-          localStorage.setItem('currentWorkspaceId', workspaceData.workspace_id);
+          localStorage.setItem('currentWorkspaceId', workspaceData[0].workspace_id);
           
           toast({
             title: "Cadastro concluído!",

@@ -25,14 +25,25 @@ export const DataTable = ({ workspaceId }: DataTableProps) => {
         setLoading(true);
         
         // Fetch campaign data with source from custo_anuncios
-        const { data: kpiData, error: kpiError } = await supabase
-          .from('kpi_overview_daily')
-          .select('day, leads_recebidos, leads_qualificados, investimento, cpl')
-          .eq('workspace_id', workspaceId)
-          .order('day', { ascending: false })
-          .limit(10);
+        let kpiData: any[] = [];
+        try {
+          const { data: data, error: kpiError } = await supabase
+            .from('kpi_overview_daily')
+            .select('day, leads_recebidos, leads_qualificados, investimento, cpl')
+            .eq('workspace_id', workspaceId)
+            .order('day', { ascending: false })
+            .limit(10);
 
-        if (kpiError) throw kpiError;
+          if (kpiError) {
+            console.warn('Tabela kpi_overview_daily não acessível no DataTable:', kpiError.message);
+            kpiData = [];
+          } else {
+            kpiData = data || [];
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar dados KPI no DataTable:', err);
+          kpiData = [];
+        }
 
         // Fetch sources from custo_anuncios
         const { data: sourcesData } = await supabase

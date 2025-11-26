@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2 } from "lucide-react";
-import { useLeadsFromConversations, LeadStage } from "@/hooks/useLeadsFromConversations";
+import { useLeadsFromConversations } from "@/hooks/useLeadsFromConversations";
+import { LeadStage } from "@/hooks/useLeadsShared";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useState } from "react";
@@ -37,7 +38,10 @@ const Qualificacao = () => {
     return { from, to };
   });
 
-  const { columns, isLoading, error, moveLead, refetch, kpis, charts } = useLeadsFromConversations(
+  // Ocultar página para SIEG Financeiro
+  const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+
+  const { columns, isLoading, error, moveLead, refetch, kpis, charts, stageLabels } = useLeadsFromConversations(
     currentTenant?.id || '',
     dateRange?.from,
     dateRange?.to
@@ -52,6 +56,24 @@ const Qualificacao = () => {
       });
     }
   }, [currentTenant]);
+  
+  // Renderizar mensagem para SIEG Financeiro
+  if (isSiegFinanceiro) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-6">
+            <MessageSquare className="w-10 h-10 text-muted-foreground" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Página não disponível</h2>
+          <p className="text-muted-foreground max-w-md">
+            A tela de Qualificação não está disponível para o workspace SIEG Financeiro.
+            Utilize o Dashboard para visualizar as métricas de atendimento.
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const handleClearFilter = () => {
     const to = new Date();
@@ -157,7 +179,7 @@ const Qualificacao = () => {
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const leadId = parseInt(result.draggableId);
+    const leadId = result.draggableId;
     const fromStage = source.droppableId as LeadStage;
     const toStage = destination.droppableId as LeadStage;
 
@@ -280,7 +302,6 @@ const Qualificacao = () => {
             disabled={isLoading}
           />
         )}
-        <TenantSelector />
       </div>
       {/* Date Range Filter */}
       <div className="mb-6">

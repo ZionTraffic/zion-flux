@@ -19,6 +19,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/types/permissions";
 import { TenantSelectorCompact } from "@/components/ui/TenantSelector";
 import { useTenant } from "@/contexts/TenantContext";
+import { ExportDropdown } from "@/components/export/ExportDropdown";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -130,7 +131,15 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
           }
           break;
         case 'Qualificação':
-          shouldShow = isMasterUser || canViewQualification();
+          // Ocultar Qualificação para workspace SIEG Financeiro
+          const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+          if (isSiegFinanceiro) {
+            shouldShow = false;
+          } else if (isMasterUser) {
+            shouldShow = true;
+          } else {
+            shouldShow = canViewQualification();
+          }
           break;
         case 'Análise':
           // Ocultar Análise para workspace Sieg (Financeiro e Pré Vendas)
@@ -196,9 +205,30 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
             </div>
           </div>
 
-          {/* Center Section: Workspace Selector */}
-          <div className="flex flex-1 justify-center items-center gap-4 max-w-2xl">
+          {/* Center Section: Workspace Selector + Export + Time */}
+          <div className="flex flex-1 justify-center items-center gap-3 max-w-2xl">
             <TenantSelectorCompact />
+            
+            {/* Export Dropdown - apenas para SIEG Financeiro */}
+            {(currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro')) && (
+              <ExportDropdown
+                tenantId={currentTenant?.id || ''}
+                tenantName={currentTenant?.name}
+                disabled={isRefreshing}
+              />
+            )}
+
+            {/* Last Update Time */}
+            {lastUpdate && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
+                <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
+                  {isRefreshing ? '🔄' : '✅'}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {lastUpdate.toLocaleTimeString('pt-BR')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right Section: Status + Actions */}

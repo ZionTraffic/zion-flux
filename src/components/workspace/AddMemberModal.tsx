@@ -77,7 +77,9 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
 
   const handleSavePermissions = async () => {
     try {
-      if (!tenantId) {
+      const targetTenantId = tenantId || effectiveTenantId;
+      
+      if (!targetTenantId) {
         toast.error('Nenhuma empresa selecionada');
         return;
       }
@@ -94,31 +96,50 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
         return;
       }
 
+      // Verificar se está autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        return;
+      }
+
       setIsLoading(true);
 
-      // Gerar convite com permissões customizadas
-      const { data, error: functionError } = await supabase.functions.invoke('generate-invite-link', {
-        body: {
+      // Gerar token único
+      const inviteToken = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      // Data de expiração (7 dias)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      // Inserir convite diretamente no banco
+      const { error: insertError } = await supabase
+        .from('pending_invites')
+        .insert({
+          workspace_id: targetTenantId,
           email: email.toLowerCase().trim(),
           role: role,
-          tenant_id: tenantId,
-          permissions: selectedPermissions
-        }
-      });
+          token: inviteToken,
+          invited_by: session.user.id,
+          expires_at: expiresAt.toISOString(),
+          permissions: JSON.stringify(selectedPermissions),
+          custom_data: JSON.stringify({
+            tenant_id: targetTenantId,
+            tenant_name: effectiveTenantName,
+          })
+        });
 
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw functionError;
-      }
-      
-      if (data?.error) {
-        throw new Error(data.error);
+      if (insertError) {
+        console.error('Erro ao criar convite:', insertError);
+        throw new Error(insertError.message || 'Erro ao criar convite');
       }
 
-      console.log('Convite gerado com permissões customizadas:', data);
+      console.log('Convite gerado com permissões customizadas');
 
       // Salvar template também
-      const templateKey = `permission_template_${tenantId}`;
+      const templateKey = `permission_template_${targetTenantId}`;
       const template = {
         role,
         permissions: selectedPermissions,
@@ -128,19 +149,26 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
 
       localStorage.setItem(templateKey, JSON.stringify(template));
       
+      // Gerar URL para mostrar ao usuário
+      const inviteUrl = `${window.location.origin}/accept-invite?token=${inviteToken}`;
+      setGeneratedLink(inviteUrl);
+      setInviteDetails({
+        email: email.toLowerCase().trim(),
+        role: role,
+        expires_at: expiresAt.toISOString(),
+        token: inviteToken
+      });
+      
       toast.success('Usuário cadastrado! Link de convite gerado.');
       
-      handleClose();
-      
-      // Forçar atualização da lista de usuários sem recarregar a página
+      // Forçar atualização da lista de usuários
       setTimeout(() => {
-        // Disparar evento customizado para atualizar a lista
         window.dispatchEvent(new CustomEvent('refreshUserList'));
       }, 500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      toast.error('Erro ao adicionar usuário');
+      toast.error(error.message || 'Erro ao adicionar usuário');
     } finally {
       setIsLoading(false);
     }
@@ -155,6 +183,13 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
     setGeneratedLink(null);
     setInviteDetails(null);
     onOpenChange(false);
+  };
+
+  // Função para gerar token seguro
+  const generateSecureToken = () => {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
   const handleGenerateLink = async () => {
@@ -173,7 +208,7 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
     }
 
     try {
-      // Verificar se está autenticado antes de chamar a function
+      // Verificar se está autenticado
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -190,26 +225,48 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
 
       setIsLoading(true);
 
-      const { data, error: functionError } = await supabase.functions.invoke('generate-invite-link', {
-        body: {
-          email: validation.email,
-          role: validation.role,
-          tenant_id: validation.tenant_id,
-          permissions: selectedPermissions
-        }
-      });
-
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw functionError;
-      }
+      // Gerar token único
+      const inviteToken = generateSecureToken();
       
-      if (data?.error) {
-        throw new Error(data.error);
+      // Data de expiração (7 dias)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      // Inserir convite diretamente no banco
+      const { data: invite, error: insertError } = await supabase
+        .from('pending_invites')
+        .insert({
+          workspace_id: targetTenantId,
+          email: validation.email.toLowerCase().trim(),
+          role: validation.role,
+          token: inviteToken,
+          invited_by: session.user.id,
+          expires_at: expiresAt.toISOString(),
+          permissions: selectedPermissions.length > 0 ? JSON.stringify(selectedPermissions) : null,
+          custom_data: JSON.stringify({
+            tenant_id: targetTenantId,
+            tenant_name: effectiveTenantName,
+          })
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Erro ao criar convite:', insertError);
+        throw new Error(insertError.message || 'Erro ao criar convite');
       }
 
-      setGeneratedLink(data.invite_url);
-      setInviteDetails(data);
+      // Gerar URL de convite
+      const appUrl = window.location.origin;
+      const inviteUrl = `${appUrl}/accept-invite?token=${inviteToken}`;
+
+      setGeneratedLink(inviteUrl);
+      setInviteDetails({
+        email: validation.email,
+        role: validation.role,
+        expires_at: expiresAt.toISOString(),
+        token: inviteToken
+      });
       toast.success('Link de convite gerado!');
       
     } catch (err: any) {
@@ -231,138 +288,215 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl border-border/50">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Gerenciar Convites</DialogTitle>
-        </DialogHeader>
-
-        <Tabs defaultValue="generate" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="generate">Gerar Convite</TabsTrigger>
-            <TabsTrigger value="pending">Convites Pendentes</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="generate" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Empresa selecionada</Label>
-              <div className="px-3 py-2 rounded-lg border border-border/60 bg-background/80 text-sm">
-                {effectiveTenantName}
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto border-border/50 bg-gradient-to-b from-background to-background/95 p-0">
+        {/* Header com gradiente */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border/30 px-6 py-4">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <LinkIcon className="h-5 w-5 text-white" />
               </div>
-            </div>
+              Gerenciar Convites
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Adicione novos membros ao workspace {effectiveTenantName}
+            </p>
+          </DialogHeader>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="usuario@exemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Função</Label>
-              <Select 
-                value={role} 
-                onValueChange={(newRole) => {
-                  setRole(newRole);
-                  // Atualizar permissões padrão quando o role muda
-                  if (DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]) {
-                    setSelectedPermissions([...DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]] as PermissionKey[]);
-                  }
-                }} 
-                disabled={isLoading}
+        <div className="p-6">
+          <Tabs defaultValue="generate" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 rounded-xl">
+              <TabsTrigger 
+                value="generate" 
+                className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma função" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">Owner - Controle total</SelectItem>
-                  <SelectItem value="admin">Admin - Gerenciar usuários e configurações</SelectItem>
-                  <SelectItem value="member">Member - Acesso básico</SelectItem>
-                  <SelectItem value="viewer">Viewer - Apenas visualização</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <LinkIcon className="h-4 w-4 mr-2" />
+                Gerar Convite
+              </TabsTrigger>
+              <TabsTrigger 
+                value="pending"
+                className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
+              >
+                Convites Pendentes
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Seletor de Permissões */}
-            <div className="space-y-2">
-              <PermissionSelector
-                selectedPermissions={selectedPermissions}
-                onPermissionsChange={setSelectedPermissions}
-                userRole={role}
-              />
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive">{error}</p>
+            <TabsContent value="generate" className="mt-6 space-y-6">
+              {/* Card de Empresa */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Workspace Selecionado
+                </Label>
+                <p className="text-lg font-semibold text-foreground mt-1">{effectiveTenantName}</p>
               </div>
-            )}
 
-            {generatedLink && inviteDetails && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-3">
-                <div className="flex items-center gap-2 text-primary">
-                  <LinkIcon className="h-5 w-5" />
-                  <p className="font-medium">Link de Convite Gerado</p>
-                </div>
-                
+              {/* Grid responsivo para Email e Função */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email do Usuário
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="usuario@exemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="h-11 bg-background/50 border-border/60 focus:border-primary/50 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm font-medium">
+                    Função
+                  </Label>
+                  <Select 
+                    value={role} 
+                    onValueChange={(newRole) => {
+                      setRole(newRole);
+                      if (DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]) {
+                        setSelectedPermissions([...DEFAULT_PERMISSIONS_BY_ROLE[newRole as keyof typeof DEFAULT_PERMISSIONS_BY_ROLE]] as PermissionKey[]);
+                      }
+                    }} 
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="h-11 bg-background/50 border-border/60">
+                      <SelectValue placeholder="Selecione uma função" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owner" className="py-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Owner</span>
+                          <span className="text-xs text-muted-foreground">Controle total do workspace</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin" className="py-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Admin</span>
+                          <span className="text-xs text-muted-foreground">Gerenciar usuários e configurações</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="member" className="py-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Member</span>
+                          <span className="text-xs text-muted-foreground">Acesso básico às funcionalidades</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="viewer" className="py-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Viewer</span>
+                          <span className="text-xs text-muted-foreground">Apenas visualização de dados</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Seletor de Permissões com scroll */}
+              <div className="space-y-3">
+                <div className="max-h-[280px] overflow-y-auto rounded-xl border border-border/40 bg-background/30 p-4">
+                  <PermissionSelector
+                    selectedPermissions={selectedPermissions}
+                    onPermissionsChange={setSelectedPermissions}
+                    userRole={role}
+                  />
+                </div>
+              </div>
+
+              {/* Mensagem de erro */}
+              {error && (
+                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-destructive text-lg">!</span>
+                  </div>
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {/* Link gerado */}
+              {generatedLink && inviteDetails && (
+                <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-500/30 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <LinkIcon className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-emerald-700 dark:text-emerald-400">Link de Convite Gerado!</p>
+                      <p className="text-xs text-muted-foreground">Compartilhe com o usuário</p>
+                    </div>
+                  </div>
+                  
                   <div className="flex gap-2">
                     <Input 
                       value={generatedLink} 
                       readOnly 
-                      className="font-mono text-sm"
+                      className="font-mono text-xs bg-background/80"
                     />
-                    <Button variant="outline" size="sm" onClick={copyLink}>
+                    <Button variant="outline" size="icon" onClick={copyLink} className="flex-shrink-0">
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                   
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>Email: {inviteDetails.email}</p>
-                    <p>Role: {inviteDetails.role}</p>
-                    <p>Expira em: {new Date(inviteDetails.expires_at).toLocaleDateString('pt-BR')}</p>
+                  <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div className="p-2 rounded-lg bg-background/50">
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium truncate">{inviteDetails.email}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-background/50">
+                      <p className="text-muted-foreground">Função</p>
+                      <p className="font-medium capitalize">{inviteDetails.role}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-background/50">
+                      <p className="text-muted-foreground">Expira em</p>
+                      <p className="font-medium">{new Date(inviteDetails.expires_at).toLocaleDateString('pt-BR')}</p>
+                    </div>
                   </div>
-
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Compartilhe este link diretamente com o usuário (WhatsApp, email, etc.)
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex gap-2 justify-between">
-              <Button 
-                variant={hasTemplate ? "default" : "secondary"}
-                onClick={handleSavePermissions}
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-{hasTemplate ? 'Cadastrar com Template' : 'Cadastrar Usuário'}
-              </Button>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClose}>
+              {/* Botões de ação */}
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t border-border/30">
+                <Button 
+                  variant="outline" 
+                  onClick={handleClose}
+                  className="sm:flex-1"
+                >
                   Cancelar
                 </Button>
-                <Button onClick={handleGenerateLink} disabled={isLoading}>
-                  {isLoading ? 'Gerando...' : 'Gerar Link de Convite'}
+                <Button 
+                  variant={hasTemplate ? "default" : "secondary"}
+                  onClick={handleSavePermissions}
+                  disabled={isLoading}
+                  className="sm:flex-1 gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {hasTemplate ? 'Cadastrar com Template' : 'Cadastrar Usuário'}
+                </Button>
+                <Button 
+                  onClick={handleGenerateLink} 
+                  disabled={isLoading}
+                  className="sm:flex-1 bg-gradient-to-r from-primary to-secondary hover:opacity-90 gap-2"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                  {isLoading ? 'Gerando...' : 'Gerar Link'}
                 </Button>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="pending" className="mt-4">
-            <PendingInvitesList 
-              tenantId={tenantId || effectiveTenantId} 
-              onUpdate={() => {}}
-            />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="pending" className="mt-6">
+              <div className="rounded-xl border border-border/40 bg-background/30 p-4">
+                <PendingInvitesList 
+                  tenantId={tenantId || effectiveTenantId} 
+                  onUpdate={() => {}}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

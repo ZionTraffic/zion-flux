@@ -29,6 +29,13 @@ export function useSupabaseConnectionTest(workspaceId: string) {
       console.log('🔍 Iniciando teste de conexão com banco de dados...');
       console.log('📍 Workspace ID:', workspaceId);
       
+      // Validar se workspaceId não está vazio
+      if (!workspaceId || workspaceId === '') {
+        console.warn('⚠️ Workspace ID vazio, pulando testes');
+        setTesting(false);
+        return;
+      }
+      
       const result: ConnectionTestResult = {
         rpcTest: {
           success: false,
@@ -55,11 +62,23 @@ export function useSupabaseConnectionTest(workspaceId: string) {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
 
-        const { data: rpcData, error: rpcError } = await supabase.rpc('kpi_totais_periodo', {
-          p_workspace_id: workspaceId,
-          p_from: startDate.toISOString().split('T')[0],
-          p_to: endDate.toISOString().split('T')[0],
-        });
+        let rpcData: any[] = [];
+        let rpcError: any = null;
+        
+        try {
+          const { data: data, error: error } = await supabase.rpc('kpi_totais_periodo', {
+            p_workspace_id: workspaceId,
+            p_from: startDate.toISOString().split('T')[0],
+            p_to: endDate.toISOString().split('T')[0],
+          });
+          
+          rpcData = data || [];
+          rpcError = error;
+        } catch (err) {
+          console.warn('Função RPC kpi_totais_periodo não acessível no teste de conexão:', err);
+          rpcData = [];
+          rpcError = err;
+        }
 
         const rpcEndTime = performance.now();
         result.rpcTest.responseTime = rpcEndTime - rpcStartTime;
@@ -92,12 +111,24 @@ export function useSupabaseConnectionTest(workspaceId: string) {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
 
-        const { data: viewData, error: viewError } = await supabase
-          .from('kpi_overview_daily')
-          .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
-          .eq('workspace_id', workspaceId)
-          .gte('day', startDate.toISOString())
-          .order('day', { ascending: true });
+        let viewData: any[] = [];
+        let viewError: any = null;
+        
+        try {
+          const { data: data, error: error } = await supabase
+            .from('kpi_overview_daily')
+            .select('day, leads_recebidos, leads_qualificados, leads_followup, leads_descartados, investimento, cpl')
+            .eq('workspace_id', workspaceId)
+            .gte('day', startDate.toISOString())
+            .order('day', { ascending: true });
+            
+          viewData = data || [];
+          viewError = error;
+        } catch (err) {
+          console.warn('Tabela kpi_overview_daily não acessível no teste de conexão:', err);
+          viewData = [];
+          viewError = err;
+        }
 
         const viewEndTime = performance.now();
         result.viewTest.responseTime = viewEndTime - viewStartTime;

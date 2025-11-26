@@ -1,9 +1,17 @@
 import { useState } from 'react';
+import { CSATTotals, CSATFeedback } from '@/hooks/useCSATData';
+import { CSATDistributionChart } from './charts/CSATDistributionChart';
+import { CSATFeedbackList } from './CSATFeedbackList';
 
 interface CSATData {
   analista: string;
   csatMedio: number;
   totalAtendimentos: number;
+  nota1: number;
+  nota2: number;
+  nota3: number;
+  nota4: number;
+  nota5: number;
   satisfeito?: number;
   poucoSatisfeito?: number;
   insatisfeito?: number;
@@ -11,12 +19,58 @@ interface CSATData {
 
 interface CSATAnalystTableProps {
   data: CSATData[];
+  totals?: CSATTotals;
+  feedbacks?: CSATFeedback[];
   isLoading?: boolean;
   dateRange?: { from?: Date; to?: Date };
+  onDateRangeChange?: (range: { from: Date; to: Date }) => void;
 }
 
-export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAnalystTableProps) {
+// Função para obter cor baseada na nota (1-2 vermelho, 3 amarelo, 4-5 verde)
+const getNotaColor = (nota: number) => {
+  if (nota >= 4) return { bg: 'bg-emerald-500', text: 'text-emerald-500', gradient: 'from-emerald-500 to-emerald-600' };
+  if (nota === 3) return { bg: 'bg-amber-500', text: 'text-amber-500', gradient: 'from-amber-500 to-amber-600' };
+  return { bg: 'bg-red-500', text: 'text-red-500', gradient: 'from-red-500 to-red-600' };
+};
+
+// Função para obter cor do CSAT médio
+const getCsatMedioColor = (media: number) => {
+  if (media >= 4) return 'text-emerald-600';
+  if (media >= 3) return 'text-amber-600';
+  return 'text-red-600';
+};
+
+// Opções de filtro rápido
+const quickFilters = [
+  { label: '7 dias', days: 7 },
+  { label: '30 dias', days: 30 },
+  { label: '90 dias', days: 90 },
+  { label: 'Este mês', days: 0 }, // 0 = mês atual
+];
+
+export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = false, dateRange, onDateRangeChange }: CSATAnalystTableProps) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  // Função para aplicar filtro rápido
+  const applyQuickFilter = (days: number, label: string) => {
+    if (!onDateRangeChange) return;
+    
+    const now = new Date();
+    let from: Date;
+    let to: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    if (days === 0) {
+      // Este mês
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      // Últimos X dias
+      from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    }
+
+    setActiveFilter(label);
+    onDateRangeChange({ from, to });
+  };
 
   const getPeriodoLabel = () => {
     if (!dateRange?.from && !dateRange?.to) {
@@ -41,14 +95,38 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
   const humanAnalysts = data.filter((item) => item.analista.toLowerCase() !== 'ia');
   const iaAnalyst = data.find((item) => item.analista.toLowerCase() === 'ia');
 
-  // Somar as categorias de CSAT (não totalAtendimentos para evitar duplicação)
-  const totalSatisfeito = data.reduce((total, item) => total + (item.satisfeito || 0), 0);
-  const totalPouco = data.reduce((total, item) => total + (item.poucoSatisfeito || 0), 0);
-  const totalInsatisfeito = data.reduce((total, item) => total + (item.insatisfeito || 0), 0);
-  
-  // Total real de respostas = soma das 3 categorias
-  const totalRespostas = totalSatisfeito + totalPouco + totalInsatisfeito;
-  const satisfacaoGeral = totalRespostas > 0 ? (totalSatisfeito / totalRespostas) * 100 : 0;
+  // Usar totals do hook ou calcular localmente
+  const csatMedioGeral = totals?.csatMedioGeral || 0;
+  const totalAvaliacoes = totals?.totalAvaliacoes || data.reduce((sum, item) => sum + item.totalAtendimentos, 0);
+  const distribuicao = totals?.distribuicao || { nota1: 0, nota2: 0, nota3: 0, nota4: 0, nota5: 0 };
+
+  // Métricas separadas por origem (Humano vs IA)
+  const humanStats = {
+    total: humanAnalysts.reduce((sum, item) => sum + item.totalAtendimentos, 0),
+    media: humanAnalysts.length > 0 
+      ? humanAnalysts.reduce((sum, item) => sum + (item.csatMedio * item.totalAtendimentos), 0) / 
+        humanAnalysts.reduce((sum, item) => sum + item.totalAtendimentos, 0) || 0
+      : 0,
+    distribuicao: humanAnalysts.reduce((acc, item) => ({
+      nota1: acc.nota1 + item.nota1,
+      nota2: acc.nota2 + item.nota2,
+      nota3: acc.nota3 + item.nota3,
+      nota4: acc.nota4 + item.nota4,
+      nota5: acc.nota5 + item.nota5,
+    }), { nota1: 0, nota2: 0, nota3: 0, nota4: 0, nota5: 0 }),
+  };
+
+  const iaStats = iaAnalyst ? {
+    total: iaAnalyst.totalAtendimentos,
+    media: iaAnalyst.csatMedio,
+    distribuicao: {
+      nota1: iaAnalyst.nota1,
+      nota2: iaAnalyst.nota2,
+      nota3: iaAnalyst.nota3,
+      nota4: iaAnalyst.nota4,
+      nota5: iaAnalyst.nota5,
+    },
+  } : null;
 
   const sectionsEmpty = humanAnalysts.length === 0 && !iaAnalyst;
 
@@ -85,20 +163,42 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
     }}>
 
       <div className="relative z-10">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-10">
-          <div className="relative">
-            <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full animate-pulse" />
-            <svg className="relative w-10 h-10 text-amber-500 drop-shadow-2xl" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
+        {/* Header com Filtros Rápidos */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full animate-pulse" />
+              <svg className="relative w-10 h-10 text-amber-500 drop-shadow-2xl" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600">
+                CSAT por Analista
+              </h3>
+              <p className="text-sm text-muted-foreground/80 mt-1">{mesAtual}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600">
-              CSAT por Analista
-            </h3>
-            <p className="text-sm text-muted-foreground/80 mt-1">{mesAtual}</p>
-          </div>
+
+          {/* Filtros Rápidos */}
+          {onDateRangeChange && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground font-medium mr-1">Período:</span>
+              {quickFilters.map((filter) => (
+                <button
+                  key={filter.label}
+                  onClick={() => applyQuickFilter(filter.days, filter.label)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                    activeFilter === filter.label
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {sectionsEmpty ? (
@@ -108,61 +208,191 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
           </div>
         ) : (
           <>
-            {/* Premium Stats Cards */}
+            {/* Gráfico de Distribuição por Nota */}
+            <div className="mb-10 p-6 rounded-2xl border border-gray-200 bg-white shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-foreground">Distribuição por Nota</h4>
+                  <p className="text-sm text-muted-foreground">Quantidade de avaliações por nota (1 a 5)</p>
+                </div>
+              </div>
+              <CSATDistributionChart 
+                distribuicao={distribuicao} 
+                totalAvaliacoes={totalAvaliacoes} 
+              />
+            </div>
+
+            {/* CSAT por Origem - Comparativo IA vs Humano */}
+            <div className="mb-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-foreground">CSAT por Origem do Atendimento</h4>
+                  <p className="text-sm text-muted-foreground">Comparativo entre atendimento humano e IA</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Card Atendimento Humano */}
+                <div className="p-6 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h5 className="text-lg font-bold text-emerald-800">Atendimento Humano</h5>
+                      <p className="text-sm text-emerald-600">{humanAnalysts.length} analistas</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 rounded-xl bg-white/80 border border-emerald-200">
+                      <p className="text-xs text-emerald-600 uppercase font-semibold mb-1">CSAT Médio</p>
+                      <p className={`text-3xl font-bold ${getCsatMedioColor(humanStats.media)}`}>
+                        {humanStats.media.toFixed(1)}<span className="text-lg text-gray-400">/5</span>
+                      </p>
+                    </div>
+                    <div className="text-center p-3 rounded-xl bg-white/80 border border-emerald-200">
+                      <p className="text-xs text-emerald-600 uppercase font-semibold mb-1">Total Avaliações</p>
+                      <p className="text-3xl font-bold text-emerald-700">{humanStats.total}</p>
+                    </div>
+                  </div>
+
+                  {/* Mini distribuição */}
+                  <div className="flex gap-1 justify-center">
+                    {[5, 4, 3, 2, 1].map((nota) => {
+                      const count = humanStats.distribuicao[`nota${nota}` as keyof typeof humanStats.distribuicao];
+                      const color = getNotaColor(nota);
+                      return (
+                        <div key={nota} className={`px-2 py-1 rounded ${color.bg}/20 ${color.text} text-xs font-bold`} title={`Nota ${nota}`}>
+                          {nota}: {count}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Card Atendimento IA */}
+                <div className="p-6 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h5 className="text-lg font-bold text-blue-800">Atendimento IA</h5>
+                      <p className="text-sm text-blue-600">Automação</p>
+                    </div>
+                  </div>
+                  
+                  {iaStats ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="text-center p-3 rounded-xl bg-white/80 border border-blue-200">
+                          <p className="text-xs text-blue-600 uppercase font-semibold mb-1">CSAT Médio</p>
+                          <p className={`text-3xl font-bold ${getCsatMedioColor(iaStats.media)}`}>
+                            {iaStats.media.toFixed(1)}<span className="text-lg text-gray-400">/5</span>
+                          </p>
+                        </div>
+                        <div className="text-center p-3 rounded-xl bg-white/80 border border-blue-200">
+                          <p className="text-xs text-blue-600 uppercase font-semibold mb-1">Total Avaliações</p>
+                          <p className="text-3xl font-bold text-blue-700">{iaStats.total}</p>
+                        </div>
+                      </div>
+
+                      {/* Mini distribuição */}
+                      <div className="flex gap-1 justify-center">
+                        {[5, 4, 3, 2, 1].map((nota) => {
+                          const count = iaStats.distribuicao[`nota${nota}` as keyof typeof iaStats.distribuicao];
+                          const color = getNotaColor(nota);
+                          return (
+                            <div key={nota} className={`px-2 py-1 rounded ${color.bg}/20 ${color.text} text-xs font-bold`} title={`Nota ${nota}`}>
+                              {nota}: {count}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-6 text-blue-400">
+                      <p>Sem avaliações de IA no período</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Stats Cards - CSAT 1-5 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              {/* CSAT Médio Geral */}
+              <div 
+                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
+              >
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${getNotaColor(csatMedioGeral).gradient} flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500`}>
+                      <span className="text-2xl font-bold text-white drop-shadow-lg">{csatMedioGeral.toFixed(1)}</span>
+                    </div>
+                    <div className={`h-3 w-3 rounded-full ${getNotaColor(csatMedioGeral).bg} animate-pulse shadow-lg`} />
+                  </div>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">CSAT Médio Geral</p>
+                  <p className={`text-xl font-bold ${getCsatMedioColor(csatMedioGeral)}`}>{csatMedioGeral.toFixed(1)} / 5</p>
+                </div>
+              </div>
+
               {/* Total Avaliações */}
               <div 
                 className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-5">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-                      <span className="text-2xl font-bold text-white drop-shadow-lg">{totalRespostas}</span>
-                    </div>
-                    <div className="h-3 w-3 rounded-full bg-amber-500 animate-pulse shadow-lg shadow-amber-500/50" />
-                  </div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">Total de Avaliações</p>
-                  <p className="text-base font-bold text-foreground">Últimos 90 dias</p>
-                </div>
-              </div>
-
-              {/* Satisfação Geral */}
-              <div 
-                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-                      <span className="text-2xl font-bold text-white drop-shadow-lg">{Math.round(satisfacaoGeral)}%</span>
-                    </div>
-                    <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
-                  </div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">Satisfação Geral</p>
-                  <p className="text-base font-bold text-foreground">{totalSatisfeito} positivas</p>
-                </div>
-              </div>
-
-              {/* Distribuição */}
-              <div 
-                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex gap-2">
-                      <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center backdrop-blur-sm border border-emerald-500/30 transform group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-base font-bold text-emerald-500">{totalSatisfeito}</span>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-blue-500/20 flex items-center justify-center backdrop-blur-sm border border-blue-500/30 transform group-hover:scale-110 transition-transform duration-300" style={{ transitionDelay: '50ms' }}>
-                        <span className="text-base font-bold text-blue-500">{totalPouco}</span>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-red-500/20 flex items-center justify-center backdrop-blur-sm border border-red-500/30 transform group-hover:scale-110 transition-transform duration-300" style={{ transitionDelay: '100ms' }}>
-                        <span className="text-base font-bold text-red-500">{totalInsatisfeito}</span>
-                      </div>
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
+                      <span className="text-2xl font-bold text-white drop-shadow-lg">{totalAvaliacoes}</span>
                     </div>
                     <div className="h-3 w-3 rounded-full bg-blue-500 animate-pulse shadow-lg shadow-blue-500/50" />
                   </div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">Distribuição</p>
-                  <p className="text-base font-bold text-foreground">Por categoria</p>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">Total de Avaliações</p>
+                  <p className="text-base font-bold text-foreground">No período selecionado</p>
+                </div>
+              </div>
+
+              {/* Distribuição por Nota 1-5 */}
+              <div 
+                className="group relative overflow-hidden rounded-2xl p-6 border border-gray-200 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer bg-white"
+              >
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex gap-1">
+                      {[5, 4, 3, 2, 1].map((nota) => {
+                        const count = distribuicao[`nota${nota}` as keyof typeof distribuicao];
+                        const color = getNotaColor(nota);
+                        return (
+                          <div 
+                            key={nota}
+                            className={`h-10 w-10 rounded-lg ${color.bg}/20 flex flex-col items-center justify-center backdrop-blur-sm border ${color.bg}/30 transform group-hover:scale-110 transition-transform duration-300`}
+                            title={`Nota ${nota}: ${count} avaliações`}
+                          >
+                            <span className={`text-xs font-bold ${color.text}`}>{nota}</span>
+                            <span className={`text-[10px] ${color.text}`}>{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2 font-semibold">Distribuição por Nota</p>
+                  <p className="text-base font-bold text-foreground">Notas 1 a 5</p>
                 </div>
               </div>
             </div>
@@ -180,13 +410,12 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {humanAnalysts.map((item, index) => {
                     const total = item.totalAtendimentos;
-                    const satisfeito = item.satisfeito || 0;
-                    const poucoSatisfeito = item.poucoSatisfeito || 0;
-                    const insatisfeito = item.insatisfeito || 0;
-                    
-                    const percSatisfeito = total > 0 ? (satisfeito / total) * 100 : 0;
-                    const percPoucoSatisfeito = total > 0 ? (poucoSatisfeito / total) * 100 : 0;
-                    const percInsatisfeito = total > 0 ? (insatisfeito / total) * 100 : 0;
+                    // Calcular percentuais por nota
+                    const perc5 = total > 0 ? (item.nota5 / total) * 100 : 0;
+                    const perc4 = total > 0 ? (item.nota4 / total) * 100 : 0;
+                    const perc3 = total > 0 ? (item.nota3 / total) * 100 : 0;
+                    const perc2 = total > 0 ? (item.nota2 / total) * 100 : 0;
+                    const perc1 = total > 0 ? (item.nota1 / total) * 100 : 0;
 
                     return (
                       <div
@@ -212,58 +441,88 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-muted-foreground/60 mb-1">Atendimentos</p>
-                              <p className="text-lg font-bold text-foreground">{total.toLocaleString('pt-BR')}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="flex items-center gap-1 h-10 rounded-xl overflow-hidden bg-muted/20 flex-1 shadow-inner">
-                              {percSatisfeito > 0 && (
-                                <div
-                                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold transition-all duration-500 shadow-lg"
-                                  style={{ width: `${percSatisfeito}%` }}
-                                >
-                                  {percSatisfeito >= 20 && `${satisfeito}`}
-                                </div>
-                              )}
-                              {percPoucoSatisfeito > 0 && (
-                                <div
-                                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold transition-all duration-500 shadow-lg"
-                                  style={{ width: `${percPoucoSatisfeito}%` }}
-                                >
-                                  {percPoucoSatisfeito >= 20 && `${poucoSatisfeito}`}
-                                </div>
-                              )}
-                              {percInsatisfeito > 0 && (
-                                <div
-                                  className="h-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white text-sm font-bold transition-all duration-500 shadow-lg"
-                                  style={{ width: `${percInsatisfeito}%` }}
-                                >
-                                  {percInsatisfeito >= 20 && `${insatisfeito}`}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end text-xs text-muted-foreground/70">
-                              <span className="uppercase tracking-wider">CSAT médio</span>
-                              <span className="text-lg font-bold text-foreground mt-1">
+                              <p className="text-xs text-muted-foreground/60 mb-1">CSAT Médio</p>
+                              <p className={`text-2xl font-bold ${getCsatMedioColor(item.csatMedio)}`}>
                                 {item.csatMedio.toFixed(1)}<span className="text-sm text-muted-foreground">/5</span>
-                              </span>
+                              </p>
                             </div>
                           </div>
 
-                          <div className="flex justify-between text-xs text-muted-foreground/80">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
-                              Satisfeito: <span className="font-semibold text-foreground">{satisfeito}</span> ({percSatisfeito.toFixed(0)}%)
+                          {/* Barra de distribuição por nota */}
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex items-center gap-0.5 h-10 rounded-xl overflow-hidden bg-muted/20 flex-1 shadow-inner">
+                              {perc5 > 0 && (
+                                <div
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 shadow-lg"
+                                  style={{ width: `${perc5}%` }}
+                                  title={`Nota 5: ${item.nota5}`}
+                                >
+                                  {perc5 >= 15 && `5`}
+                                </div>
+                              )}
+                              {perc4 > 0 && (
+                                <div
+                                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 shadow-lg"
+                                  style={{ width: `${perc4}%` }}
+                                  title={`Nota 4: ${item.nota4}`}
+                                >
+                                  {perc4 >= 15 && `4`}
+                                </div>
+                              )}
+                              {perc3 > 0 && (
+                                <div
+                                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 shadow-lg"
+                                  style={{ width: `${perc3}%` }}
+                                  title={`Nota 3: ${item.nota3}`}
+                                >
+                                  {perc3 >= 15 && `3`}
+                                </div>
+                              )}
+                              {perc2 > 0 && (
+                                <div
+                                  className="h-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 shadow-lg"
+                                  style={{ width: `${perc2}%` }}
+                                  title={`Nota 2: ${item.nota2}`}
+                                >
+                                  {perc2 >= 15 && `2`}
+                                </div>
+                              )}
+                              {perc1 > 0 && (
+                                <div
+                                  className="h-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white text-xs font-bold transition-all duration-500 shadow-lg"
+                                  style={{ width: `${perc1}%` }}
+                                  title={`Nota 1: ${item.nota1}`}
+                                >
+                                  {perc1 >= 15 && `1`}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground/70">
+                              <span className="font-semibold text-foreground">{total}</span> aval.
+                            </div>
+                          </div>
+
+                          {/* Distribuição por nota */}
+                          <div className="flex justify-between text-xs text-muted-foreground/80 flex-wrap gap-2">
+                            <span className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                              5: <span className="font-semibold text-foreground">{item.nota5}</span>
                             </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></span>
-                              Pouco: <span className="font-semibold text-foreground">{poucoSatisfeito}</span> ({percPoucoSatisfeito.toFixed(0)}%)
+                            <span className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                              4: <span className="font-semibold text-foreground">{item.nota4}</span>
                             </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50"></span>
-                              Insatisfeito: <span className="font-semibold text-foreground">{insatisfeito}</span> ({percInsatisfeito.toFixed(0)}%)
+                            <span className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                              3: <span className="font-semibold text-foreground">{item.nota3}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                              2: <span className="font-semibold text-foreground">{item.nota2}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                              1: <span className="font-semibold text-foreground">{item.nota1}</span>
                             </span>
                           </div>
                         </div>
@@ -282,8 +541,13 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                     <h4 className="text-xl font-bold text-foreground mb-1">Assistente IA</h4>
                     <p className="text-sm text-muted-foreground/80">Feedbacks recebidos diretamente pela automação</p>
                   </div>
-                  <div className="text-sm text-muted-foreground/70 font-semibold">
-                    {iaAnalyst.totalAtendimentos.toLocaleString('pt-BR')} avaliações
+                  <div className="flex items-center gap-4">
+                    <div className={`text-2xl font-bold ${getCsatMedioColor(iaAnalyst.csatMedio)}`}>
+                      {iaAnalyst.csatMedio.toFixed(1)}/5
+                    </div>
+                    <div className="text-sm text-muted-foreground/70 font-semibold">
+                      {iaAnalyst.totalAtendimentos.toLocaleString('pt-BR')} avaliações
+                    </div>
                   </div>
                 </div>
 
@@ -307,71 +571,149 @@ export function CSATAnalystTable({ data, isLoading = false, dateRange }: CSATAna
                         A IA participa do atendimento inicial e coleta feedbacks automáticos. Estes números ajudam a identificar oportunidades de melhoria na jornada antes da transferência para o time humano.
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 lg:w-1/2">
-                      <div className="rounded-xl p-5 text-center shadow-xl hover:scale-105 transition-all duration-300 border-2" style={{
-                        background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.08) 100%)',
-                        backdropFilter: 'blur(10px)',
-                        borderColor: 'rgba(16,185,129,0.3)'
-                      }}>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold mb-2">Satisfeito</p>
-                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{(iaAnalyst.satisfeito || 0).toLocaleString('pt-BR')}</p>
-                      </div>
-                      <div className="rounded-xl p-5 text-center shadow-xl hover:scale-105 transition-all duration-300 border-2" style={{
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.08) 100%)',
-                        backdropFilter: 'blur(10px)',
-                        borderColor: 'rgba(59,130,246,0.3)',
-                        transitionDelay: '50ms'
-                      }}>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 font-bold mb-2">Pouco</p>
-                        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{(iaAnalyst.poucoSatisfeito || 0).toLocaleString('pt-BR')}</p>
-                      </div>
-                      <div className="rounded-xl p-5 text-center shadow-xl hover:scale-105 transition-all duration-300 border-2" style={{
-                        background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.08) 100%)',
-                        backdropFilter: 'blur(10px)',
-                        borderColor: 'rgba(239,68,68,0.3)',
-                        transitionDelay: '100ms'
-                      }}>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-red-600 dark:text-red-400 font-bold mb-2">Insatisfeito</p>
-                        <p className="text-3xl font-bold text-red-700 dark:text-red-300">{(iaAnalyst.insatisfeito || 0).toLocaleString('pt-BR')}</p>
-                      </div>
+                    {/* Distribuição por nota 1-5 para IA */}
+                    <div className="grid grid-cols-5 gap-3 lg:w-1/2">
+                      {[5, 4, 3, 2, 1].map((nota) => {
+                        const count = iaAnalyst[`nota${nota}` as keyof typeof iaAnalyst] as number || 0;
+                        const color = getNotaColor(nota);
+                        const bgColors: Record<number, string> = {
+                          5: 'rgba(16,185,129,0.15)',
+                          4: 'rgba(52,211,153,0.15)',
+                          3: 'rgba(245,158,11,0.15)',
+                          2: 'rgba(249,115,22,0.15)',
+                          1: 'rgba(239,68,68,0.15)'
+                        };
+                        const borderColors: Record<number, string> = {
+                          5: 'rgba(16,185,129,0.3)',
+                          4: 'rgba(52,211,153,0.3)',
+                          3: 'rgba(245,158,11,0.3)',
+                          2: 'rgba(249,115,22,0.3)',
+                          1: 'rgba(239,68,68,0.3)'
+                        };
+                        return (
+                          <div 
+                            key={nota}
+                            className="rounded-xl p-4 text-center shadow-xl hover:scale-105 transition-all duration-300 border-2" 
+                            style={{
+                              background: `linear-gradient(135deg, ${bgColors[nota]} 0%, ${bgColors[nota].replace('0.15', '0.08')} 100%)`,
+                              backdropFilter: 'blur(10px)',
+                              borderColor: borderColors[nota]
+                            }}
+                          >
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color.gradient} flex items-center justify-center mx-auto mb-2 shadow-lg`}>
+                              <span className="text-lg font-bold text-white">{nota}</span>
+                            </div>
+                            <p className={`text-xs uppercase tracking-wider ${color.text} font-bold mb-1`}>Nota {nota}</p>
+                            <p className={`text-2xl font-bold ${color.text}`}>{count.toLocaleString('pt-BR')}</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Seção de Justificativas/Feedbacks */}
+            {feedbacks.length > 0 && (
+              <div className="mt-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-foreground">Justificativas dos Clientes</h4>
+                    <p className="text-sm text-muted-foreground">{feedbacks.length} comentários registrados</p>
+                  </div>
+                </div>
+                <CSATFeedbackList feedbacks={feedbacks} maxVisible={5} />
+              </div>
+            )}
           </>
         )}
 
-        {/* Legenda */}
-        <div className="mt-10 pt-6 border-t border-white/10">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground/60 mb-4 font-semibold">Legenda das Categorias:</p>
-          <div className="flex flex-wrap gap-6 text-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30"></div>
-              <span className="text-muted-foreground font-medium">Satisfeito</span>
+        {/* Legenda Completa - Notas 1-5 */}
+        <div className="mt-10 pt-6 border-t border-gray-200">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground/60 font-semibold">Legenda das Notas CSAT</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Nota 5 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <span className="text-lg font-bold text-white">5</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-emerald-700">Muito Satisfeito</p>
+                <p className="text-xs text-emerald-600">Excelente atendimento</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30"></div>
-              <span className="text-muted-foreground font-medium">Pouco Satisfeito</span>
+
+            {/* Nota 4 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-400/30">
+                <span className="text-lg font-bold text-white">4</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-emerald-600">Satisfeito</p>
+                <p className="text-xs text-emerald-500">Bom atendimento</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/30"></div>
-              <span className="text-muted-foreground font-medium">Insatisfeito</span>
+
+            {/* Nota 3 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <span className="text-lg font-bold text-white">3</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-700">Neutro</p>
+                <p className="text-xs text-amber-600">Atendimento regular</p>
+              </div>
+            </div>
+
+            {/* Nota 2 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border border-orange-200">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <span className="text-lg font-bold text-white">2</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-orange-700">Insatisfeito</p>
+                <p className="text-xs text-orange-600">Precisa melhorar</p>
+              </div>
+            </div>
+
+            {/* Nota 1 */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-200">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+                <span className="text-lg font-bold text-white">1</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-red-700">Muito Insatisfeito</p>
+                <p className="text-xs text-red-600">Atendimento ruim</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Dica de interpretação */}
+          <div className="mt-4 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-800">Como interpretar o CSAT</p>
+              <p className="text-xs text-blue-600 mt-1">
+                O CSAT (Customer Satisfaction Score) mede a satisfação do cliente em uma escala de 1 a 5. 
+                Notas 4-5 indicam clientes satisfeitos, nota 3 é neutro, e notas 1-2 indicam insatisfação.
+                A meta ideal é manter a média acima de 4.0.
+              </p>
             </div>
           </div>
         </div>

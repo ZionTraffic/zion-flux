@@ -345,8 +345,8 @@ export function useMetaAdsData(
       const fromDateStr = from.toISOString().split('T')[0];
       const toDateStr = to.toISOString().split('T')[0];
 
-      // Buscar dados da tabela custo_anuncios COM FILTRO DE DATAS
-      console.log('🔍 Buscando dados de tenant_ad_costs:', {
+      // Buscar dados da tabela custos_anuncios_tenant COM FILTRO DE DATAS
+      console.log('🔍 Buscando dados de custos_anuncios_tenant:', {
         tenant_id: tenant.id,
         tenant_name: tenant.name,
         from: fromDateStr,
@@ -354,18 +354,18 @@ export function useMetaAdsData(
       });
 
       const { data: custoData, error: custoError } = await (centralSupabase as any)
-        .from('tenant_ad_costs')
+        .from('custos_anuncios_tenant')
         .select('*')
         .eq('tenant_id', tenant.id)
-        .gte('day', fromDateStr)
-        .lte('day', toDateStr)
-        .order('day', { ascending: true });
+        .gte('dia', fromDateStr)
+        .lte('dia', toDateStr)
+        .order('dia', { ascending: true });
 
       if (custoError) {
-        console.error('❌ Erro ao buscar tenant_ad_costs:', custoError);
+        console.error('❌ Erro ao buscar custos_anuncios_tenant:', custoError);
       }
 
-      console.log('📊 Resultado tenant_ad_costs:', {
+      console.log('📊 Resultado custos_anuncios_tenant:', {
         encontrado: !!custoData,
         quantidade: custoData?.length || 0,
         primeiroRegistro: custoData?.[0],
@@ -374,37 +374,51 @@ export function useMetaAdsData(
 
       if (custoData && custoData.length > 0) {
         console.log('📅 Período dos dados:', {
-          primeiroDia: custoData[0]?.day,
-          ultimoDia: custoData[custoData.length - 1]?.day,
+          primeiroDia: custoData[0]?.dia,
+          ultimoDia: custoData[custoData.length - 1]?.dia,
           totalRegistros: custoData.length,
           filtroAplicado: { from: fromDateStr, to: toDateStr }
         });
         
-        const totalSpend = custoData.reduce((sum, item) => sum + parseFloat(String(item.amount || '0')), 0);
+        const totalSpend = custoData.reduce((sum, item) => sum + parseFloat(String(item.valor || '0')), 0);
+        const totalImpressions = custoData.reduce((sum, item) => sum + (parseInt(String(item.impressoes || '0'))), 0);
+        const totalClicks = custoData.reduce((sum, item) => sum + (parseInt(String(item.cliques || '0'))), 0);
+        const totalConversions = custoData.reduce((sum, item) => sum + (parseInt(String(item.conversoes || '0'))), 0);
         
-        // Criar dados mock baseados nos custos reais
+        console.log('📊 [loadFallbackData] Totais calculados:', {
+          totalSpend,
+          totalImpressions,
+          totalClicks,
+          totalConversions
+        });
+        
+        // Usar dados reais da tabela custos_anuncios_tenant
         setTotals({
-          impressions: Math.round(totalSpend * 600), // Estimativa: R$1 = 600 impressões
-          clicks: Math.round(totalSpend * 7), // Estimativa: R$1 = 7 clicks
+          impressions: totalImpressions || Math.round(totalSpend * 600),
+          clicks: totalClicks || Math.round(totalSpend * 7),
           spend: totalSpend,
-          cpc: totalSpend > 0 ? totalSpend / Math.round(totalSpend * 7) : 0,
-          ctr: 1.17, // CTR médio estimado
-          conversions: Math.round(totalSpend * 0.6), // Estimativa de conversões
-          conversas_iniciadas: Math.round(totalSpend * 0.6),
+          cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
+          ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 1.17,
+          conversions: totalConversions,
+          conversas_iniciadas: totalConversions,
         });
 
-        // Criar daily data
+        // Criar daily data usando dados reais
         const dailyData = custoData.map(item => {
-          const amount = parseFloat(String(item.amount));
+          const amount = parseFloat(String(item.valor));
+          const impressions = parseInt(String(item.impressoes || '0')) || Math.round(amount * 600);
+          const clicks = parseInt(String(item.cliques || '0')) || Math.round(amount * 7);
+          const conversions = parseInt(String(item.conversoes || '0'));
+          
           return {
-            date: item.day,
-            impressions: Math.round(amount * 600),
-            clicks: Math.round(amount * 7),
+            date: item.dia,
+            impressions,
+            clicks,
             spend: amount,
-            cpc: amount / Math.round(amount * 7),
-            ctr: 1.17,
-            conversions: Math.round(amount * 0.6),
-            conversas_iniciadas: Math.round(amount * 0.6),
+            cpc: clicks > 0 ? amount / clicks : 0,
+            ctr: impressions > 0 ? (clicks / impressions) * 100 : 1.17,
+            conversions,
+            conversas_iniciadas: conversions,
           };
         });
         setDaily(dailyData);
@@ -429,13 +443,26 @@ export function useMetaAdsData(
         const fromDateStr = from.toISOString().split('T')[0];
         const toDateStr = to.toISOString().split('T')[0];
 
-        const { data: kpiData } = await (centralSupabase as any)
-          .from('kpi_overview_daily')
-          .select('day, investimento')
-          .eq('workspace_id', tenant.id)
-          .gte('day', fromDateStr)
-          .lte('day', toDateStr)
-          .order('day', { ascending: true });
+        let kpiData: any[] = [];
+        try {
+          const { data: data, error: kpiError } = await (centralSupabase as any)
+            .from('kpi_overview_daily')
+            .select('day, investimento')
+            .eq('workspace_id', tenant.id)
+            .gte('day', fromDateStr)
+            .lte('day', toDateStr)
+            .order('day', { ascending: true });
+            
+          if (kpiError) {
+            console.warn('Tabela kpi_overview_daily não acessível no MetaAdsData:', kpiError.message);
+            kpiData = [];
+          } else {
+            kpiData = data || [];
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar dados KPI no MetaAdsData:', err);
+          kpiData = [];
+        }
 
         if (kpiData && kpiData.length > 0) {
           const totalInvest = kpiData.reduce((sum, row: any) => sum + Number(row.investimento || 0), 0);

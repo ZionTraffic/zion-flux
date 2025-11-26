@@ -189,13 +189,13 @@ async function executeMigration(supabase: any, step: string) {
   );
 }
 
-// Etapa 1: Criar tabela tenants
+// Etapa 1: Criar tabela empresas
 async function createTenantsTable(supabase: any) {
-  console.log('📊 Criando tabela tenants_new...');
+  console.log('📊 Criando tabela empresas...');
   
   const { error } = await supabase.rpc('exec_sql', {
     sql: `
-      CREATE TABLE IF NOT EXISTS public.tenants_new (
+      CREATE TABLE IF NOT EXISTS public.empresas (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
         slug TEXT UNIQUE NOT NULL,
@@ -213,9 +213,9 @@ async function createTenantsTable(supabase: any) {
         created_by UUID REFERENCES auth.users(id)
       );
 
-      CREATE INDEX IF NOT EXISTS idx_tenants_new_slug ON tenants_new(slug);
-      CREATE INDEX IF NOT EXISTS idx_tenants_new_database_key ON tenants_new(database_key);
-      CREATE INDEX IF NOT EXISTS idx_tenants_new_active ON tenants_new(active) WHERE active = true;
+      CREATE INDEX IF NOT EXISTS idx_empresas_slug ON empresas(slug);
+      CREATE INDEX IF NOT EXISTS idx_empresas_database_key ON empresas(database_key);
+      CREATE INDEX IF NOT EXISTS idx_empresas_active ON empresas(active) WHERE active = true;
 
       CREATE OR REPLACE FUNCTION update_updated_at_column()
       RETURNS TRIGGER AS $$
@@ -225,26 +225,26 @@ async function createTenantsTable(supabase: any) {
       END;
       $$ language 'plpgsql';
 
-      CREATE TRIGGER update_tenants_new_updated_at 
-          BEFORE UPDATE ON tenants_new 
+      CREATE TRIGGER update_empresas_updated_at 
+          BEFORE UPDATE ON empresas 
           FOR EACH ROW 
           EXECUTE FUNCTION update_updated_at_column();
     `
   });
 
   if (error) throw error;
-  return 'Tabela tenants_new criada com sucesso';
+  return 'Tabela empresas criada com sucesso';
 }
 
-// Etapa 2: Criar tabela tenant_users
+// Etapa 2: Criar tabela usuarios_empresas
 async function createTenantUsersTable(supabase: any) {
-  console.log('👥 Criando tabela tenant_users...');
+  console.log('👥 Criando tabela usuarios_empresas...');
   
   const { error } = await supabase.rpc('exec_sql', {
     sql: `
-      CREATE TABLE IF NOT EXISTS public.tenant_users (
+      CREATE TABLE IF NOT EXISTS public.usuarios_empresas (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id UUID NOT NULL REFERENCES tenants_new(id) ON DELETE CASCADE,
+        tenant_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
         user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
         role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member', 'viewer')),
         active BOOLEAN DEFAULT true,
@@ -257,20 +257,20 @@ async function createTenantUsersTable(supabase: any) {
         UNIQUE(tenant_id, user_id)
       );
 
-      CREATE INDEX IF NOT EXISTS idx_tenant_users_tenant ON tenant_users(tenant_id);
-      CREATE INDEX IF NOT EXISTS idx_tenant_users_user ON tenant_users(user_id);
-      CREATE INDEX IF NOT EXISTS idx_tenant_users_role ON tenant_users(tenant_id, role);
-      CREATE INDEX IF NOT EXISTS idx_tenant_users_active ON tenant_users(tenant_id, active) WHERE active = true;
+      CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_tenant ON usuarios_empresas(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_user ON usuarios_empresas(user_id);
+      CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_role ON usuarios_empresas(tenant_id, role);
+      CREATE INDEX IF NOT EXISTS idx_usuarios_empresas_active ON usuarios_empresas(tenant_id, active) WHERE active = true;
 
-      CREATE TRIGGER update_tenant_users_updated_at 
-          BEFORE UPDATE ON tenant_users 
+      CREATE TRIGGER update_usuarios_empresas_updated_at 
+          BEFORE UPDATE ON usuarios_empresas 
           FOR EACH ROW 
           EXECUTE FUNCTION update_updated_at_column();
     `
   });
 
   if (error) throw error;
-  return 'Tabela tenant_users criada com sucesso';
+  return 'Tabela usuarios_empresas criada com sucesso';
 }
 
 // Etapa 3: Criar funções helper
@@ -288,12 +288,12 @@ async function createHelperFunctions(supabase: any) {
       DECLARE
         tenant_uuid UUID;
       BEGIN
-        SELECT t.id INTO tenant_uuid
-        FROM tenants_new t
-        JOIN tenant_users tu ON tu.tenant_id = t.id
-        WHERE tu.user_id = auth.uid()
-          AND tu.active = true
-          AND t.database_key = COALESCE(
+        SELECT e.id INTO tenant_uuid
+        FROM empresas e
+        JOIN usuarios_empresas ue ON ue.tenant_id = e.id
+        WHERE ue.user_id = auth.uid()
+          AND ue.active = true
+          AND e.database_key = COALESCE(
             current_setting('app.current_tenant', true),
             'asf'
           );
@@ -311,7 +311,7 @@ async function createHelperFunctions(supabase: any) {
       BEGIN
         RETURN EXISTS (
           SELECT 1 
-          FROM tenant_users 
+          FROM usuarios_empresas 
           WHERE user_id = user_uuid 
             AND tenant_id = tenant_uuid 
             AND active = true
@@ -331,9 +331,9 @@ async function createDataTables(supabase: any) {
   
   const { error } = await supabase.rpc('exec_sql', {
     sql: `
-      CREATE TABLE IF NOT EXISTS public.tenant_leads (
+      CREATE TABLE IF NOT EXISTS public.leads (
         id BIGSERIAL PRIMARY KEY,
-        tenant_id UUID NOT NULL REFERENCES tenants_new(id) ON DELETE CASCADE,
+        tenant_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
         nome TEXT,
         telefone TEXT,
         email TEXT,
@@ -350,13 +350,13 @@ async function createDataTables(supabase: any) {
         entered_at TIMESTAMPTZ DEFAULT now(),
         created_at TIMESTAMPTZ DEFAULT now(),
         updated_at TIMESTAMPTZ DEFAULT now(),
-        CONSTRAINT tenant_leads_created_at_check CHECK (created_at >= '2025-10-01 00:00:00'::timestamp)
+        CONSTRAINT leads_created_at_check CHECK (created_at >= '2025-10-01 00:00:00'::timestamp)
       );
 
-      CREATE TABLE IF NOT EXISTS public.tenant_conversations (
+      CREATE TABLE IF NOT EXISTS public.conversas_leads (
         id BIGSERIAL PRIMARY KEY,
-        tenant_id UUID NOT NULL REFERENCES tenants_new(id) ON DELETE CASCADE,
-        lead_id BIGINT REFERENCES tenant_leads(id) ON DELETE SET NULL,
+        tenant_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+        lead_id BIGINT REFERENCES leads(id) ON DELETE SET NULL,
         nome TEXT,
         phone TEXT,
         tag TEXT,
@@ -393,14 +393,14 @@ async function createDataTables(supabase: any) {
         CONSTRAINT tenant_ad_costs_day_check CHECK (day >= '2025-10-01'::date)
       );
 
-      CREATE INDEX IF NOT EXISTS idx_tenant_leads_tenant_stage ON tenant_leads(tenant_id, stage);
-      CREATE INDEX IF NOT EXISTS idx_tenant_conversations_tenant ON tenant_conversations(tenant_id);
+      CREATE INDEX IF NOT EXISTS idx_leads_tenant_stage ON leads(tenant_id, stage);
+      CREATE INDEX IF NOT EXISTS idx_conversas_leads_tenant ON conversas_leads(tenant_id);
       CREATE INDEX IF NOT EXISTS idx_tenant_ad_costs_tenant_day ON tenant_ad_costs(tenant_id, day);
     `
   });
 
   if (error) throw error;
-  return 'Tabelas de dados criadas com sucesso';
+  return 'Tabelas de dados multi-tenant criadas com sucesso';
 }
 
 // Etapa 5: Migrar dados existentes
@@ -409,18 +409,18 @@ async function migrateExistingData(supabase: any) {
   
   const { error } = await supabase.rpc('exec_sql', {
     sql: `
-      INSERT INTO tenants_new (id, name, slug, database_key, created_at)
+      INSERT INTO empresas (id, name, slug, database_key, created_at)
       SELECT id, name, slug, database, created_at
       FROM workspaces
       ON CONFLICT (slug) DO NOTHING;
 
-      INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
+      INSERT INTO usuarios_empresas (tenant_id, user_id, role, created_at)
       SELECT w.id as tenant_id, mw.user_id, mw.role, now()
       FROM workspaces w
       JOIN membros_workspace mw ON mw.workspace_id = w.id
-      ON CONFLICT (tenant_id, user_id) DO NOTHING;
+      ON CONFLICT (empresa_id, user_id) DO NOTHING;
 
-      INSERT INTO tenant_leads (
+      INSERT INTO leads (
         tenant_id, nome, telefone, email, cnpj, url_origem, canal_origem,
         produto, stage, follow_up, localidade, motivo, meta,
         entered_at, created_at
@@ -430,30 +430,30 @@ async function migrateExistingData(supabase: any) {
         produto, stage, follow_up, localidade, motivo, meta,
         entered_at, created_at
       FROM leads
-      WHERE workspace_id IN (SELECT id FROM tenants_new);
+      WHERE workspace_id IN (SELECT id FROM empresas);
 
-      INSERT INTO tenant_conversations (
+      INSERT INTO conversas_leads (
         tenant_id, nome, phone, tag, messages, source, data_entrada, created_at
       )
       SELECT 
         id_workspace as tenant_id, lead_name as nome, phone, tag,
         messages::jsonb, source, data_entrada, created_at
       FROM conversas_asf
-      WHERE id_workspace IN (SELECT id FROM tenants_new);
+      WHERE id_workspace IN (SELECT id FROM empresas);
 
-      INSERT INTO tenant_conversations (
+      INSERT INTO conversas_leads (
         tenant_id, nome, phone, tag, analista, messages, csat,
         started, data_transferencia, data_conclusao, data_resposta_csat,
         tempo_medio_resposta, tempo_primeira_resposta, valor_em_aberto,
         created_at, updated_at
       )
       SELECT 
-        id_workspace as tenant_id, nome, phone, tag, analista, messages, csat,
+        id_workspace as empresa_id, nome, phone, tag, analista, messages, csat,
         started, data_transferencia, data_conclusao, data_resposta_csat,
         tempo_medio_resposta, tempo_primeira_resposta, valor_em_aberto,
         created_at, updated_at
       FROM conversas_sieg_financeiro
-      WHERE id_workspace IN (SELECT id FROM tenants_new);
+      WHERE id_workspace IN (SELECT id FROM empresas);
 
       INSERT INTO tenant_ad_costs (tenant_id, day, source, ad_account_id, amount, created_at)
       SELECT workspace_id as tenant_id, day, source, ad_account_id, amount, created_at
@@ -464,7 +464,7 @@ async function migrateExistingData(supabase: any) {
   });
 
   if (error) throw error;
-  return 'Dados migrados com sucesso';
+  return 'Dados migrados para tabelas multi-tenant com sucesso';
 }
 
 // Etapa 6: Criar políticas RLS
@@ -473,28 +473,28 @@ async function createRLSPolicies(supabase: any) {
   
   const { error } = await supabase.rpc('exec_sql', {
     sql: `
-      ALTER TABLE tenants_new ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE tenant_users ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE tenant_leads ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE tenant_conversations ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE empresas ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE usuarios_empresas ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE conversas_leads ENABLE ROW LEVEL SECURITY;
       ALTER TABLE tenant_ad_costs ENABLE ROW LEVEL SECURITY;
 
-      CREATE POLICY "Users see their tenants" ON tenants_new
+      CREATE POLICY "Users see their empresas" ON empresas
       FOR SELECT USING (
         id IN (
           SELECT tenant_id 
-          FROM tenant_users 
+          FROM usuarios_empresas 
           WHERE user_id = (SELECT auth.uid())
         )
       );
 
-      CREATE POLICY "Users see their tenant memberships" ON tenant_users
+      CREATE POLICY "Users see their empresa memberships" ON usuarios_empresas
       FOR SELECT USING (user_id = (SELECT auth.uid()));
 
-      CREATE POLICY "Tenant isolation for leads" ON tenant_leads
+      CREATE POLICY "Tenant isolation for leads" ON leads
       FOR ALL USING (tenant_id = get_current_tenant_id());
 
-      CREATE POLICY "Tenant isolation for conversations" ON tenant_conversations
+      CREATE POLICY "Tenant isolation for conversations" ON conversas_leads
       FOR ALL USING (tenant_id = get_current_tenant_id());
 
       CREATE POLICY "Tenant isolation for ad costs" ON tenant_ad_costs
@@ -513,16 +513,16 @@ async function validateMigration(supabase: any) {
   const { data, error } = await supabase.rpc('exec_sql', {
     sql: `
       SELECT 
-        'tenants_new' as tabela, COUNT(*) as registros FROM tenants_new
+        'empresas' as tabela, COUNT(*) as registros FROM empresas
       UNION ALL
       SELECT 
-        'tenant_users' as tabela, COUNT(*) as registros FROM tenant_users
+        'usuarios_empresas' as tabela, COUNT(*) as registros FROM usuarios_empresas
       UNION ALL
       SELECT 
-        'tenant_leads' as tabela, COUNT(*) as registros FROM tenant_leads
+        'leads' as tabela, COUNT(*) as registros FROM leads
       UNION ALL
       SELECT 
-        'tenant_conversations' as tabela, COUNT(*) as registros FROM tenant_conversations
+        'conversas_leads' as tabela, COUNT(*) as registros FROM conversas_leads
       UNION ALL
       SELECT 
         'tenant_ad_costs' as tabela, COUNT(*) as registros FROM tenant_ad_costs;

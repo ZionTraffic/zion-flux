@@ -26,6 +26,8 @@ import { useTenant } from "@/contexts/TenantContext";
 import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
 import { TenantSelector } from "@/components/ui/TenantSelector";
 import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
+import { EditPermissionsModal } from "@/components/permissions/EditPermissionsModal";
+import { WorkspaceMember } from "@/hooks/useWorkspaceMembers";
 
 const Configuracoes = () => {
   const { isOwner } = useUserRole();
@@ -33,6 +35,8 @@ const Configuracoes = () => {
   const { members, loading: membersLoading, updateMemberRole, removeMember, addMember, refetch: refetchMembers } = useWorkspaceMembers();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
+  const [isEditPermissionsModalOpen, setIsEditPermissionsModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<WorkspaceMember | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "users";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -63,6 +67,12 @@ const Configuracoes = () => {
   
   // Master user ou owner podem gerenciar
   const canManage = isMasterUser || isOwner;
+
+  // Função para abrir modal de editar permissões
+  const handleEditPermissions = (member: WorkspaceMember) => {
+    setSelectedMember(member);
+    setIsEditPermissionsModalOpen(true);
+  };
 
   // Debug log
   console.log('🔍 [Configuracoes] Permissões:', { 
@@ -273,6 +283,26 @@ const Configuracoes = () => {
               currentTenantId={currentTenant.id}
               currentTenantName={currentTenant.name}
             />
+
+            {selectedMember && (
+              <EditPermissionsModal
+                open={isEditPermissionsModalOpen}
+                onOpenChange={(open) => {
+                  setIsEditPermissionsModalOpen(open);
+                  if (!open) setSelectedMember(null);
+                }}
+                userId={selectedMember.user_id}
+                userName={selectedMember.user_name}
+                userEmail={selectedMember.user_email}
+                userRole={selectedMember.role}
+                workspaceId={currentTenant.id}
+                onPermissionsUpdated={async () => {
+                  await refetchMembers();
+                  setSelectedMember(null);
+                  setIsEditPermissionsModalOpen(false);
+                }}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="databases" className="space-y-4">

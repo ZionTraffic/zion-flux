@@ -21,6 +21,7 @@ interface DatePickerFieldProps {
   minDate?: Date;
   maxDate?: Date;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export function DatePickerField({
@@ -30,6 +31,7 @@ export function DatePickerField({
   minDate,
   maxDate,
   disabled,
+  compact = false,
 }: DatePickerFieldProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -41,20 +43,22 @@ export function DatePickerField({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-foreground">{label}</label>
+    <div className={compact ? "flex items-center gap-2" : "flex flex-col gap-2"}>
+      {!compact && <label className="text-sm font-medium text-foreground">{label}</label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
+            size={compact ? "sm" : "default"}
             disabled={disabled}
             className={cn(
-              "justify-start text-left font-normal glass-medium hover:border-primary/50 transition-all w-full sm:w-[200px]",
+              "justify-start text-left font-normal glass-medium hover:border-primary/50 transition-all",
+              compact ? "w-[130px] h-9" : "w-full sm:w-[200px]",
               !date && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecionar data</span>}
+            {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : <span>{compact ? label : "Selecionar data"}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue backdrop-blur-xl" align="start">

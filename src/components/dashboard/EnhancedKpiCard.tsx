@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface EnhancedKpiCardProps {
   label: string;
@@ -11,6 +12,11 @@ interface EnhancedKpiCardProps {
   };
   variant?: "blue" | "gray" | "red";
   delay?: number;
+  tooltip?: {
+    title: string;
+    description: string;
+    items?: { label: string; value: string | number }[];
+  };
 }
 
 const variantStyles = {
@@ -39,8 +45,10 @@ export function EnhancedKpiCard({
   trend,
   variant = "blue",
   delay = 0,
+  tooltip,
 }: EnhancedKpiCardProps) {
   const styles = variantStyles[variant];
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const getTrendIcon = () => {
     if (!trend) return null;
@@ -70,6 +78,8 @@ export function EnhancedKpiCard({
         animationDelay: `${delay}s`,
         animation: "fadeInUp 0.6s ease-out forwards",
       }}
+      onMouseEnter={() => tooltip && setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
       {/* Background gradient sutil */}
       <div 
@@ -106,7 +116,32 @@ export function EnhancedKpiCard({
             })}
           </div>
         )}
+
       </div>
+
+      {/* Tooltip */}
+      {tooltip && showTooltip && (
+        <div className="absolute z-50 top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 p-4 rounded-xl bg-white border border-gray-200 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+          {/* Seta */}
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45" />
+          
+          <div className="relative">
+            <h4 className="font-bold text-gray-800 mb-2">{tooltip.title}</h4>
+            <p className="text-sm text-gray-600 mb-3">{tooltip.description}</p>
+            
+            {tooltip.items && tooltip.items.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                {tooltip.items.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{item.label}</span>
+                    <span className="font-semibold text-gray-800">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

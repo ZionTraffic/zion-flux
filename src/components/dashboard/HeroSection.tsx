@@ -7,6 +7,10 @@ interface HeroSectionProps {
   conversionRate?: number;
   trend?: "up" | "down" | "stable";
   hideStats?: boolean;
+  // Props específicas para SIEG Financeiro
+  valorEmAberto?: number;
+  valorRecuperado?: number;
+  isSiegFinanceiro?: boolean;
 }
 
 export function HeroSection({ 
@@ -16,7 +20,10 @@ export function HeroSection({
   totalInvested = 0, 
   conversionRate = 0,
   trend = "stable",
-  hideStats = false
+  hideStats = false,
+  valorEmAberto = 0,
+  valorRecuperado = 0,
+  isSiegFinanceiro = false,
 }: HeroSectionProps) {
   console.log('🔍 HeroSection - hideStats:', hideStats, 'workspaceName:', workspaceName);
   
@@ -75,38 +82,57 @@ export function HeroSection({
       <div className="relative z-10">
         <div className={`flex items-start justify-between ${!hideStats ? 'mb-6' : ''}`}>
           <div>
-            <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg flex items-center gap-2">
-              {greeting()}, {userName?.split('@')[0] || 'Usuário'}!
-            </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-white/90 text-base font-medium">Workspace:</span>
-              <span className="px-3 py-1 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold text-base">
-                {workspaceName || 'Carregando...'}
-              </span>
+            <div className="flex items-center gap-4 flex-wrap">
+              <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+                {greeting()}, {userName?.split('@')[0] || 'Usuário'}!
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="text-white/90 text-base font-medium">Workspace:</span>
+                <span className="px-3 py-1 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold text-base">
+                  {workspaceName || 'Carregando...'}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-            {getTrendIcon()}
-            <span className="text-sm font-semibold text-white">
-              {trend === "up" ? "Em crescimento" : trend === "down" ? "Em queda" : "Estável"}
-            </span>
           </div>
         </div>
 
-        {/* Quick Stats - OCULTO PARA SIEG */}
+        {/* Quick Stats */}
         {!hideStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1 - Total de Leads (sempre visível) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <p className="text-sm text-blue-100 mb-1">Total de Leads</p>
             <p className="text-2xl font-bold text-white">{totalLeads.toLocaleString('pt-BR')}</p>
           </div>
+
+          {/* Card 2 - Valor em Aberto (SIEG) ou Investimento Total (outros) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-sm text-blue-100 mb-1">Investimento Total</p>
-            <p className="text-2xl font-bold text-white">R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            {isSiegFinanceiro ? (
+              <>
+                <p className="text-sm text-blue-100 mb-1">Valor em Aberto</p>
+                <p className="text-2xl font-bold text-white">R$ {valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-blue-100 mb-1">Investimento Total</p>
+                <p className="text-2xl font-bold text-white">R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </>
+            )}
           </div>
+
+          {/* Card 3 - Valor Recuperado (SIEG) ou Taxa de Conversão (outros) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-sm text-blue-100 mb-1">Taxa de Conversão</p>
-            <p className="text-2xl font-bold text-white">{Math.ceil(conversionRate * 10) / 10}%</p>
+            {isSiegFinanceiro ? (
+              <>
+                <p className="text-sm text-blue-100 mb-1">Valor Recuperado</p>
+                <p className="text-2xl font-bold text-emerald-300">R$ {valorRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-blue-100 mb-1">Taxa de Conversão</p>
+                <p className="text-2xl font-bold text-white">{Math.ceil(conversionRate * 10) / 10}%</p>
+              </>
+            )}
           </div>
         </div>
         )}
