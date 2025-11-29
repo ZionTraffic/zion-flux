@@ -5,6 +5,7 @@ import { MessageSquare, User, Calendar, Star, ChevronDown, ChevronUp, Bot, UserC
 interface CSATFeedbackListProps {
   feedbacks: CSATFeedback[];
   maxVisible?: number;
+  searchTerm?: string;
 }
 
 // Cores por nota
@@ -25,13 +26,31 @@ const getNotaLabel = (nota: number) => {
   return labels[nota] || '';
 };
 
-export function CSATFeedbackList({ feedbacks, maxVisible = 5 }: CSATFeedbackListProps) {
+export function CSATFeedbackList({ feedbacks, maxVisible = 5, searchTerm = '' }: CSATFeedbackListProps) {
   const [showAll, setShowAll] = useState(false);
   
-  const visibleFeedbacks = showAll ? feedbacks : feedbacks.slice(0, maxVisible);
-  const hasMore = feedbacks.length > maxVisible;
+  // Usar apenas dados reais
+  const allFeedbacks = feedbacks;
+  
+  // Filtrar por termo de busca se houver
+  const filteredFeedbacks = searchTerm
+    ? allFeedbacks.filter(item => 
+        (item.nome && item.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.analista && item.analista.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : allFeedbacks;
+  
+  const visibleFeedbacks = showAll ? filteredFeedbacks : filteredFeedbacks.slice(0, maxVisible);
+  const hasMore = filteredFeedbacks.length > maxVisible;
 
-  if (feedbacks.length === 0) {
+  if (filteredFeedbacks.length === 0) {
+    if (searchTerm) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>Nenhum feedback encontrado para "{searchTerm}"</p>
+        </div>
+      );
+    }
     return (
       <div className="text-center py-8 text-muted-foreground">
         <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -73,9 +92,14 @@ export function CSATFeedbackList({ feedbacks, maxVisible = 5 }: CSATFeedbackList
             </div>
 
             {/* Feedback/Justificativa */}
-            <p className="text-gray-800 text-sm leading-relaxed mb-3">
-              "{item.feedback}"
-            </p>
+            {item.feedback && (
+              <div className="motivo-box">
+                <h4 className="font-semibold text-sm mb-2">Motivo da nota</h4>
+                <p className="text-gray-800 text-sm leading-relaxed">
+                  {item.feedback}
+                </p>
+              </div>
+            )}
 
             {/* Footer com analista, origem e cliente */}
             <div className="flex items-center justify-between text-xs text-muted-foreground">

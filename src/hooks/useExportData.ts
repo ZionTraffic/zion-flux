@@ -9,10 +9,12 @@ import {
 } from '@/lib/exportUtils';
 import { MIN_DATA_DATE } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
+import { useTenant } from '@/contexts/TenantContext';
 
 export function useExportData() {
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const { currentTenant } = useTenant();
 
   /**
    * Exporta dados de conversas do SIEG
@@ -28,6 +30,14 @@ export function useExportData() {
     try {
       const startISO = startDate ? toStartOfDay(startDate) : `${MIN_DATA_DATE}T00:00:00`;
       const endISO = endDate ? buildEndExclusive(endDate) : buildEndExclusive(new Date());
+
+      // Verificar se é SIEG Financeiro - usar tabela financeiro_sieg
+      const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+      
+      if (isSiegFinanceiro) {
+        // Exportar da tabela financeiro_sieg
+        return await exportSiegFinanceiro(tenantId, startISO, endISO, format, toast, setIsExporting);
+      }
 
       const { data: rawConversations, error } = await (centralSupabase.from as any)('conversas_leads')
         .select('id, lead_id, empresa_id, nome, telefone, tag, source, data_transferencia, data_conclusao, analista, csat, csat_feedback, origem_atendimento, data_resposta_csat, conversas')
@@ -296,4 +306,138 @@ function buildEndExclusive(date: Date) {
   copy.setDate(copy.getDate() + 1);
   copy.setHours(0, 0, 0, 0);
   return copy.toISOString();
+}
+
+/**
+ * Exporta dados específicos da tabela financeiro_sieg
+ */
+async function exportSiegFinanceiro(
+  tenantId: string,
+  startISO: string,
+  endISO: string,
+  format: 'csv' | 'excel',
+  toast: any,
+  setIsExporting: (v: boolean) => void
+) {
+  try {
+    // Buscar dados da tabela financeiro_sieg
+    const { data: rawData, error } = await (centralSupabase.from as any)('financeiro_sieg')
+      .select('id, nome, nome_empresa, cnpj, telefone, valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, tag, data_vencimento, data_pagamento, observacoes, criado_em, atualizado_em, atendente, nota_csat, opiniao_csat, historico_conversa')
+      .eq('empresa_id', tenantId)
+      .gte('criado_em', startISO)
+      .lt('criado_em', endISO)
+      .order('criado_em', { ascending: false });
+
+    if (error) throw error;
+    if (!rawData || rawData.length === 0) {
+      toast({
+        title: "⚠️ Sem dados",
+        description: "Não há dados para exportar no período selecionado",
+        variant: "destructive",
+      });
+      setIsExporting(false);
+      return;
+    }
+
+    // Definir colunas para exportação
+    const columns: ExportColumn[] = [
+      { key: 'nome', label: 'Nome' },
+      { key: 'nome_empresa', label: 'Empresa' },
+      { key: 'cnpj', label: 'CNPJ' },
+      { key: 'telefone', label: 'Telefone' },
+      { key: 'tag', label: 'Tag/Estágio' },
+      { key: 'situacao', label: 'Situação' },
+      { key: 'atendente', label: 'Atendente' },
+      { 
+        key: 'valor_em_aberto', 
+        label: 'Valor em Aberto',
+        format: formatCurrencyForExport
+      },
+      { 
+        key: 'valor_recuperado_ia', 
+        label: 'Valor Recuperado IA',
+        format: formatCurrencyForExport
+      },
+      { 
+        key: 'valor_recuperado_humano', 
+        label: 'Valor Recuperado Humano',
+        format: formatCurrencyForExport
+      },
+      { 
+        key: 'em_negociacao', 
+        label: 'Em Negociação',
+        format: formatCurrencyForExport
+      },
+      { key: 'nota_csat', label: 'Nota CSAT (1-5)' },
+      { key: 'opiniao_csat', label: 'Opinião CSAT' },
+      { 
+        key: 'data_vencimento', 
+        label: 'Data Vencimento',
+        format: formatDateForExport
+      },
+      { 
+        key: 'data_pagamento', 
+        label: 'Data Pagamento',
+        format: formatDateForExport
+      },
+      { key: 'observacoes', label: 'Observações' },
+      { 
+        key: 'criado_em', 
+        label: 'Data Criação',
+        format: formatDateForExport
+      },
+      { 
+        key: 'atualizado_em', 
+        label: 'Última Atualização',
+        format: formatDateForExport
+      },
+    ];
+
+    // Gerar nome do arquivo
+    const dateStr = `${startISO.split('T')[0]}_${endISO.split('T')[0]}`;
+    const filename = `sieg_financeiro_${dateStr}`;
+
+    // Preparar dados para exportação
+    const rows = rawData.map((row: any) => ({
+      nome: row.nome || '',
+      nome_empresa: row.nome_empresa || '',
+      cnpj: row.cnpj || '',
+      telefone: formatPhoneLocal(row.telefone || ''),
+      tag: row.tag || '',
+      situacao: row.situacao || '',
+      atendente: row.atendente || '',
+      valor_em_aberto: formatCurrencyForExport(row.valor_em_aberto || 0),
+      valor_recuperado_ia: formatCurrencyForExport(row.valor_recuperado_ia || 0),
+      valor_recuperado_humano: formatCurrencyForExport(row.valor_recuperado_humano || 0),
+      em_negociacao: formatCurrencyForExport(row.em_negociacao || 0),
+      nota_csat: row.nota_csat || '',
+      opiniao_csat: row.opiniao_csat || '',
+      data_vencimento: formatDateForExport(row.data_vencimento || ''),
+      data_pagamento: formatDateForExport(row.data_pagamento || ''),
+      observacoes: row.observacoes || '',
+      criado_em: formatDateForExport(row.criado_em || ''),
+      atualizado_em: formatDateForExport(row.atualizado_em || ''),
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(rows, columns, filename);
+    } else {
+      exportToExcel(rows, columns, filename, 'SIEG Financeiro');
+    }
+
+    toast({
+      title: "✅ Exportação concluída!",
+      description: `${rawData.length} registros exportados em ${format.toUpperCase()}`,
+    });
+
+  } catch (error) {
+    console.error('Erro ao exportar SIEG Financeiro:', error);
+    toast({
+      title: "❌ Erro na exportação",
+      description: "Não foi possível exportar os dados",
+      variant: "destructive",
+    });
+  } finally {
+    setIsExporting(false);
+  }
 }

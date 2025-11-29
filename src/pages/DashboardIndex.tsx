@@ -24,6 +24,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { ExportDropdown } from "@/components/export/ExportDropdown";
 import { ConversationHistorySection } from "@/components/dashboard/ConversationHistorySection";
 import { useConversationsData } from "@/hooks/useConversationsData";
+import { useSiegFinanceiroData } from "@/hooks/useSiegFinanceiroData";
 import { ValoresPendentesCard } from "@/components/dashboard/ValoresPendentesCard";
 import { useValoresFinanceiros } from "@/hooks/useValoresFinanceiros";
 
@@ -93,15 +94,28 @@ const DashboardIndex = () => {
     dateRange?.to
   );
 
-  const {
-    conversations: conversationHistory,
-    stats: conversationStats,
-    isLoading: conversationsLoading,
-  } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
-
   // Slugs padronizados: sieg-financeiro, sieg-pré-vendas (com acento), asf-finance
   const isSiegWorkspace = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug === 'sieg-pre-vendas' || currentTenant?.slug === 'sieg-pré-vendas' || currentTenant?.slug?.includes('sieg');
   const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+
+  // Hook para conversas genéricas
+  const {
+    conversations: genericConversations,
+    stats: genericStats,
+    isLoading: genericLoading,
+  } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
+
+  // Hook específico para SIEG Financeiro (busca da tabela financeiro_sieg)
+  const {
+    conversations: siegConversations,
+    stats: siegStats,
+    isLoading: siegLoading,
+  } = useSiegFinanceiroData(dateRange?.from, dateRange?.to);
+
+  // Usar dados do SIEG se for workspace financeiro, senão usar genérico
+  const conversationHistory = isSiegFinanceiro ? siegConversations : genericConversations;
+  const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
+  const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -252,6 +266,7 @@ const DashboardIndex = () => {
         lastUpdate={new Date()}
         onExportPdf={handleExportPdf}
         isExporting={isExporting}
+        dateRange={dateRange}
       />
 
 
@@ -264,9 +279,9 @@ const DashboardIndex = () => {
             <HeroSection
               userName={userEmail}
               workspaceName={currentTenant?.name || 'Carregando...'}
-              totalLeads={leads?.totalLeads || 0}
+              totalLeads={leadsData.kpis?.totalLeads || leads?.totalLeads || 0}
               totalInvested={advancedMetrics?.totalInvested || 0}
-              conversionRate={leads?.qualificationRate || 0}
+              conversionRate={leadsData.kpis?.qualificationRate || leads?.qualificationRate || 0}
               trend="up"
               hideStats={shouldHideStats}
               isSiegFinanceiro={isSiegFinanceiro}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useConversationsData } from "@/hooks/useConversationsData";
+import { useSiegFinanceiroData } from "@/hooks/useSiegFinanceiroData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,32 @@ import { useTenant } from "@/contexts/TenantContext";
 
 const Conversas = () => {
   const { currentTenant } = useTenant();
-  const { conversations: conversationsData, stats, isLoading, error } = useConversationsData(currentTenant?.id || '');
+  
+  // Verificar se é workspace SIEG Financeiro
+  const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+  
+  // Hook genérico para conversas
+  const { 
+    conversations: genericConversations, 
+    stats: genericStats, 
+    isLoading: genericLoading, 
+    error: genericError 
+  } = useConversationsData(currentTenant?.id || '');
+  
+  // Hook específico para SIEG Financeiro
+  const { 
+    conversations: siegConversations, 
+    stats: siegStats, 
+    isLoading: siegLoading, 
+    error: siegError 
+  } = useSiegFinanceiroData();
+  
+  // Usar dados do SIEG se for workspace financeiro
+  const conversationsData = isSiegFinanceiro ? siegConversations : genericConversations;
+  const stats = isSiegFinanceiro ? siegStats : genericStats;
+  const isLoading = isSiegFinanceiro ? siegLoading : genericLoading;
+  const error = isSiegFinanceiro ? siegError : genericError;
+  
   const [conversations, setConversations] = useState(conversationsData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);

@@ -18,24 +18,44 @@ CREATE INDEX IF NOT EXISTS idx_membros_workspace_workspace ON membros_workspace(
 COMMENT ON TABLE membros_workspace IS 'Membros de workspaces (relação usuário-workspace)';
 COMMENT ON COLUMN membros_workspace.role IS 'Papel do usuário no workspace (admin, member, viewer)';
 
--- Criar view kpi_overview_daily (visão agregada de KPIs diários)
 CREATE OR REPLACE VIEW public.kpi_overview_daily AS
+WITH leads_normalizados AS (
+  SELECT
+    COALESCE(l.empresa_id, l.tenant_id) AS workspace_id,
+    DATE(COALESCE(l.criado_em, l.created_at)) AS dia,
+    LOWER(COALESCE(l.status, l.stage, 'novo_lead')) AS status_normalizado
+  FROM leads l
+  WHERE COALESCE(l.empresa_id, l.tenant_id) IS NOT NULL
+)
 SELECT 
-  l.empresa_id as workspace_id,
-  DATE(l.criado_em) as day,
-  COUNT(*) as leads_recebidos,
-  COUNT(*) FILTER (WHERE l.status = 'qualificado' OR l.status = 'qualificados') as leads_qualificados,
-  COUNT(*) FILTER (WHERE l.status = 'followup' OR l.status = 'follow-up') as leads_followup,
-  COUNT(*) FILTER (WHERE l.status = 'descartado' OR l.status = 'descartados') as leads_descartados,
-  COALESCE(SUM(c.valor), 0) as investimento,
+  ln.workspace_id,
+  ln.dia AS day,
+  COUNT(*) AS leads_recebidos,
+  COUNT(*) FILTER (
+    WHERE ln.status_normalizado IN ('qualificado', 'qualificados')
+  ) AS leads_qualificados,
+  COUNT(*) FILTER (
+    WHERE ln.status_normalizado IN ('followup', 'follow-up', 'follow_up')
+  ) AS leads_followup,
+  COUNT(*) FILTER (
+    WHERE ln.status_normalizado IN ('descartado', 'descartados', 'desqualificado', 'desqualificados')
+  ) AS leads_descartados,
+  COALESCE(SUM(c.valor), 0) AS investimento,
   CASE 
-    WHEN COUNT(*) FILTER (WHERE l.status = 'qualificado' OR l.status = 'qualificados') > 0 
-    THEN COALESCE(SUM(c.valor), 0) / COUNT(*) FILTER (WHERE l.status = 'qualificado' OR l.status = 'qualificados')
+    WHEN COUNT(*) FILTER (
+      WHERE ln.status_normalizado IN ('qualificado', 'qualificados')
+    ) > 0 
+    THEN COALESCE(SUM(c.valor), 0) /
+      COUNT(*) FILTER (
+        WHERE ln.status_normalizado IN ('qualificado', 'qualificados')
+      )
     ELSE 0 
-  END as cpl
-FROM leads l
-LEFT JOIN custos_anuncios_tenant c ON c.tenant_id = l.empresa_id AND DATE(c.dia) = DATE(l.criado_em)
-GROUP BY l.empresa_id, DATE(l.criado_em);
+  END AS cpl
+FROM leads_normalizados ln
+LEFT JOIN custos_anuncios_tenant c 
+  ON c.tenant_id = ln.workspace_id 
+  AND c.dia = ln.dia
+GROUP BY ln.workspace_id, ln.dia;
 
 -- Comentários para documentação
 COMMENT ON VIEW kpi_overview_daily IS 'Visão agregada de KPIs diários por workspace (leads recebidos, qualificados, investimento, CPL)';

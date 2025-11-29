@@ -27,9 +27,10 @@ interface HeaderProps {
   lastUpdate: Date | null;
   onExportPdf?: () => void;
   isExporting?: boolean;
+  dateRange?: { from?: Date; to?: Date };
 }
 
-export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExporting }: HeaderProps) => {
+export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExporting, dateRange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -214,6 +215,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
               <ExportDropdown
                 tenantId={currentTenant?.id || ''}
                 tenantName={currentTenant?.name}
+                startDate={dateRange?.from}
+                endDate={dateRange?.to}
                 disabled={isRefreshing}
               />
             )}

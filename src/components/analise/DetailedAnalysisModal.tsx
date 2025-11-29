@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalysisHeader } from "./components/AnalysisHeader";
 import { VisaoGeralTab } from "./tabs/VisaoGeralTab";
 import { WhatsAppTab } from "./tabs/WhatsAppTab";
-import { InsightsTab } from "./tabs/InsightsTab";
 import {
   calculateEngagement,
   calculateQualityScore,
@@ -73,7 +72,6 @@ export const DetailedAnalysisModal = ({
             <TabsList className="w-full justify-start">
               <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
             </TabsList>
           </div>
 
@@ -93,14 +91,6 @@ export const DetailedAnalysisModal = ({
 
             <TabsContent value="whatsapp" className="m-0">
               <WhatsAppTab messages={selectedConversation.messages || []} />
-            </TabsContent>
-
-            <TabsContent value="insights" className="m-0">
-              <InsightsTab
-                conversationId={selectedConversation.id}
-                workspaceId={currentTenant?.id || ''}
-                messages={selectedConversation.messages || []}
-              />
             </TabsContent>
           </div>
         </Tabs>

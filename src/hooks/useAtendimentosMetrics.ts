@@ -72,24 +72,65 @@ export function useAtendimentosMetrics(_workspaceId: string | null, startDate?: 
       const startISO = toStartOfDayIso(effectiveStart);
       const endISO = buildEndExclusiveIso(effectiveEnd);
 
-      logger.info('[Atendimentos] Buscando métricas em conversas_leads', {
+      // Para SIEG Financeiro, buscar da tabela financeiro_sieg
+      const isSiegFinanceiro = slug === 'sieg-financeiro' || slug?.includes('financeiro');
+      
+      logger.info('[Atendimentos] Buscando métricas', {
         tenantId: tenant.id,
         startISO,
         endISO,
+        tabela: isSiegFinanceiro ? 'financeiro_sieg' : 'conversas_leads',
       });
 
-      // Usar data_resposta_csat como filtro de data (coluna que existe na tabela)
-      const { data: conversationsData, error: conversationsError } = await (centralSupabase.from as any)('conversas_leads')
-        .select('id, tag, data_transferencia, analista, csat, data_resposta_csat')
-        .eq('empresa_id', tenant.id)
-        .gte('data_resposta_csat', startISO)
-        .lt('data_resposta_csat', endISO)
-        .order('data_resposta_csat', { ascending: false })
-        .limit(50000);
+      let conversations: any[] = [];
 
-      if (conversationsError) throw conversationsError;
+      if (isSiegFinanceiro) {
+        // Buscar da tabela financeiro_sieg com paginação para pegar todos os registros
+        const PAGE_SIZE = 1000;
+        let allData: any[] = [];
+        
+        for (let page = 0; page < 10; page++) {
+          const from = page * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+          
+          let query = (centralSupabase.from as any)('financeiro_sieg')
+            .select('id, tag, atendente, nota_csat, criado_em')
+            .eq('empresa_id', tenant.id)
+            .order('criado_em', { ascending: false });
 
-      const conversations = conversationsData || [];
+          // Aplicar filtro de data
+          if (startISO) {
+            query = query.gte('criado_em', startISO);
+          }
+          if (endISO) {
+            query = query.lt('criado_em', endISO);
+          }
+
+          const { data: siegData, error: siegError } = await query.range(from, to);
+
+          if (siegError) throw siegError;
+          if (!siegData || siegData.length === 0) break;
+          
+          allData = [...allData, ...siegData];
+          if (siegData.length < PAGE_SIZE) break;
+        }
+        
+        conversations = allData;
+        logger.info('[Atendimentos] Total de registros carregados', { total: conversations.length });
+      } else {
+        // Buscar da tabela conversas_leads (comportamento original)
+        const { data: conversationsData, error: conversationsError } = await (centralSupabase.from as any)('conversas_leads')
+          .select('id, tag, data_transferencia, analista, csat, data_resposta_csat')
+          .eq('empresa_id', tenant.id)
+          .gte('data_resposta_csat', startISO)
+          .lt('data_resposta_csat', endISO)
+          .order('data_resposta_csat', { ascending: false })
+          .limit(50000);
+
+        if (conversationsError) throw conversationsError;
+        conversations = conversationsData || [];
+      }
+
       const totalAtendimentos = conversations.length;
 
       const isTransferTag = (tag: string | null) => {
@@ -99,10 +140,15 @@ export function useAtendimentosMetrics(_workspaceId: string | null, startDate?: 
       };
 
       const atendimentosTransferidos = conversations.filter((conv: any) => isTransferTag(conv.tag)).length;
+      // Atendimentos IA = todos que NÃO foram transferidos (T1, T2, T3)
       const atendimentosIA = conversations.filter((conv: any) => !isTransferTag(conv.tag)).length;
       const percentualIA = totalAtendimentos > 0 ? (atendimentosIA / totalAtendimentos) * 100 : 0;
 
-      const csatPorAnalista = processarCSAT(conversations);
+      // Para SIEG Financeiro, mapear campos corretamente
+      const conversationsForCSAT = isSiegFinanceiro 
+        ? conversations.map((c: any) => ({ ...c, analista: c.atendente, csat: c.nota_csat }))
+        : conversations;
+      const csatPorAnalista = processarCSAT(conversationsForCSAT);
 
       setMetrics({
         atendimentosHoje: totalAtendimentos,

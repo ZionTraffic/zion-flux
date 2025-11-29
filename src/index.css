@@ -236,3 +236,12 @@ All colors MUST be HSL.
     animation: pulseGlow 2s ease-in-out infinite;
   }
 }
+
+@layer components {
+  .motivo-box {
+    background: #F5F5F7;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+}

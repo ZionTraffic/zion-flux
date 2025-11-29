@@ -1,18 +1,13 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { KpiMetricCard } from "../components/KpiMetricCard";
 import { 
-  TrendingUp, 
-  MessageSquare, 
-  Target, 
   Phone, 
-  Mail, 
   Calendar,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
-  Activity
+  User,
+  Building2,
+  DollarSign,
+  MessageSquare,
+  Tag,
+  FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,172 +26,132 @@ interface VisaoGeralTabProps {
 
 export const VisaoGeralTab = ({
   conversation,
-  engagementScore,
-  qualityScore,
   messageCount,
-  qualificationRate,
-  activities,
-  riskFactors,
-  opportunities
 }: VisaoGeralTabProps) => {
+  // Formatar valor financeiro
+  const formatCurrency = (value: number | string | undefined) => {
+    if (!value) return 'R$ 0,00';
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   return (
-    <div className="space-y-6 p-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiMetricCard
-          icon={<TrendingUp className="h-6 w-6" />}
-          label="Engajamento"
-          value={`${engagementScore}%`}
-          gradient="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5"
-          delay={0}
-        />
-        <KpiMetricCard
-          icon={<MessageSquare className="h-6 w-6" />}
-          label="Mensagens WhatsApp"
-          value={messageCount}
-          gradient="bg-gradient-to-br from-blue-500/10 to-blue-600/5"
-          delay={0.1}
-        />
-        <KpiMetricCard
-          icon={<Target className="h-6 w-6" />}
-          label="Score de Qualidade"
-          value={`${qualityScore}%`}
-          gradient="bg-gradient-to-br from-purple-500/10 to-purple-600/5"
-          delay={0.2}
-        />
+    <div className="p-6">
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Mensagens */}
+        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+              <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span className="text-sm text-muted-foreground">Mensagens</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{messageCount}</p>
+        </div>
+
+        {/* Duração */}
+        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
+              <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <span className="text-sm text-muted-foreground">Duração</span>
+          </div>
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatDuration(conversation.duration)}</p>
+        </div>
+
+        {/* Status */}
+        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-violet-100 dark:bg-violet-500/20 rounded-lg">
+              <Tag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <span className="text-sm text-muted-foreground">Status</span>
+          </div>
+          <p className="text-lg font-bold text-violet-600 dark:text-violet-400 truncate">{conversation.tag || conversation.stageAfter || 'N/A'}</p>
+        </div>
+
+        {/* Valor */}
+        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-amber-100 dark:bg-amber-500/20 rounded-lg">
+              <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <span className="text-sm text-muted-foreground">Valor</span>
+          </div>
+          <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatCurrency(conversation.valorEmAberto)}</p>
+        </div>
       </div>
 
-      {/* Basic Info and Activity Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Informações Básicas */}
-        <Card className="p-6 glass border border-border/50">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-400" />
-            Informações Básicas
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Phone className="h-4 w-4 text-muted-foreground mt-1" />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Telefone</p>
-                <p className="font-medium">{conversation.phone}</p>
-              </div>
-            </div>
-            
-            {conversation.email && (
-              <div className="flex items-start gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{conversation.email}</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-3">
-              <Target className="h-4 w-4 text-muted-foreground mt-1" />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Stage</p>
-                <Badge variant="outline">{conversation.stageAfter || "N/A"}</Badge>
-              </div>
-            </div>
-            
-            {conversation.startedAt && (
-              <div className="flex items-start gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Iniciou em</p>
-                  <p className="font-medium">
-                    {format(conversation.startedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {conversation.endedAt && (
-              <div className="flex items-start gap-3">
-                <Clock className="h-4 w-4 text-muted-foreground mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Encerrou em</p>
-                  <p className="font-medium">
-                    {format(conversation.endedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-3">
-              <Clock className="h-4 w-4 text-muted-foreground mt-1" />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Duração</p>
-                <p className="font-medium">{formatDuration(conversation.duration)}</p>
-              </div>
-            </div>
+      {/* Informações do Lead */}
+      <div className="bg-white dark:bg-card rounded-xl p-6 border border-border shadow-sm">
+        <h3 className="font-semibold text-lg mb-5 flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+            <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
-        </Card>
+          Informações do Lead
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Telefone */}
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Phone className="h-4 w-4 text-blue-500" />
+              <span className="text-sm text-muted-foreground">Telefone</span>
+            </div>
+            <p className="text-base font-medium">{conversation.phone || 'Não informado'}</p>
+          </div>
 
-        {/* Activity Timeline */}
-        <Card className="p-6 glass border border-border/50">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-emerald-400" />
-            Atividade Recente
-          </h3>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto">
-            {activities.map((activity, index) => (
-              <div key={index} className="flex items-start gap-3 pb-3 border-b border-border/30 last:border-0">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'success' ? 'bg-emerald-400' :
-                  activity.type === 'warning' ? 'bg-amber-400' :
-                  activity.type === 'error' ? 'bg-red-400' :
-                  'bg-blue-400'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(activity.time, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
+          {/* Empresa */}
+          {conversation.product && (
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Building2 className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm text-muted-foreground">Empresa</span>
               </div>
-            ))}
+              <p className="text-base font-medium truncate">{conversation.product}</p>
+            </div>
+          )}
+
+          {/* Iniciou em */}
+          {conversation.startedAt && (
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm text-muted-foreground">Iniciou em</span>
+              </div>
+              <p className="text-base font-medium">
+                {format(new Date(conversation.startedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+            </div>
+          )}
+
+          {/* Encerrou em */}
+          {conversation.endedAt && (
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-muted-foreground">Encerrou em</span>
+              </div>
+              <p className="text-base font-medium">
+                {format(new Date(conversation.endedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Resumo */}
+        {conversation.summary && (
+          <div className="mt-4 bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-violet-500" />
+              <span className="text-sm text-muted-foreground">Resumo da Conversa</span>
+            </div>
+            <p className="text-sm">{conversation.summary}</p>
           </div>
-        </Card>
+        )}
       </div>
-
-      {/* Risk Factors */}
-      {riskFactors.length > 0 && (
-        <Card className="p-6 glass border border-amber-500/30 bg-amber-500/5">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-400" />
-            Fatores de Risco
-          </h3>
-          <ul className="space-y-2">
-            {riskFactors.map((risk, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm">
-                <span className="text-amber-400 mt-0.5">•</span>
-                <span>{risk}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Insights & Opportunities */}
-      {opportunities.length > 0 && (
-        <Card className="p-6 glass border border-emerald-500/30 bg-emerald-500/5">
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-emerald-400" />
-            Insights & Oportunidades
-          </h3>
-          <ul className="space-y-2">
-            {opportunities.map((opportunity, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>{opportunity}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
     </div>
   );
 };

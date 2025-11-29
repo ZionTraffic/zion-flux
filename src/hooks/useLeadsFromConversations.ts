@@ -102,7 +102,7 @@ export const useLeadsFromConversations = (
       console.log('⏸️ [useEffect] Não chamando fetchLeads');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id, startDate, endDate, tenantLoading]);
+  }, [tenant?.id, startDate?.getTime(), endDate?.getTime(), tenantLoading]);
 
   const moveLead = useCallback(async (leadId: string, fromStage: LeadStage, toStage: LeadStage) => {
     const previous = columns;
@@ -205,6 +205,8 @@ export const useLeadsFromConversations = (
       label: stageLabels[stage].title,
       value: columns.find((column) => column.stage === stage)?.leads.length ?? 0,
     }));
+
+    console.log('📊 [useLeadsFromConversations] funnelData:', funnelData);
 
     return {
       dailyLeads: buildChart(dailyTotals),

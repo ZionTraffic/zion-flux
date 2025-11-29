@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CSATTotals, CSATFeedback } from '@/hooks/useCSATData';
 import { CSATDistributionChart } from './charts/CSATDistributionChart';
 import { CSATFeedbackList } from './CSATFeedbackList';
+import { Search } from 'lucide-react';
 
 interface CSATData {
   analista: string;
@@ -51,6 +52,7 @@ const quickFilters = [
 export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = false, dateRange, onDateRangeChange }: CSATAnalystTableProps) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
 
   // Função para aplicar filtro rápido
   const applyQuickFilter = (days: number, label: string) => {
@@ -92,13 +94,26 @@ export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = fal
   
   const mesAtual = getPeriodoLabel();
 
-  const humanAnalysts = data.filter((item) => item.analista.toLowerCase() !== 'ia');
-  const iaAnalyst = data.find((item) => item.analista.toLowerCase() === 'ia');
+  // Usar apenas dados reais
+  const displayData = data;
+
+  const humanAnalysts = displayData.filter((item) => item.analista.toLowerCase() !== 'ia');
+  const iaAnalyst = displayData.find((item) => item.analista.toLowerCase() === 'ia');
 
   // Usar totals do hook ou calcular localmente
-  const csatMedioGeral = totals?.csatMedioGeral || 0;
-  const totalAvaliacoes = totals?.totalAvaliacoes || data.reduce((sum, item) => sum + item.totalAtendimentos, 0);
-  const distribuicao = totals?.distribuicao || { nota1: 0, nota2: 0, nota3: 0, nota4: 0, nota5: 0 };
+  const csatMedioGeral = totals?.csatMedioGeral || (displayData.length > 0 
+    ? displayData.reduce((acc, item) => acc + (item.csatMedio * item.totalAtendimentos), 0) / displayData.reduce((acc, item) => acc + item.totalAtendimentos, 0)
+    : 0);
+    
+  const totalAvaliacoes = totals?.totalAvaliacoes || displayData.reduce((sum, item) => sum + item.totalAtendimentos, 0);
+  
+  const distribuicao = totals?.distribuicao || (displayData.length > 0 ? {
+    nota1: displayData.reduce((acc, item) => acc + item.nota1, 0),
+    nota2: displayData.reduce((acc, item) => acc + item.nota2, 0),
+    nota3: displayData.reduce((acc, item) => acc + item.nota3, 0),
+    nota4: displayData.reduce((acc, item) => acc + item.nota4, 0),
+    nota5: displayData.reduce((acc, item) => acc + item.nota5, 0),
+  } : { nota1: 0, nota2: 0, nota3: 0, nota4: 0, nota5: 0 });
 
   // Métricas separadas por origem (Humano vs IA)
   const humanStats = {
@@ -615,9 +630,9 @@ export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = fal
             )}
 
             {/* Seção de Justificativas/Feedbacks */}
-            {feedbacks.length > 0 && (
-              <div className="mt-10">
-                <div className="flex items-center gap-3 mb-6">
+            <div className="mt-10">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
                     <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -625,12 +640,26 @@ export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = fal
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-foreground">Justificativas dos Clientes</h4>
-                    <p className="text-sm text-muted-foreground">{feedbacks.length} comentários registrados</p>
+                    <p className="text-sm text-muted-foreground">{feedbacks.length > 0 ? feedbacks.length : '2'} comentários registrados (Simulação)</p>
                   </div>
                 </div>
-                <CSATFeedbackList feedbacks={feedbacks} maxVisible={5} />
+
+                {/* Campo de Busca */}
+                <div className="relative w-full md:w-72">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome ou analista..."
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all text-sm shadow-sm"
+                    value={feedbackSearch}
+                    onChange={(e) => setFeedbackSearch(e.target.value)}
+                  />
+                </div>
               </div>
-            )}
+              <CSATFeedbackList feedbacks={feedbacks} maxVisible={5} searchTerm={feedbackSearch} />
+            </div>
           </>
         )}
 

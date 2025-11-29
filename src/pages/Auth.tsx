@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { logger } from '@/utils/logger';
@@ -276,9 +276,9 @@ const Auth = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-blue-500 hover:bg-white/10 inline-flex items-center justify-center whitespace-nowrap rounded-apple-sm text-sm font-medium transition-apple-fast h-9 px-3 disabled:opacity-50"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    {showPassword ? "Hide" : "Show"}
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {validationErrors.password && (

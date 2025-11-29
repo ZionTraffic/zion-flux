@@ -235,9 +235,12 @@ export interface ConversaResumoRow {
   atualizado_em?: string | null;
 }
 
-export const parseFinanceValue = (valor?: string | null) => {
-  if (!valor) return 0;
-  const cleaned = valor.replace(/[^0-9,.-]/g, '').replace(',', '.');
+export const parseFinanceValue = (valor?: string | number | null) => {
+  if (valor === null || valor === undefined) return 0;
+  // Se já for número, retornar diretamente
+  if (typeof valor === 'number') return Number.isNaN(valor) ? 0 : valor;
+  // Se for string, fazer parse
+  const cleaned = String(valor).replace(/[^0-9,.-]/g, '').replace(',', '.');
   const parsed = Number.parseFloat(cleaned);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
@@ -277,12 +280,20 @@ export async function fetchTenantLeads({
   
   console.log('[fetchTenantLeads] Iniciando busca de leads...', { tenantId, tenantSlug });
   
+  // Verificar se é SIEG Financeiro - usar tabela financeiro_sieg
+  const isSiegFinanceiro = tenantSlug === 'sieg-financeiro' || tenantSlug?.includes('financeiro');
+  
+  if (isSiegFinanceiro) {
+    console.log('[fetchTenantLeads] 🏦 Workspace SIEG Financeiro detectado - usando tabela financeiro_sieg');
+    return fetchSiegFinanceiroLeads(supabaseClient, tenantId, startISO, endISO, getStageFromTag, mappingsLoading, tenantSlug);
+  }
+
   const leadsRows: LeadRow[] = [];
 
   // Determinar tabelas corretas baseadas no tenant
   const workspaceSlug = tenantSlug || 'asf'; // Default para ASF
-  const leadsTableName = 'leads'; // Tabela leads parece existir
-  const conversasTableName = workspaceSlug === 'asf' ? 'conversas_asf' : workspaceSlug === 'sieg' ? 'conversas_sieg_financeiro' : 'conversas_asf';
+  const leadsTableName = 'leads';
+  const conversasTableName = 'conversas_leads';
   
   console.log('[fetchTenantLeads] Usando tabelas:', { leads: leadsTableName, conversas: conversasTableName, workspace: workspaceSlug });
 
@@ -306,7 +317,6 @@ export async function fetchTenantLeads({
     leadsRows.push(...(data as LeadRow[]));
     if (data.length < PAGE_SIZE) break;
     
-    // Pequena pausa entre páginas
     if (page < 199) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -322,24 +332,22 @@ export async function fetchTenantLeads({
 
   if (leadIds.length > 0) {
     try {
-      // Ajustar campos baseado na tabela de conversas
-      const conversasSelectFields = workspaceSlug === 'asf'
-        ? 'id, lead_name as nome, phone as telefone, tag, source, messages as conversas, created_at as criado_em, updated_at as atualizado_em, id_workspace as empresa_id'
-        : 'id, nome, telefone, tag, source, conversas, created_at as criado_em, updated_at as atualizado_em, id_workspace as empresa_id';
+      const conversasSelectFields = 'id, lead_id, nome, telefone, tag, source, conversas, criado_em, atualizado_em, empresa_id';
       
       const { data: conversasData, error: conversasError } = await supabaseClient
         .from(conversasTableName)
         .select(conversasSelectFields)
-        .in('id', leadIds) // Para ASF/Sieg, usa id da conversa, não lead_id
-        .eq('id_workspace', tenantId);
+        .in('lead_id', leadIds)
+        .eq('empresa_id', tenantId);
 
       if (conversasError) {
         console.warn('[fetchTenantLeads] Erro ao buscar conversas:', conversasError);
       } else {
         conversaByLead = {};
         (conversasData as any[] | null)?.forEach((row) => {
-          // Para compatibilidade, usar id como lead_id
-          conversaByLead[row.id] = { ...row, lead_id: row.id };
+          if (row.lead_id) {
+            conversaByLead[row.lead_id] = row;
+          }
         });
       }
     } catch (err) {
@@ -390,6 +398,131 @@ export async function fetchTenantLeads({
     columns[stage].push(lead);
     leads.push(lead);
   });
+
+  return { columns, leads };
+}
+
+// Função específica para buscar dados do SIEG Financeiro da tabela financeiro_sieg
+async function fetchSiegFinanceiroLeads(
+  supabaseClient: any,
+  tenantId: string,
+  startISO: string,
+  endISO: string,
+  getStageFromTag: ((tag: string) => string | undefined) | undefined,
+  mappingsLoading: boolean,
+  tenantSlug?: string
+): Promise<FetchTenantLeadsResult> {
+  
+  console.log('[fetchSiegFinanceiroLeads] 🏦 Buscando dados da tabela financeiro_sieg...');
+  console.log('[fetchSiegFinanceiroLeads] 📋 Parâmetros:', { tenantId, tenantSlug, startISO, endISO });
+  
+  const columns = createEmptyStageMap();
+  const leads: LeadFromConversation[] = [];
+
+  // Buscar dados da tabela financeiro_sieg com paginação e filtro de data
+  for (let page = 0; page < 200; page++) {
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    const { data, error } = await supabaseClient
+      .from('financeiro_sieg')
+      .select('id, empresa_id, nome, nome_empresa, cnpj, telefone, valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, tag, data_vencimento, data_pagamento, observacoes, criado_em, atualizado_em, atendente, nota_csat')
+      .eq('empresa_id', tenantId)
+      .gte('criado_em', startISO)
+      .lt('criado_em', endISO)
+      .order('criado_em', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('[fetchSiegFinanceiroLeads] Erro:', error);
+      throw error;
+    }
+    if (!data || data.length === 0) break;
+
+    console.log(`[fetchSiegFinanceiroLeads] Página ${page + 1}: ${data.length} registros`);
+    
+    // Debug: mostrar distribuição de tags na primeira página
+    if (page === 0) {
+      const tagCounts: Record<string, number> = {};
+      data.forEach((row: any) => {
+        const t = row.tag || 'SEM_TAG';
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
+      });
+      console.log('[fetchSiegFinanceiroLeads] 🏷️ Tags encontradas:', tagCounts);
+    }
+
+    // Processar cada registro
+    data.forEach((row: any, index: number) => {
+      // Mapear tag para stage
+      const tag = row.tag || '';
+      let stage: LeadStage = 'novo_lead';
+      
+      // Debug primeiros registros
+      if (index < 5) {
+        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}", tipo=${typeof tag}`);
+      }
+      
+      // Mapeamento de tags do SIEG Financeiro (case insensitive)
+      const tagUpper = String(tag).toUpperCase();
+      if (tagUpper.includes('T4') || tagUpper.includes('TRANSFERIDO')) {
+        stage = 'followup';
+      } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) {
+        stage = 'qualificados';
+      } else if (tagUpper.includes('T2') || tagUpper.includes('QUALIFICANDO')) {
+        stage = 'qualificacao';
+      } else if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
+        stage = 'descartados';
+      } else {
+        // T1 ou qualquer outra tag vai para novo_lead
+        stage = 'novo_lead';
+      }
+      
+      // Debug primeiros registros com stage
+      if (index < 5) {
+        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}" -> stage="${stage}"`);
+      }
+
+      // DESABILITADO: O mapeamento customizado estava sobrescrevendo o mapeamento correto
+      // Para SIEG Financeiro, usamos apenas o mapeamento hardcoded acima
+      // if (getStageFromTag && !mappingsLoading && tag) {
+      //   const mappedStage = getStageFromTag(tag);
+      //   if (mappedStage && STAGES.includes(mappedStage as LeadStage)) {
+      //     stage = mappedStage as LeadStage;
+      //   }
+      // }
+
+      const entered_at = row.criado_em ?? new Date().toISOString();
+      const reference_date = ensureReferenceDate(row.criado_em) ?? new Date().toISOString();
+
+      const lead: LeadFromConversation = {
+        id: row.id,
+        nome: row.nome || row.nome_empresa || 'Sem nome',
+        telefone: row.telefone || '',
+        email: null,
+        produto: row.cnpj || '',
+        canal_origem: 'SIEG',
+        stage,
+        entered_at,
+        reference_date,
+        valor_em_aberto: row.valor_em_aberto || 0,
+        valor_recuperado_ia: row.valor_recuperado_ia || 0,
+        valor_recuperado_humano: row.valor_recuperado_humano || 0,
+        tags: tag ? [tag] : undefined,
+      };
+
+      columns[stage].push(lead);
+      leads.push(lead);
+    });
+
+    if (data.length < PAGE_SIZE) break;
+    
+    if (page < 199) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  console.log('[fetchSiegFinanceiroLeads] ✅ Total de leads:', leads.length);
+  console.log('[fetchSiegFinanceiroLeads] 📊 Por stage:', Object.entries(columns).map(([s, l]) => `${s}: ${l.length}`).join(', '));
 
   return { columns, leads };
 }

@@ -45,11 +45,28 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
       setError(null);
 
       try {
-        // Buscar dados da tabela financeiro_sieg
-        const { data: valores, error: fetchError } = await (centralSupabase as any)
+        // Construir query com filtro de data
+        let query = (centralSupabase as any)
           .from('financeiro_sieg')
-          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao')
+          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em')
           .eq('empresa_id', tenant.id);
+
+        // Aplicar filtro de data se fornecido
+        if (startDate) {
+          query = query.gte('criado_em', startDate.toISOString());
+        }
+        if (endDate) {
+          const endDatePlusOne = new Date(endDate);
+          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+          query = query.lt('criado_em', endDatePlusOne.toISOString());
+        }
+
+        console.log('💰 [useValoresFinanceiros] Filtros:', { 
+          startDate: startDate?.toISOString(), 
+          endDate: endDate?.toISOString() 
+        });
+
+        const { data: valores, error: fetchError } = await query;
 
         if (fetchError) {
           // Se a tabela não existir, usar dados de demonstração
