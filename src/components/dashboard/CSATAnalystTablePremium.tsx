@@ -97,8 +97,14 @@ export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = fal
   // Usar apenas dados reais
   const displayData = data;
 
-  const humanAnalysts = displayData.filter((item) => item.analista.toLowerCase() !== 'ia');
-  const iaAnalyst = displayData.find((item) => item.analista.toLowerCase() === 'ia');
+  // Verificar se é IA (pode ser "IA", "IA Maria", ou conter "ia" no nome)
+  const isIaAnalyst = (analista: string) => {
+    const lower = analista.toLowerCase();
+    return lower === 'ia' || lower === 'ia maria' || lower.includes('ia ');
+  };
+
+  const humanAnalysts = displayData.filter((item) => !isIaAnalyst(item.analista));
+  const iaAnalyst = displayData.find((item) => isIaAnalyst(item.analista));
 
   // Usar totals do hook ou calcular localmente
   const csatMedioGeral = totals?.csatMedioGeral || (displayData.length > 0 
@@ -640,7 +646,7 @@ export function CSATAnalystTable({ data, totals, feedbacks = [], isLoading = fal
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-foreground">Justificativas dos Clientes</h4>
-                    <p className="text-sm text-muted-foreground">{feedbacks.length > 0 ? feedbacks.length : '2'} comentários registrados (Simulação)</p>
+                    <p className="text-sm text-muted-foreground">{feedbacks.length} comentários registrados</p>
                   </div>
                 </div>
 

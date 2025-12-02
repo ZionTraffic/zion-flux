@@ -123,9 +123,10 @@ export function useExecutiveDashboard(
       qualifiedLeads,
       cpl,
       qualificationRate,
-      investedTrend: 15,
-      qualifiedTrend: 23,
-      cplTrend: -8,
+      // Trends removidos - eram dados fictícios
+      investedTrend: 0,
+      qualifiedTrend: 0,
+      cplTrend: 0,
     };
   }, [metaAds.totals, leads.kpis]);
 
@@ -302,23 +303,14 @@ export function useExecutiveDashboard(
       .sort((a, b) => b.cpl - a.cpl)[0]; // Pior CPL
   }, [metaAds.campaigns, metaAds.totals, qualificationMetrics.qualificationRate]);
 
-  // MÉTRICAS FINANCEIRAS AVANÇADAS
+  // MÉTRICAS FINANCEIRAS - APENAS DADOS REAIS
   const advancedMetrics: AdvancedMetrics = useMemo(() => {
     const totalInvested = metaAds.totals?.spend || 0;
     const totalLeads = leads.kpis?.totalLeads || 0;
     const qualifiedLeads = leads.kpis?.qualifiedLeads || 0;
     
-    // Usar faturamento estimado: R$ 500 por lead qualificado
-    const averageTicket = 500;
-    const estimatedRevenue = qualifiedLeads * averageTicket;
-    
-    // ROI = (Receita - Investimento) / Investimento * 100
-    const roi = totalInvested > 0 
-      ? ((estimatedRevenue - totalInvested) / totalInvested) * 100 
-      : 0;
-    
-    // Profit (Lucro)
-    const profit = estimatedRevenue - totalInvested;
+    // ROI e Revenue removidos - eram estimativas fictícias
+    // Mantendo apenas métricas calculadas a partir de dados reais
     
     // Custo por Lead
     const costPerLead = totalLeads > 0 
@@ -336,12 +328,12 @@ export function useExecutiveDashboard(
       : 0;
     
     return {
-      roi,
-      profit,
+      roi: 0, // Removido - era estimativa
+      profit: 0, // Removido - era estimativa
       costPerLead,
       costPerQualifiedLead,
       qualificationRate,
-      estimatedRevenue,
+      estimatedRevenue: 0, // Removido - era estimativa
       totalInvested,
       totalLeads,
       qualifiedLeads,
@@ -395,12 +387,9 @@ export function useExecutiveDashboard(
       });
   }, [metaAds.campaigns, metaAds.totals?.clicks, leads.kpis?.totalLeads]);
 
-  // HISTÓRICO DE ROI (ÚLTIMOS 30 DIAS) - ESTIMADO
+  // HISTÓRICO DE INVESTIMENTO (ÚLTIMOS 30 DIAS) - APENAS DADOS REAIS
   const roiHistory: RoiHistoryData[] = useMemo(() => {
-    const totalQualifiedLeads = leads.kpis?.qualifiedLeads || 0;
-    const totalClicks = metaAds.daily?.reduce((sum, day) => sum + (day.clicks || 0), 0) || 1;
-    
-    // ⚠️ FALLBACK: Se não tem dados diários, retornar array vazio
+    // ⚠️ Se não tem dados diários, retornar array vazio
     if (!metaAds.daily || metaAds.daily.length === 0) {
       console.warn('⚠️ metaAds.daily está vazio, roiHistory será []');
       return [];
@@ -420,39 +409,22 @@ export function useExecutiveDashboard(
       return dateStr;
     };
     
+    // Apenas dados reais de investimento - sem estimativas de ROI/Revenue
     const history = (metaAds.daily || [])
       .map(day => {
         const dayInvested = day.spend || 0;
-        // Estimar leads qualificados do dia baseado em proporção de cliques
-        const dayClicks = day.clicks || 0;
-        const dayQualifiedLeads = (dayClicks / totalClicks) * totalQualifiedLeads;
-        const dayRevenue = dayQualifiedLeads * 500; // R$ 500 por lead qualificado
-        const dayROI = dayInvested > 0 
-          ? ((dayRevenue - dayInvested) / dayInvested) * 100 
-          : 0;
         
         return {
           date: formatDate(day.date),
-          roi: dayROI,
-          revenue: dayRevenue,
-          invested: dayInvested,
+          roi: 0, // Removido - era estimativa
+          revenue: 0, // Removido - era estimativa
+          invested: dayInvested, // Único dado real
         };
       })
       .slice(-30);
     
-    // 🔍 DEBUG
-    console.log('🔍 DEBUG roiHistory:', {
-      metaDailyLength: metaAds.daily?.length || 0,
-      historyLength: history.length,
-      firstItem: history[0],
-      lastItem: history[history.length - 1],
-      totalQualifiedLeads,
-      totalClicks,
-      sampleDay: metaAds.daily?.[0],
-    });
-    
     return history;
-  }, [metaAds.daily, leads.kpis?.qualifiedLeads]);
+  }, [metaAds.daily]);
 
   return {
     businessHealth,

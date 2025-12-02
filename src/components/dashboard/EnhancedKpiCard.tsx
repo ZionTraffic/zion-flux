@@ -101,21 +101,7 @@ export function EnhancedKpiCard({
         {/* Value */}
         <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
 
-        {/* Sparkline - only show for positive trends */}
-        {trend && trend.direction === "up" && (
-          <div className="mt-4 h-8 flex items-end gap-1">
-            {[...Array(12)].map((_, i) => {
-              const height = Math.random() * 100;
-              return (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t transition-all duration-300 bg-emerald-500/30"
-                  style={{ height: `${height}%` }}
-                />
-              );
-            })}
-          </div>
-        )}
+        {/* Sparkline removido - era dado fictício/aleatório */}
 
       </div>
 
