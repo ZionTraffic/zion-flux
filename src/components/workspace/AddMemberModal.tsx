@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Copy, Link as LinkIcon, Save } from 'lucide-react';
+import { Copy, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PendingInvitesList } from './PendingInvitesList';
@@ -47,132 +47,6 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
   const [error, setError] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [inviteDetails, setInviteDetails] = useState<any>(null);
-  const [hasTemplate, setHasTemplate] = useState(false);
-
-  // Carregar template salvo quando workspace mudar
-  useEffect(() => {
-    if (tenantId) {
-      const templateKey = `permission_template_${tenantId}`;
-      const savedTemplate = localStorage.getItem(templateKey);
-      
-      if (savedTemplate) {
-        try {
-          const template = JSON.parse(savedTemplate);
-          setRole(template.role || 'member');
-          setSelectedPermissions(template.permissions || [...DEFAULT_PERMISSIONS_BY_ROLE.member]);
-          setHasTemplate(true);
-          
-          toast.info(`Template carregado para ${template.tenantName}`, {
-            description: `${template.permissions?.length || 0} permissões configuradas`
-          });
-        } catch (error) {
-          console.error('Erro ao carregar template:', error);
-          setHasTemplate(false);
-        }
-      } else {
-        setHasTemplate(false);
-      }
-    }
-  }, [tenantId]);
-
-  const handleSavePermissions = async () => {
-    try {
-      const targetTenantId = tenantId || effectiveTenantId;
-      
-      if (!targetTenantId) {
-        toast.error('Nenhuma empresa selecionada');
-        return;
-      }
-
-      // Validar se email está preenchido
-      if (!email.trim()) {
-        toast.error('Digite o email do usuário');
-        return;
-      }
-
-      // Validar se há permissões selecionadas
-      if (selectedPermissions.length === 0) {
-        toast.error('Selecione pelo menos uma permissão');
-        return;
-      }
-
-      // Verificar se está autenticado
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('Sessão expirada. Faça login novamente.');
-        return;
-      }
-
-      setIsLoading(true);
-
-      // Gerar token único
-      const inviteToken = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      // Data de expiração (7 dias)
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      // Inserir convite diretamente no banco
-      const { error: insertError } = await supabase
-        .from('pending_invites')
-        .insert({
-          workspace_id: targetTenantId,
-          email: email.toLowerCase().trim(),
-          role: role,
-          token: inviteToken,
-          invited_by: session.user.id,
-          expires_at: expiresAt.toISOString(),
-          permissions: JSON.stringify(selectedPermissions),
-          custom_data: JSON.stringify({
-            tenant_id: targetTenantId,
-            tenant_name: effectiveTenantName,
-          })
-        });
-
-      if (insertError) {
-        console.error('Erro ao criar convite:', insertError);
-        throw new Error(insertError.message || 'Erro ao criar convite');
-      }
-
-      console.log('Convite gerado com permissões customizadas');
-
-      // Salvar template também
-      const templateKey = `permission_template_${targetTenantId}`;
-      const template = {
-        role,
-        permissions: selectedPermissions,
-        savedAt: new Date().toISOString(),
-        tenantName: effectiveTenantName,
-      };
-
-      localStorage.setItem(templateKey, JSON.stringify(template));
-      
-      // Gerar URL para mostrar ao usuário
-      const inviteUrl = `${window.location.origin}/accept-invite?token=${inviteToken}`;
-      setGeneratedLink(inviteUrl);
-      setInviteDetails({
-        email: email.toLowerCase().trim(),
-        role: role,
-        expires_at: expiresAt.toISOString(),
-        token: inviteToken
-      });
-      
-      toast.success('Usuário cadastrado! Link de convite gerado.');
-      
-      // Forçar atualização da lista de usuários
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refreshUserList'));
-      }, 500);
-      
-    } catch (error: any) {
-      console.error('Erro ao salvar:', error);
-      toast.error(error.message || 'Erro ao adicionar usuário');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleClose = () => {
     setTenantId(effectiveTenantId);
@@ -458,31 +332,22 @@ export function AddMemberModal({ open, onOpenChange, onAddMember, currentTenantI
                 </div>
               )}
 
-              {/* Botões de ação */}
-              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t border-border/30">
+              {/* Botões de ação - Simplificado */}
+              <div className="flex gap-3 pt-4 border-t border-border/30">
                 <Button 
                   variant="outline" 
                   onClick={handleClose}
-                  className="sm:flex-1"
+                  className="flex-1"
                 >
                   Cancelar
                 </Button>
                 <Button 
-                  variant={hasTemplate ? "default" : "secondary"}
-                  onClick={handleSavePermissions}
-                  disabled={isLoading}
-                  className="sm:flex-1 gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  {hasTemplate ? 'Cadastrar com Template' : 'Cadastrar Usuário'}
-                </Button>
-                <Button 
                   onClick={handleGenerateLink} 
-                  disabled={isLoading}
-                  className="sm:flex-1 bg-gradient-to-r from-primary to-secondary hover:opacity-90 gap-2"
+                  disabled={isLoading || !email}
+                  className="flex-[2] bg-gradient-to-r from-primary to-secondary hover:opacity-90 gap-2"
                 >
                   <LinkIcon className="h-4 w-4" />
-                  {isLoading ? 'Gerando...' : 'Gerar Link'}
+                  {isLoading ? 'Gerando...' : 'Gerar Convite'}
                 </Button>
               </div>
             </TabsContent>

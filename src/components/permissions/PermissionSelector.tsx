@@ -166,44 +166,6 @@ export function PermissionSelector({
         ))}
       </div>
 
-      {/* Opção para bloquear troca de workspace */}
-      <div className="mt-6 p-4 rounded-xl bg-indigo-600 text-white">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-bold text-white mb-1">
-              Controle de Workspace
-            </h4>
-            <p className="text-xs text-white/80 mb-3">
-              Usuários com permissões customizadas não podem trocar de workspace.
-            </p>
-            <div className="text-xs text-white/90 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">✓</span>
-                <span>Seletor de workspace será ocultado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">✓</span>
-                <span>Usuário verá apenas o workspace atual</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">✓</span>
-                <span>Owners e Admins sempre podem trocar</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          <span className="font-bold text-gray-900 dark:text-white">Dica:</span> Use os botões de role padrão para aplicar rapidamente um conjunto comum de permissões.
-        </p>
-      </div>
     </div>
   );
 }

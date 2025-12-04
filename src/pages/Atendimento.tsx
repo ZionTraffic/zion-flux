@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
 import { useTenant } from "@/contexts/TenantContext";
-import { MessageSquare, Users, Bot } from "lucide-react";
-import { useState } from "react";
+import { MessageSquare, Users, Bot, Tag } from "lucide-react";
+import { useState, useMemo } from "react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,42 @@ const Atendimento = () => {
   const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
   const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
 
+  // Contar conversas por tag
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'T1 - SEM RESPOSTA': 0,
+      'T2 - RESPONDIDO': 0,
+      'T3 - PAGO IA': 0,
+      'T4 - TRANSFERIDO': 0,
+      'T5 - PASSÍVEL DE SUSPENSÃO': 0,
+    };
+    
+    conversationHistory?.forEach((conv: any) => {
+      const tag = conv.tag?.toUpperCase() || '';
+      if (tag.includes('T1') || tag.includes('SEM RESPOSTA')) {
+        counts['T1 - SEM RESPOSTA']++;
+      } else if (tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO')) {
+        counts['T2 - RESPONDIDO']++;
+      } else if (tag.includes('T3') || tag.includes('PAGO')) {
+        counts['T3 - PAGO IA']++;
+      } else if (tag.includes('T4') || tag.includes('TRANSFERIDO')) {
+        counts['T4 - TRANSFERIDO']++;
+      } else if (tag.includes('T5') || tag.includes('SUSPENS')) {
+        counts['T5 - PASSÍVEL DE SUSPENSÃO']++;
+      }
+    });
+    
+    return counts;
+  }, [conversationHistory]);
+
+  const tagConfig = [
+    { label: 'T1 - SEM RESPOSTA', color: 'from-red-50 to-red-100 border-red-200', textColor: 'text-red-700' },
+    { label: 'T2 - RESPONDIDO', color: 'from-blue-50 to-blue-100 border-blue-200', textColor: 'text-blue-700' },
+    { label: 'T3 - PAGO IA', color: 'from-emerald-50 to-emerald-100 border-emerald-200', textColor: 'text-emerald-700' },
+    { label: 'T4 - TRANSFERIDO', color: 'from-amber-50 to-amber-100 border-amber-200', textColor: 'text-amber-700' },
+    { label: 'T5 - PASSÍVEL DE SUSPENSÃO', color: 'from-purple-50 to-purple-100 border-purple-200', textColor: 'text-purple-700' },
+  ];
+
   const handleClearFilter = () => {
     const to = new Date();
     const from = new Date();
@@ -90,6 +126,21 @@ const Atendimento = () => {
           <p className="text-muted-foreground">
             Central de métricas de atendimento, CSAT e performance de IA
           </p>
+        </div>
+
+        {/* Menu de Tags */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {tagConfig.map((tag) => (
+            <div
+              key={tag.label}
+              className={`bg-gradient-to-br ${tag.color} rounded-2xl p-4 border shadow-sm cursor-pointer hover:shadow-md transition-all`}
+            >
+              <p className={`text-xs font-semibold ${tag.textColor} mb-1`}>{tag.label}</p>
+              <p className={`text-2xl font-bold ${tag.textColor}`}>
+                {tagCounts[tag.label]?.toLocaleString('pt-BR') || 0}
+              </p>
+            </div>
+          ))}
         </div>
 
         {/* Date Range Filter */}

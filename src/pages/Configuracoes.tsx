@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus } from "lucide-react";
+import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus, History } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ import { TenantSelector } from "@/components/ui/TenantSelector";
 import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
 import { EditPermissionsModal } from "@/components/permissions/EditPermissionsModal";
 import { WorkspaceMember } from "@/hooks/useWorkspaceMembers";
+import { AuditLogViewer } from "@/components/audit/AuditLogViewer";
 
 const Configuracoes = () => {
   const { isOwner } = useUserRole();
@@ -140,7 +141,7 @@ const Configuracoes = () => {
           }}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-4 lg:w-[720px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[900px]">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
@@ -156,6 +157,10 @@ const Configuracoes = () => {
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Sistema</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Histórico</span>
             </TabsTrigger>
           </TabsList>
 
@@ -494,6 +499,11 @@ const Configuracoes = () => {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Aba de Histórico de Alterações (Audit Log) */}
+          <TabsContent value="audit" className="space-y-4">
+            <AuditLogViewer />
           </TabsContent>
         </Tabs>
       </main>
