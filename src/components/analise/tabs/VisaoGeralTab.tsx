@@ -60,10 +60,10 @@ export const VisaoGeralTab = ({
             <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.tag || conversation.stageAfter || 'Não definido'}</p>
           </div>
 
-          {/* Valor em Aberto */}
+          {/* Valor do Débito */}
           <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-500 dark:text-muted-foreground">Valor em Aberto</span>
+              <span className="text-sm text-gray-500 dark:text-muted-foreground">Valor do Débito</span>
               <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
                 <DollarSign className="h-4 w-4 text-white" />
               </div>

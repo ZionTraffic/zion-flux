@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalysisHeader } from "./components/AnalysisHeader";
 import { VisaoGeralTab } from "./tabs/VisaoGeralTab";
 import { WhatsAppTab } from "./tabs/WhatsAppTab";
+import { JornadaTab } from "./tabs/JornadaTab";
+import { Route } from "lucide-react";
 import {
   calculateEngagement,
   calculateQualityScore,
@@ -75,6 +77,10 @@ export const DetailedAnalysisModal = ({
           <div className="px-6 border-b border-border/50">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+              <TabsTrigger value="jornada" className="flex items-center gap-1">
+                <Route className="h-3 w-3" />
+                Jornada
+              </TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             </TabsList>
           </div>
@@ -90,6 +96,13 @@ export const DetailedAnalysisModal = ({
                 activities={activities}
                 riskFactors={riskFactors}
                 opportunities={opportunities}
+              />
+            </TabsContent>
+
+            <TabsContent value="jornada" className="m-0">
+              <JornadaTab 
+                leadId={selectedConversation.leadId} 
+                telefone={selectedConversation.phone} 
               />
             </TabsContent>
 

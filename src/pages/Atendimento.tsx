@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/dashboard/layout/DashboardLayout";
 import { useTenant } from "@/contexts/TenantContext";
-import { MessageSquare, Users, Bot, Tag } from "lucide-react";
+import { MessageSquare, Users, Bot, Tag, Route } from "lucide-react";
 import { useState, useMemo } from "react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
@@ -12,6 +12,8 @@ import { useCSATData } from "@/hooks/useCSATData";
 import { ConversationHistorySection } from "@/components/dashboard/ConversationHistorySection";
 import { useConversationsData } from "@/hooks/useConversationsData";
 import { useSiegFinanceiroData } from "@/hooks/useSiegFinanceiroData";
+import { JornadaLeadSection } from "@/components/dashboard/JornadaLeadSection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Atendimento = () => {
   const { currentTenant } = useTenant();
@@ -84,7 +86,7 @@ const Atendimento = () => {
     }
   };
 
-  // Contar conversas por tag
+  // Contar conversas por tag (considera valor_recuperado_ia como T3 - PAGO IA)
   const tagCounts = useMemo(() => {
     const counts: Record<string, number> = {
       'T1 - SEM RESPOSTA': 0,
@@ -96,12 +98,13 @@ const Atendimento = () => {
     
     conversationHistory?.forEach((conv: any) => {
       const tag = conv.tag?.toUpperCase() || '';
-      if (tag.includes('T1') || tag.includes('SEM RESPOSTA')) {
+      // Se tem valor recuperado IA > 0, conta como T3 - PAGO IA independente da tag
+      if (conv.qualified === true) {
+        counts['T3 - PAGO IA']++;
+      } else if (tag.includes('T1') || tag.includes('SEM RESPOSTA')) {
         counts['T1 - SEM RESPOSTA']++;
       } else if (tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO')) {
         counts['T2 - RESPONDIDO']++;
-      } else if (tag.includes('T3') || tag.includes('PAGO')) {
-        counts['T3 - PAGO IA']++;
       } else if (tag.includes('T4') || tag.includes('TRANSFERIDO')) {
         counts['T4 - TRANSFERIDO']++;
       } else if (tag.includes('T5') || tag.includes('SUSPENS')) {
@@ -120,22 +123,23 @@ const Atendimento = () => {
     { label: 'T5 - PASSÍVEL DE SUSPENSÃO', color: 'from-purple-50 to-purple-100 border-purple-200', textColor: 'text-purple-700' },
   ];
 
-  // Filtrar conversas pela tag selecionada
+  // Filtrar conversas pela tag selecionada (considera qualified para T3 - PAGO IA)
   const filteredConversations = useMemo(() => {
     if (!selectedTag) return conversationHistory;
     
     return conversationHistory?.filter((conv: any) => {
       const tag = conv.tag?.toUpperCase() || '';
       if (selectedTag === 'T1 - SEM RESPOSTA') {
-        return tag.includes('T1') || tag.includes('SEM RESPOSTA');
+        return !conv.qualified && (tag.includes('T1') || tag.includes('SEM RESPOSTA'));
       } else if (selectedTag === 'T2 - RESPONDIDO') {
-        return tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO');
+        return !conv.qualified && (tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO'));
       } else if (selectedTag === 'T3 - PAGO IA') {
-        return tag.includes('T3') || tag.includes('PAGO');
+        // Inclui registros com valor_recuperado_ia > 0 (qualified = true)
+        return conv.qualified === true;
       } else if (selectedTag === 'T4 - TRANSFERIDO') {
-        return tag.includes('T4') || tag.includes('TRANSFERIDO');
+        return !conv.qualified && (tag.includes('T4') || tag.includes('TRANSFERIDO'));
       } else if (selectedTag === 'T5 - PASSÍVEL DE SUSPENSÃO') {
-        return tag.includes('T5') || tag.includes('SUSPENS');
+        return !conv.qualified && (tag.includes('T5') || tag.includes('SUSPENS'));
       }
       return true;
     });
@@ -252,13 +256,34 @@ const Atendimento = () => {
           onDateRangeChange={(range) => setDateRange(range)}
         />
 
-        {/* Histórico de Conversas */}
-        <ConversationHistorySection
-          conversations={filteredConversations}
-          stats={conversationStats}
-          isLoading={conversationsLoading}
-          workspaceSlug={currentTenant?.slug}
-        />
+        {/* Tabs: Conversas e Jornada */}
+        <Tabs defaultValue="conversas" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="conversas" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Conversas
+            </TabsTrigger>
+            <TabsTrigger value="jornada" className="flex items-center gap-2">
+              <Route className="h-4 w-4" />
+              Jornada do Cliente
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="conversas" className="mt-6">
+            {/* Histórico de Conversas */}
+            <ConversationHistorySection
+              conversations={filteredConversations}
+              stats={conversationStats}
+              isLoading={conversationsLoading}
+              workspaceSlug={currentTenant?.slug}
+            />
+          </TabsContent>
+          
+          <TabsContent value="jornada" className="mt-6">
+            {/* Jornada dos Leads */}
+            <JornadaLeadSection />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -68,11 +68,40 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
         }
 
         console.log('💰 [useValoresFinanceiros] Filtros:', { 
-          startDate: startDate?.toISOString(), 
+          tenantId: tenant.id,
+          startISO,
           endDate: endDate?.toISOString() 
         });
 
-        const { data: valores, error: fetchError } = await query;
+        // Buscar TODOS os registros com paginação
+        const PAGE_SIZE = 1000;
+        let allValores: any[] = [];
+        let fetchError: any = null;
+        
+        for (let page = 0; page < 10; page++) {
+          const from = page * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+          
+          const { data: pageData, error: pageError } = await query.range(from, to);
+          
+          if (pageError) {
+            fetchError = pageError;
+            break;
+          }
+          
+          if (!pageData || pageData.length === 0) {
+            break;
+          }
+          
+          allValores = [...allValores, ...pageData];
+          
+          if (pageData.length < PAGE_SIZE) {
+            break;
+          }
+        }
+        
+        const valores = allValores;
+        console.log('💰 [useValoresFinanceiros] Total registros:', valores.length);
 
         if (fetchError) {
           // Se a tabela não existir, usar dados de demonstração
@@ -97,6 +126,8 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           valorRecuperadoHumano: acc.valorRecuperadoHumano + (parseFloat(item.valor_recuperado_humano) || 0),
           valorEmNegociacao: acc.valorEmNegociacao + (parseFloat(item.em_negociacao) || 0),
         }), { valorPendente: 0, valorRecuperadoIA: 0, valorRecuperadoHumano: 0, valorEmNegociacao: 0 });
+        
+        console.log('💰 [useValoresFinanceiros] Totais calculados:', totais);
 
         const valorRecuperadoTotal = totais.valorRecuperadoIA + totais.valorRecuperadoHumano;
 

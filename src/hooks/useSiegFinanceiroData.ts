@@ -54,6 +54,39 @@ function mapCsatToString(nota: number | null): string {
   return 'Insatisfeito';
 }
 
+function gerarResumoAtendimento(record: SiegFinanceiroRecord): string {
+  const partes: string[] = [];
+  
+  // Situação do atendimento
+  if (record.valor_recuperado_ia > 0) {
+    partes.push(`✅ Pagamento confirmado via IA: R$ ${Number(record.valor_recuperado_ia).toFixed(2)}`);
+  } else if (record.situacao === 'concluido') {
+    partes.push('✅ Atendimento concluído');
+  } else if (record.situacao === 'pendente') {
+    partes.push('⏳ Aguardando pagamento');
+  }
+  
+  // Valor em aberto
+  if (record.valor_em_aberto > 0 && record.valor_recuperado_ia === 0) {
+    partes.push(`Valor pendente: R$ ${Number(record.valor_em_aberto).toFixed(2)}`);
+  }
+  
+  // Tag/Estágio
+  if (record.tag) {
+    const tagSimples = record.tag.replace(/^T\d\s*-?\s*/i, '').trim();
+    if (tagSimples && !tagSimples.toLowerCase().includes('pesquisa')) {
+      partes.push(`Estágio: ${tagSimples}`);
+    }
+  }
+  
+  // Atendente
+  if (record.atendente) {
+    partes.push(`Atendido por: ${record.atendente === 'IA' ? 'IA Maria' : record.atendente}`);
+  }
+  
+  return partes.length > 0 ? partes.join(' • ') : 'Atendimento em andamento';
+}
+
 function parseHistoricoConversa(historico: string | null): any[] {
   if (!historico) return [];
   try {
@@ -248,9 +281,7 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
           status: mapTagToStatus(record.tag),
           tag: record.tag || undefined,
           sentiment: "neutral" as const,
-          summary: record.situacao 
-            ? `Situação: ${record.situacao}. Valor em aberto: R$ ${Number(record.valor_em_aberto).toFixed(2)}`
-            : `Valor em aberto: R$ ${Number(record.valor_em_aberto).toFixed(2)}`,
+          summary: gerarResumoAtendimento(record),
           startedAt: criadoEm,
           endedAt: dataPesquisa || undefined, // Só mostra se tiver data de pesquisa
           duration: Math.max(durationSeconds, 0),
@@ -259,11 +290,15 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
           suggestions: [],
           adSuggestions: [],
           stageAfter: mapTagToStage(record.tag),
-          qualified: record.tag?.includes('PAGO') || record.tag?.includes('T3') || false,
+          qualified: record.tag?.includes('PAGO') || record.tag?.includes('T3') || record.valor_recuperado_ia > 0,
           messages: messages,
-          csat: record.nota_csat ? mapCsatToString(record.nota_csat) : (record.opiniao_csat || '-'),
+          csat: record.nota_csat ? mapCsatToString(record.nota_csat) : '-',
+          nota_csat: record.nota_csat || undefined,
+          opiniao_csat: record.opiniao_csat || undefined,
           analista: record.atendente || undefined,
           valorEmAberto: record.valor_em_aberto || 0,
+          valorRecuperadoIA: record.valor_recuperado_ia || 0,
+          situacao: record.situacao || undefined,
         };
       });
 

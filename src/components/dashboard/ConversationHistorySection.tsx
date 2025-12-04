@@ -8,7 +8,7 @@ import { MessageSquare, Search, TrendingUp, Clock, ChevronLeft, ChevronRight } f
 import { EditableTagBadge } from "@/components/analise/components/EditableTagBadge";
 import type { ConversationData, ConversationsStats } from "@/hooks/useConversationsData";
 
-const ITEMS_PER_PAGE = 50;
+const ITEMS_PER_PAGE = 25;
 
 interface ConversationHistorySectionProps {
   conversations: ConversationData[];
