@@ -2,6 +2,15 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Suprimir warning interno do React (bug conhecido do React 18)
+const originalError = console.error;
+console.error = (...args) => {
+  if (args[0]?.includes?.('Expected static flag was missing')) {
+    return; // Ignorar este warning específico
+  }
+  originalError.apply(console, args);
+};
+
 // Detectar token de recovery ANTES de renderizar a aplicação
 const hashParams = new URLSearchParams(window.location.hash.substring(1));
 const type = hashParams.get('type');

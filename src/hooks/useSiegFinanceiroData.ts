@@ -167,10 +167,36 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
         query = query.lt('criado_em', endISO);
       }
 
-      // Limitar resultados para performance
-      query = query.limit(500);
-
-      const { data, error: fetchError } = await query;
+      // Buscar TODOS os registros com paginação (sem limite de 500)
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let fetchError: any = null;
+      
+      for (let page = 0; page < 20; page++) { // Máximo 20 páginas = 20.000 registros
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        
+        const { data: pageData, error: pageError } = await query
+          .range(from, to)
+          .order('criado_em', { ascending: false });
+        
+        if (pageError) {
+          fetchError = pageError;
+          break;
+        }
+        
+        if (!pageData || pageData.length === 0) {
+          break;
+        }
+        
+        allData = [...allData, ...pageData];
+        
+        if (pageData.length < PAGE_SIZE) {
+          break; // Última página
+        }
+      }
+      
+      const data = allData;
 
       if (fetchError) {
         console.error('[useSiegFinanceiroData] Erro ao buscar dados:', fetchError);

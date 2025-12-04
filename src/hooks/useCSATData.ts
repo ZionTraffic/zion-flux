@@ -194,20 +194,70 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
 
         console.log('📅 DEBUG CSAT - Filtro:', { tenantId: tenant.id, startDate: filterStartDate, endDate: filterEndDate });
 
-        // Para SIEG Financeiro, buscar da tabela financeiro_sieg
-        let query = (centralSupabase as any)
-          .from('financeiro_sieg')
-          .select('id, nome, telefone, atendente, nota_csat, opiniao_csat, historico_conversa, tag, criado_em')
-          .eq('empresa_id', tenant.id)
-          .gte('criado_em', filterStartDate);
+        // Para SIEG Financeiro, buscar da tabela financeiro_sieg COM PAGINAÇÃO
+        const PAGE_SIZE = 1000;
+        let allRegistros: any[] = [];
+        let fetchError: any = null;
+        
+        // Buscar todos os registros com paginação
+        for (let page = 0; page < 10; page++) { // Máximo 10 páginas = 10.000 registros
+          const from = page * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+          
+          let query = (centralSupabase as any)
+            .from('financeiro_sieg')
+            .select('id, nome, nome_empresa, telefone, atendente, nota_csat, opiniao_csat, historico_conversa, tag, criado_em')
+            .eq('empresa_id', tenant.id)
+            .gte('criado_em', filterStartDate)
+            .order('criado_em', { ascending: false })
+            .range(from, to);
 
-        if (filterEndDate) {
-          query = query.lte('criado_em', filterEndDate);
+          if (filterEndDate) {
+            query = query.lte('criado_em', filterEndDate);
+          }
+
+          const { data: pageData, error: pageError } = await query;
+          
+          if (pageError) {
+            fetchError = pageError;
+            break;
+          }
+          
+          if (!pageData || pageData.length === 0) {
+            break; // Sem mais dados
+          }
+          
+          allRegistros = [...allRegistros, ...pageData];
+          
+          if (pageData.length < PAGE_SIZE) {
+            break; // Última página
+          }
         }
-
-        const { data: registros, error: fetchError } = await query;
+        
+        const registros = allRegistros;
 
         console.log('🔍 DEBUG CSAT - Dados brutos financeiro_sieg:', { totalRegistros: registros?.length || 0 });
+        
+        // DEBUG: Mostrar exemplos de registros com seus campos
+        console.log('🔬 DEBUG CSAT - Exemplos de registros:', registros?.slice(0, 5).map(r => ({
+          nome: r.nome,
+          nota_csat: r.nota_csat,
+          opiniao_csat: r.opiniao_csat,
+          opiniao_csat_type: typeof r.opiniao_csat,
+          opiniao_csat_length: r.opiniao_csat?.length,
+          historico_conversa_preview: r.historico_conversa?.substring(0, 100)
+        })));
+        
+        // DEBUG: Mostrar histórico completo de um registro com nota
+        const registroComNota = registros?.find(r => r.nota_csat && r.nota_csat > 0);
+        if (registroComNota) {
+          console.log('📝 DEBUG CSAT - Registro COM NOTA completo:', {
+            nome: registroComNota.nome,
+            nota_csat: registroComNota.nota_csat,
+            opiniao_csat: registroComNota.opiniao_csat,
+            historico_conversa: registroComNota.historico_conversa
+          });
+        }
 
         if (fetchError) throw fetchError;
 
@@ -237,12 +287,33 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
             }
           }
 
+          // Verificar se tem opinião primeiro
+          const temOpiniao = registro.opiniao_csat && registro.opiniao_csat.trim() !== '';
+          
+          // DEBUG: Log de cada registro processado
+          if (registro.telefone === '5511949107938') {
+            console.log('🔍 DEBUG - Processando registro específico:', {
+              telefone: registro.telefone,
+              nota_csat: registro.nota_csat,
+              opiniao_csat: registro.opiniao_csat,
+              temOpiniao,
+              criado_em: registro.criado_em
+            });
+          }
+          
           // Tentar obter nota do campo nota_csat ou extrair do histórico
           let nota: number | null = null;
           
-          // Se nota_csat > 0, usar ela
-          if (registro.nota_csat && registro.nota_csat > 0) {
+          // Se nota_csat >= 1 e <= 5, usar ela
+          if (registro.nota_csat >= 1 && registro.nota_csat <= 5) {
             nota = registro.nota_csat;
+          } else if (temOpiniao) {
+            // Se tem opinião mas nota é 0 ou inválida, assumir nota 3 (neutro)
+            nota = 3;
+            console.log('✅ Registro com opinião mas nota 0 - assumindo nota 3:', {
+              telefone: registro.telefone,
+              opiniao: registro.opiniao_csat
+            });
           } else {
             // Tentar extrair do histórico de conversa (apenas para contagem de notas)
             const extracted = extractCsatFromHistorico(registro.historico_conversa);
@@ -251,21 +322,46 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
             }
           }
 
-          // Se ainda não tem nota, pular este registro
-          if (!nota) return acc;
+          // Se ainda não tem nota E não tem opinião, pular este registro
+          if (!nota && !temOpiniao) return acc;
 
-          // Coletar feedback APENAS se opiniao_csat estiver preenchido no banco
-          // Não usar mais dados extraídos do histórico para a seção de justificativas
-          const opiniaoReal = registro.opiniao_csat?.trim();
-          if (opiniaoReal && opiniaoReal !== '') {
+          // Coletar feedback do campo opiniao_csat (prioridade)
+          let feedbackTexto = registro.opiniao_csat?.trim();
+          
+          // IMPORTANTE: NÃO usar histórico como fallback, apenas opiniao_csat
+          // Se não tem opiniao_csat, não adicionar à lista de feedbacks
+          
+          if (feedbackTexto && feedbackTexto !== '') {
+            // Determinar origem baseado no atendente
+            let origem: 'ia' | 'humano' = 'humano';
+            if (analista === 'IA Maria' || analista === 'IA' || registro.atendente === 'IA') {
+              origem = 'ia';
+            }
+            
+            console.log('✅ DEBUG CSAT - Feedback encontrado:', {
+              nome: registro.nome,
+              nota,
+              feedback: feedbackTexto.substring(0, 50),
+              analista,
+              origem,
+              atendente_original: registro.atendente
+            });
+            
             feedbacksList.push({
               nota,
-              feedback: opiniaoReal,
+              feedback: feedbackTexto,
               analista,
-              nome: registro.nome || undefined,
+              nome: registro.nome || registro.nome_empresa || undefined,
               telefone: registro.telefone || undefined,
               data: registro.criado_em,
-              origem: analista === 'IA Maria' ? 'ia' : 'humano',
+              origem,
+            });
+          } else {
+            console.log('⚠️ DEBUG CSAT - Registro SEM feedback:', {
+              nome: registro.nome,
+              nota,
+              temOpiniao: !!registro.opiniao_csat,
+              temHistorico: !!registro.historico_conversa
             });
           }
 
@@ -287,6 +383,14 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
 
         // Ordenar feedbacks por data (mais recentes primeiro)
         feedbacksList.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+        console.log('🎯 DEBUG CSAT - Feedbacks antes de setar:', {
+          total: feedbacksList.length,
+          primeiros3: feedbacksList.slice(0, 3).map(f => ({
+            nome: f.nome,
+            nota: f.nota,
+            feedback: f.feedback?.substring(0, 30) + '...'
+          }))
+        });
         setFeedbacks(feedbacksList);
 
         // Calcular médias e ordenar
@@ -327,6 +431,7 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
         });
 
         console.log('✅ DEBUG CSAT - Resultado:', { totalAnalistas: result.length, csatMedioGeral: csatMedioGeral.toFixed(2), totalAvaliacoes, distribuicao: totalNotas });
+        console.log('🎯 DEBUG CSAT - Total de feedbacks FINAL:', feedbacksList.length);
 
         setData(result);
       } catch (err: any) {

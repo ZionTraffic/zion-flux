@@ -213,6 +213,7 @@ export interface LeadRow {
   id: string;
   empresa_id: string;
   nome?: string | null;
+  nome_empresa?: string | null;
   telefone?: string | null;
   email?: string | null;
   tags_atuais?: string[] | null;
@@ -376,7 +377,7 @@ export async function fetchTenantLeads({
 
     const lead: LeadFromConversation = {
       id: leadRow.id,
-      nome: leadRow.nome || 'Sem nome',
+      nome: leadRow.nome || leadRow.nome_empresa || 'Sem nome',
       telefone: leadRow.telefone || '',
       email: leadRow.email || null,
       produto: leadRow.metadados?.produto || leadRow.metadados?.produto_interesse || '',

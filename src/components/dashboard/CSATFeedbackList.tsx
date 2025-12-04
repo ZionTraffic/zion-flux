@@ -70,18 +70,22 @@ export function CSATFeedbackList({ feedbacks, maxVisible = 5, searchTerm = '' }:
         return (
           <div 
             key={index}
-            className={`p-4 rounded-xl border-2 ${colors.border} ${colors.bg} transition-all duration-300 hover:shadow-md`}
+            className="p-4 rounded-xl border-2 border-gray-200 bg-white transition-all duration-300 hover:shadow-md hover:border-purple-300"
           >
-            {/* Header com nota e data */}
+            {/* Header com agente e data */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className={`flex items-center gap-1 px-3 py-1 rounded-full ${colors.bg} ${colors.text} font-bold text-sm border ${colors.border}`}>
-                  <Star className="w-4 h-4 fill-current" />
-                  <span>{item.nota}</span>
-                </div>
-                <span className={`text-sm font-medium ${colors.text}`}>
-                  {getNotaLabel(item.nota)}
-                </span>
+                {item.origem === 'ia' ? <Bot className="w-5 h-5 text-purple-600" /> : <User className="w-5 h-5 text-blue-600" />}
+                <span className="font-bold text-base text-foreground">{item.analista}</span>
+                {item.origem && (
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    item.origem === 'ia' 
+                      ? 'bg-purple-100 text-purple-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    <span>{item.origem === 'ia' ? 'IA' : 'Humano'}</span>
+                  </div>
+                )}
               </div>
               {dataFormatada && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -91,38 +95,23 @@ export function CSATFeedbackList({ feedbacks, maxVisible = 5, searchTerm = '' }:
               )}
             </div>
 
-            {/* Feedback/Justificativa */}
+            {/* Justificativa do Cliente */}
             {item.feedback && (
-              <div className="motivo-box">
-                <h4 className="font-semibold text-sm mb-2">Motivo da nota</h4>
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                 <p className="text-gray-800 text-sm leading-relaxed">
                   {item.feedback}
                 </p>
               </div>
             )}
 
-            {/* Footer com analista, origem e cliente */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <User className="w-3 h-3" />
-                  <span>Analista: <strong className="text-foreground">{item.analista}</strong></span>
-                </div>
-                {item.origem && (
-                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    item.origem === 'ia' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {item.origem === 'ia' ? <Bot className="w-3 h-3" /> : <UserCircle className="w-3 h-3" />}
-                    <span>{item.origem === 'ia' ? 'IA' : 'Humano'}</span>
-                  </div>
-                )}
+            {/* Nome do cliente ou telefone */}
+            {(item.nome || item.telefone) && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                Cliente: <strong className="text-foreground">
+                  {item.nome || (item.telefone ? `Tel: ${item.telefone.replace(/^55/, '').replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')}` : 'Não identificado')}
+                </strong>
               </div>
-              {item.nome && (
-                <span>Cliente: <strong className="text-foreground">{item.nome}</strong></span>
-              )}
-            </div>
+            )}
           </div>
         );
       })}

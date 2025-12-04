@@ -7,7 +7,9 @@ import {
   DollarSign,
   MessageSquare,
   Tag,
-  FileText
+  FileText,
+  Star,
+  MessageCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,53 +39,6 @@ export const VisaoGeralTab = ({
 
   return (
     <div className="p-6">
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {/* Mensagens */}
-        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-              <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <span className="text-sm text-muted-foreground">Mensagens</span>
-          </div>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{messageCount}</p>
-        </div>
-
-        {/* Duração */}
-        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
-              <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <span className="text-sm text-muted-foreground">Duração</span>
-          </div>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatDuration(conversation.duration)}</p>
-        </div>
-
-        {/* Status */}
-        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-violet-100 dark:bg-violet-500/20 rounded-lg">
-              <Tag className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-            </div>
-            <span className="text-sm text-muted-foreground">Status</span>
-          </div>
-          <p className="text-lg font-bold text-violet-600 dark:text-violet-400 truncate">{conversation.tag || conversation.stageAfter || 'N/A'}</p>
-        </div>
-
-        {/* Valor */}
-        <div className="bg-white dark:bg-card rounded-xl p-4 border border-border shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-amber-100 dark:bg-amber-500/20 rounded-lg">
-              <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <span className="text-sm text-muted-foreground">Valor</span>
-          </div>
-          <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatCurrency(conversation.valorEmAberto)}</p>
-        </div>
-      </div>
-
       {/* Informações do Lead */}
       <div className="bg-white dark:bg-card rounded-xl p-6 border border-border shadow-sm">
         <h3 className="font-semibold text-lg mb-5 flex items-center gap-3">
@@ -94,34 +49,60 @@ export const VisaoGeralTab = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Telefone */}
-          <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Phone className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-muted-foreground">Telefone</span>
+          {/* Situação/Tag */}
+          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-500 dark:text-muted-foreground">Situação</span>
+              <div className="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center">
+                <Tag className="h-4 w-4 text-white" />
+              </div>
             </div>
-            <p className="text-base font-medium">{conversation.phone || 'Não informado'}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.tag || conversation.stageAfter || 'Não definido'}</p>
+          </div>
+
+          {/* Valor em Aberto */}
+          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-500 dark:text-muted-foreground">Valor em Aberto</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-white" />
+              </div>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-foreground">{formatCurrency(conversation.valorEmAberto)}</p>
           </div>
 
           {/* Empresa */}
-          {conversation.product && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-muted-foreground">Empresa</span>
+          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-500 dark:text-muted-foreground">Empresa</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                <Building2 className="h-4 w-4 text-white" />
               </div>
-              <p className="text-base font-medium truncate">{conversation.product}</p>
             </div>
-          )}
+            <p className="text-lg font-bold text-gray-900 dark:text-foreground truncate">{conversation.product || conversation.nome || 'Não informado'}</p>
+          </div>
+
+          {/* Telefone */}
+          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-500 dark:text-muted-foreground">Telefone</span>
+              <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center">
+                <Phone className="h-4 w-4 text-white" />
+              </div>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.phone || 'Não informado'}</p>
+          </div>
 
           {/* Iniciou em */}
           {conversation.startedAt && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-muted-foreground">Iniciou em</span>
+            <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500 dark:text-muted-foreground">Início</span>
+                <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <p className="text-base font-medium">
+              <p className="text-lg font-bold text-gray-900 dark:text-foreground">
                 {format(new Date(conversation.startedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
             </div>
@@ -129,26 +110,68 @@ export const VisaoGeralTab = ({
 
           {/* Encerrou em */}
           {conversation.endedAt && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="h-4 w-4 text-red-500" />
-                <span className="text-sm text-muted-foreground">Encerrou em</span>
+            <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500 dark:text-muted-foreground">Término</span>
+                <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <p className="text-base font-medium">
+              <p className="text-lg font-bold text-gray-900 dark:text-foreground">
                 {format(new Date(conversation.endedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
             </div>
           )}
         </div>
 
-        {/* Resumo */}
-        {conversation.summary && (
-          <div className="mt-4 bg-muted/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-4 w-4 text-violet-500" />
-              <span className="text-sm text-muted-foreground">Resumo da Conversa</span>
+        {/* Seção de Avaliação do Cliente */}
+        {(conversation.csat || conversation.nota_csat || conversation.opiniao_csat) && (
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-gray-500 dark:text-muted-foreground mb-4">Avaliação do Cliente</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nota CSAT */}
+              {(conversation.csat || conversation.nota_csat) && (
+                <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-500 dark:text-muted-foreground">Nota de Satisfação</span>
+                    <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+                      <Star className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-foreground">
+                      {conversation.nota_csat || conversation.csat || '-'}
+                    </p>
+                    <span className="text-sm text-gray-400">/5</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Opinião do Cliente */}
+              {conversation.opiniao_csat && (
+                <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-500 dark:text-muted-foreground">Opinião do Cliente</span>
+                    <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-base font-medium text-gray-900 dark:text-foreground">
+                    "{conversation.opiniao_csat}"
+                  </p>
+                </div>
+              )}
             </div>
-            <p className="text-sm">{conversation.summary}</p>
+          </div>
+        )}
+
+        {/* Resumo da Conversa */}
+        {conversation.summary && (
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-gray-500 dark:text-muted-foreground mb-4">Resumo da Conversa</h4>
+            <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+              <p className="text-sm text-gray-700 dark:text-muted-foreground leading-relaxed">{conversation.summary}</p>
+            </div>
           </div>
         )}
       </div>

@@ -97,7 +97,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    font-family: 'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 400;
     
     /* Gradiente Claro Moderno - Branco com Azul/Roxo */
     background: linear-gradient(135deg, 

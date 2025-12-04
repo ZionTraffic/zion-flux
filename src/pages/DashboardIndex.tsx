@@ -13,20 +13,14 @@ import { StrategicInsightsCard } from "@/components/dashboard/executive/Strategi
 import { TopCampaignsTable } from "@/components/dashboard/executive/TopCampaignsTable";
 import { HeroSection } from "@/components/dashboard/HeroSection";
 import { EnhancedKpiCard } from "@/components/dashboard/EnhancedKpiCard";
-import { AtendimentosKpiCards } from "@/components/dashboard/AtendimentosKpiCards";
-import { CSATAnalystTable } from "@/components/dashboard/CSATAnalystTablePremium";
-import { useAtendimentosMetrics } from "@/hooks/useAtendimentosMetrics";
-import { useCSATData } from "@/hooks/useCSATData";
 import { pdf } from "@react-pdf/renderer";
 import { DashboardPDF } from "@/components/reports/DashboardPDF";
 import { format } from "date-fns";
 import { useTenant } from "@/contexts/TenantContext";
 import { ExportDropdown } from "@/components/export/ExportDropdown";
-import { ConversationHistorySection } from "@/components/dashboard/ConversationHistorySection";
-import { useConversationsData } from "@/hooks/useConversationsData";
-import { useSiegFinanceiroData } from "@/hooks/useSiegFinanceiroData";
 import { ValoresPendentesCard } from "@/components/dashboard/ValoresPendentesCard";
 import { useValoresFinanceiros } from "@/hooks/useValoresFinanceiros";
+import { DisparosDiariosChart } from "@/components/dashboard/DisparosDiariosChart";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -45,12 +39,6 @@ const DashboardIndex = () => {
     return { from, to };
   });
 
-  // Hook para métricas de atendimento (com filtro de data)
-  const atendimentosMetrics = useAtendimentosMetrics(null, dateRange?.from, dateRange?.to);
-  
-  // Hook para dados de CSAT (com filtro de data)
-  const csatData = useCSATData('', dateRange?.from, dateRange?.to);
-  
   // Hook para valores financeiros (com filtro de data)
   const valoresFinanceiros = useValoresFinanceiros(dateRange?.from, dateRange?.to);
   
@@ -97,25 +85,6 @@ const DashboardIndex = () => {
   // Slugs padronizados: sieg-financeiro, sieg-pré-vendas (com acento), asf-finance
   const isSiegWorkspace = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug === 'sieg-pre-vendas' || currentTenant?.slug === 'sieg-pré-vendas' || currentTenant?.slug?.includes('sieg');
   const isSiegFinanceiro = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
-
-  // Hook para conversas genéricas
-  const {
-    conversations: genericConversations,
-    stats: genericStats,
-    isLoading: genericLoading,
-  } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
-
-  // Hook específico para SIEG Financeiro (busca da tabela financeiro_sieg)
-  const {
-    conversations: siegConversations,
-    stats: siegStats,
-    isLoading: siegLoading,
-  } = useSiegFinanceiroData(dateRange?.from, dateRange?.to);
-
-  // Usar dados do SIEG se for workspace financeiro, senão usar genérico
-  const conversationHistory = isSiegFinanceiro ? siegConversations : genericConversations;
-  const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
-  const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -176,8 +145,6 @@ const DashboardIndex = () => {
           workspaceSlug={currentTenant?.slug || 'tenant'}
           leads={leads}
           conversations={conversations}
-          csatData={csatData.data}
-          atendimentosMetrics={atendimentosMetrics}
           leadsDataByStage={leadsData.charts?.funnelData}
         />
       ).toBlob();
@@ -363,44 +330,25 @@ const DashboardIndex = () => {
           )}
         </div>
 
-        {/* Métricas de Atendimento - APENAS PARA SIEG FINANCEIRO */}
+        {/* Valores Pendentes e Recuperações - APENAS PARA SIEG FINANCEIRO */}
         {isSiegFinanceiro && (
-          <>
-            <AtendimentosKpiCards
-              atendimentosHoje={atendimentosMetrics.atendimentosHoje}
-              atendimentosIA={atendimentosMetrics.atendimentosIA}
-              percentualIA={atendimentosMetrics.percentualIA}
-              atendimentosTransferidos={atendimentosMetrics.atendimentosTransferidos}
-              isLoading={atendimentosMetrics.isLoading}
-            />
-
-            <CSATAnalystTable
-              data={csatData.data}
-              totals={csatData.totals}
-              feedbacks={csatData.feedbacks}
-              isLoading={csatData.isLoading}
-              dateRange={dateRange}
-              onDateRangeChange={(range) => setDateRange(range)}
-            />
-
-            {/* Valores Pendentes e Recuperações */}
-            <ValoresPendentesCard
-              valorPendente={valoresFinanceiros.data.valorPendente}
-              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
-              valorEmNegociacao={valoresFinanceiros.data.valorEmNegociacao}
-              metaMensal={valoresFinanceiros.data.metaMensal}
-              isLoading={valoresFinanceiros.isLoading}
-            />
-          </>
+          <ValoresPendentesCard
+            valorPendente={valoresFinanceiros.data.valorPendente}
+            valorRecuperado={valoresFinanceiros.data.valorRecuperado}
+            valorEmNegociacao={valoresFinanceiros.data.valorEmNegociacao}
+            metaMensal={valoresFinanceiros.data.metaMensal}
+            isLoading={valoresFinanceiros.isLoading}
+            valorRecuperadoHumano={valoresFinanceiros.data.valorRecuperado * 0.65}
+            valorRecuperadoIA={valoresFinanceiros.data.valorRecuperado * 0.35}
+          />
         )}
 
-        {/* Histórico de conversas para workspaces Sieg */}
-        {isSiegWorkspace && (
-          <ConversationHistorySection
-            conversations={conversationHistory}
-            stats={conversationStats}
-            isLoading={conversationsLoading}
-            workspaceSlug={currentTenant?.slug}
+        {/* Gráfico de Disparos Diários - APENAS PARA SIEG FINANCEIRO */}
+        {isSiegFinanceiro && (
+          <DisparosDiariosChart
+            tenantId={currentTenant?.id || ''}
+            dateFrom={dateRange?.from}
+            dateTo={dateRange?.to}
           />
         )}
 

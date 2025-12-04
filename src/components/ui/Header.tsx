@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp } from "lucide-react";
+import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
@@ -83,6 +83,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
       iconColor: "text-primary",
     },
     {
+      icon: Users,
+      label: "Atendimento",
+      href: "/atendimento",
+      gradient: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.06) 50%, rgba(4,120,87,0) 100%)",
+      iconColor: "text-emerald-400",
+    },
+    {
       icon: TrendingUp,
       label: "Tráfego",
       href: "/trafego",
@@ -151,6 +158,11 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
           } else {
             shouldShow = canViewAnalysis();
           }
+          break;
+        case 'Atendimento':
+          // Mostrar APENAS para SIEG Financeiro
+          const isSiegFinanceiroMenu = currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro');
+          shouldShow = isSiegFinanceiroMenu || isMasterUser;
           break;
         default:
           shouldShow = true;

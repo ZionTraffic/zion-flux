@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalysisHeader } from "./components/AnalysisHeader";
 import { VisaoGeralTab } from "./tabs/VisaoGeralTab";
@@ -54,6 +55,9 @@ export const DetailedAnalysisModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+        <VisuallyHidden>
+          <DialogTitle>Análise Detalhada do Lead</DialogTitle>
+        </VisuallyHidden>
         <AnalysisHeader
           leadName={selectedConversation.leadName}
           phone={selectedConversation.phone}

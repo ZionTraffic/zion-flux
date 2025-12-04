@@ -16,6 +16,7 @@ import Leads from "./pages/Leads";
 import Trafego from "./pages/Trafego";
 import Qualificacao from "./pages/Qualificacao";
 import Analise from "./pages/Analise";
+import Atendimento from "./pages/Atendimento";
 import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
 import CompleteSignup from "./pages/CompleteSignup";
@@ -53,6 +54,7 @@ const App = () => (
                         <Route path="/trafego" element={<Trafego />} />
                         <Route path="/qualificacao" element={<Qualificacao />} />
                         <Route path="/analise" element={<RoleProtectedRoute allowedRoles={['owner', 'admin']}><Analise /></RoleProtectedRoute>} />
+                        <Route path="/atendimento" element={<Atendimento />} />
                         <Route path="/configuracoes" element={<RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute>} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>

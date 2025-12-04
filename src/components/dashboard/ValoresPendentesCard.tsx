@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle, Clock, User, Bot } from 'lucide-react';
 
 interface ValoresPendentesProps {
   valorPendente: number;
@@ -7,6 +7,8 @@ interface ValoresPendentesProps {
   valorEmNegociacao: number;
   metaMensal?: number;
   isLoading?: boolean;
+  valorRecuperadoHumano?: number;
+  valorRecuperadoIA?: number;
 }
 
 export function ValoresPendentesCard({
@@ -15,6 +17,8 @@ export function ValoresPendentesCard({
   valorEmNegociacao = 0,
   metaMensal = 0,
   isLoading = false,
+  valorRecuperadoHumano = 0,
+  valorRecuperadoIA = 0,
 }: ValoresPendentesProps) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
@@ -61,12 +65,12 @@ export function ValoresPendentesCard({
         </div>
         <div>
           <h3 className="text-2xl font-bold text-gray-800">Valores Financeiros</h3>
-          <p className="text-sm text-muted-foreground">Pendentes, Recuperados e Em Negociação</p>
+          <p className="text-sm text-muted-foreground">Pendentes e Recuperados</p>
         </div>
       </div>
 
       {/* Cards de Valores */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Valor Pendente */}
         <div 
           className={`relative overflow-hidden rounded-2xl p-6 border-2 transition-all duration-300 ${
@@ -104,87 +108,46 @@ export function ValoresPendentesCard({
           <p className="text-2xl font-bold text-emerald-700">{formatCurrency(valorRecuperado)}</p>
           <p className="text-xs text-emerald-500 mt-2">Pagamentos recebidos</p>
         </div>
+      </div>
 
-        {/* Em Negociação */}
+      {/* Recuperação por Humano e IA */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Recuperado por Humano */}
         <div 
           className={`relative overflow-hidden rounded-2xl p-6 border-2 transition-all duration-300 ${
-            hoveredCard === 'negociacao' ? 'border-amber-400 shadow-xl scale-105' : 'border-amber-200'
-          } bg-gradient-to-br from-amber-50 to-white`}
-          onMouseEnter={() => setHoveredCard('negociacao')}
+            hoveredCard === 'humano' ? 'border-blue-400 shadow-xl scale-105' : 'border-blue-200'
+          } bg-gradient-to-br from-blue-50 to-white`}
+          onMouseEnter={() => setHoveredCard('humano')}
           onMouseLeave={() => setHoveredCard(null)}
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
-              <Clock className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+              <User className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">Em andamento</span>
+            <TrendingUp className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="text-xs text-amber-600 uppercase font-semibold tracking-wider mb-1">Em Negociação</p>
-          <p className="text-2xl font-bold text-amber-700">{formatCurrency(valorEmNegociacao)}</p>
-          <p className="text-xs text-amber-500 mt-2">Acordos em processo</p>
-        </div>
-      </div>
-
-      {/* Barra de Progresso e Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Taxa de Recuperação */}
-        <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-gray-700">Taxa de Recuperação</p>
-            <span className={`text-lg font-bold ${Number(taxaRecuperacao) >= 50 ? 'text-emerald-600' : 'text-amber-600'}`}>
-              {taxaRecuperacao}%
-            </span>
-          </div>
-          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${
-                Number(taxaRecuperacao) >= 50 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-amber-500 to-amber-400'
-              }`}
-              style={{ width: `${taxaRecuperacao}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {formatCurrency(valorRecuperado)} de {formatCurrency(valorPendente + valorRecuperado)} total
-          </p>
+          <p className="text-xs text-blue-600 uppercase font-semibold tracking-wider mb-1">Recuperado por Humano</p>
+          <p className="text-2xl font-bold text-blue-700">{formatCurrency(valorRecuperadoHumano)}</p>
+          <p className="text-xs text-blue-500 mt-2">Atendimento manual</p>
         </div>
 
-        {/* Progresso da Meta */}
-        {metaMensal > 0 && (
-          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-200">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-blue-700">Progresso da Meta Mensal</p>
-              <span className={`text-lg font-bold ${Number(progressoMeta) >= 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                {progressoMeta}%
-              </span>
+        {/* Recuperado por IA */}
+        <div 
+          className={`relative overflow-hidden rounded-2xl p-6 border-2 transition-all duration-300 ${
+            hoveredCard === 'ia' ? 'border-purple-400 shadow-xl scale-105' : 'border-purple-200'
+          } bg-gradient-to-br from-purple-50 to-white`}
+          onMouseEnter={() => setHoveredCard('ia')}
+          onMouseLeave={() => setHoveredCard(null)}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Bot className="w-6 h-6 text-white" />
             </div>
-            <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${
-                  Number(progressoMeta) >= 100 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-blue-500 to-blue-400'
-                }`}
-                style={{ width: `${progressoMeta}%` }}
-              />
-            </div>
-            <p className="text-xs text-blue-600 mt-2">
-              Meta: {formatCurrency(metaMensal)}
-            </p>
+            <TrendingUp className="w-5 h-5 text-purple-500" />
           </div>
-        )}
-      </div>
-
-      {/* Dica */}
-      <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex items-start gap-3">
-        <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-blue-800">Dica de Recuperação</p>
-          <p className="text-xs text-blue-600 mt-1">
-            Priorize contatos com valores em negociação para aumentar a taxa de recuperação. 
-            Clientes com acordos em andamento têm maior probabilidade de pagamento.
-          </p>
+          <p className="text-xs text-purple-600 uppercase font-semibold tracking-wider mb-1">Recuperado por IA</p>
+          <p className="text-2xl font-bold text-purple-700">{formatCurrency(valorRecuperadoIA)}</p>
+          <p className="text-xs text-purple-500 mt-2">Atendimento automatizado</p>
         </div>
       </div>
     </div>

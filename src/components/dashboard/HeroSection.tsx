@@ -99,9 +99,9 @@ export function HeroSection({
         {/* Quick Stats */}
         {!hideStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1 - Total de Leads (sempre visível) */}
+          {/* Card 1 - Total de Clientes (sempre visível) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-sm text-blue-100 mb-1">Total de Leads</p>
+            <p className="text-sm text-blue-100 mb-1">Total de Clientes</p>
             <p className="text-2xl font-bold text-white">{totalLeads.toLocaleString('pt-BR')}</p>
           </div>
 
