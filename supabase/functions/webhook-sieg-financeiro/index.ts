@@ -143,6 +143,9 @@ serve(async (req) => {
         )
       }
 
+      // Adicionar criado_em com fuso horário de Brasília
+      dados.criado_em = agora
+
       const { data, error } = await supabase
         .from('financeiro_sieg')
         .insert(dados)

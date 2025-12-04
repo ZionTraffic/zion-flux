@@ -5,7 +5,7 @@ import type { ConversationData, ConversationsStats } from './useConversationsDat
 import type { LeadStage } from './useLeadsShared';
 
 // ID fixo do workspace SIEG Financeiro
-const SIEG_EMPRESA_ID = 'b939a331-44d9-4122-ab23-dcd60413bd46';
+const SIEG_EMPRESA_ID = '98ce360f-baf2-46ff-8d98-f7af80d225fa';
 
 interface SiegFinanceiroRecord {
   id: string;
