@@ -9,6 +9,7 @@ import { TenantProvider } from "@/contexts/TenantContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { AutoRedirect } from "@/components/auth/AutoRedirect";
+import { SessionTimeoutProvider } from "@/components/auth/SessionTimeoutProvider";
 import { NoAccess } from "@/components/workspace/NoAccess";
 import { trpc, trpcClient } from "@/lib/trpc";
 import DashboardIndex from "./pages/DashboardIndex";
@@ -46,9 +47,10 @@ const App = () => (
                 {/* Protected Routes - Single WorkspaceProvider for all */}
                 <Route path="*" element={
                   <ProtectedRoute>
-                    <TenantProvider>
-                      <AutoRedirect />
-                      <Routes>
+                    <SessionTimeoutProvider>
+                      <TenantProvider>
+                        <AutoRedirect />
+                        <Routes>
                         <Route path="/" element={<DashboardIndex />} />
                         <Route path="/leads" element={<Leads />} />
                         <Route path="/trafego" element={<Trafego />} />
@@ -57,8 +59,9 @@ const App = () => (
                         <Route path="/atendimento" element={<Atendimento />} />
                         <Route path="/configuracoes" element={<RoleProtectedRoute allowedRoles={['owner', 'admin']}><Configuracoes /></RoleProtectedRoute>} />
                         <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </TenantProvider>
+                        </Routes>
+                      </TenantProvider>
+                    </SessionTimeoutProvider>
                   </ProtectedRoute>
                 } />
               </Routes>
