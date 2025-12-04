@@ -27,6 +27,7 @@ import { useTagCountsHistorico } from "@/hooks/useTagCountsHistorico";
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
   const [userEmail, setUserEmail] = useState<string>();
+  const [userName, setUserName] = useState<string>();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -93,7 +94,23 @@ const DashboardIndex = () => {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserEmail(user.email);
+      if (user) {
+        setUserEmail(user.email);
+        // Buscar nome completo do usuário na tabela profiles
+        supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.full_name) {
+              setUserName(data.full_name);
+            } else {
+              // Fallback: usar user_metadata ou primeira parte do email
+              setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário');
+            }
+          });
+      }
     });
   }, []);
 
@@ -249,7 +266,7 @@ const DashboardIndex = () => {
           console.log('🔍 DashboardIndex - currentTenant:', currentTenant?.name, 'slug:', currentTenant?.slug, 'hideStats:', shouldHideStats);
           return (
             <HeroSection
-              userName={userEmail}
+              userName={userName || userEmail}
               workspaceName={currentTenant?.name || 'Carregando...'}
               totalLeads={leadsData.kpis?.totalLeads || leads?.totalLeads || 0}
               totalInvested={advancedMetrics?.totalInvested || 0}
