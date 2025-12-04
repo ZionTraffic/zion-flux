@@ -269,64 +269,64 @@ const DashboardIndex = () => {
           />
         </div>
 
-        {/* Enhanced KPIs with Trends - Labels condicionais por workspace */}
+        {/* KPIs com cores iguais à tela de Atendimento */}
         <div className={isSiegFinanceiro 
-          ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6" 
-          : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
+          ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4" 
+          : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"
         }>
-          <EnhancedKpiCard
-            label={currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
-            value={(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
-            icon="🎯"
-            variant="blue"
-            delay={0}
-          />
+          {/* T1 - Vermelho */}
+          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 rounded-2xl p-4 sm:p-5 border border-red-200 dark:border-red-800 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-red-700 dark:text-red-400 mb-1 uppercase tracking-wide">
+              {currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
+            </p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700 dark:text-red-400">
+              {(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
+            </p>
+          </div>
 
-          <EnhancedKpiCard
-            label={currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO'}
-            value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
-            icon="💬"
-            variant="blue"
-            delay={0.1}
-          />
+          {/* T2 - Azul */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-2xl p-4 sm:p-5 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1 uppercase tracking-wide">
+              {currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO'}
+            </p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400">
+              {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
+            </p>
+          </div>
 
-          <EnhancedKpiCard
-            label={currentTenant?.slug === 'asf' ? 'T3 - QUALIFICADO' : 'T3 - PAGO IA'}
-            value={(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
-            icon="💎"
-            variant="gray"
-            delay={0.2}
-          />
+          {/* T3 - Verde */}
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 rounded-2xl p-4 sm:p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wide">
+              {currentTenant?.slug === 'asf' ? 'T3 - QUALIFICADO' : 'T3 - PAGO IA'}
+            </p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">
+              {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
+            </p>
+          </div>
 
-          <EnhancedKpiCard
-            label={currentTenant?.slug === 'asf' ? 'T5 - DESQUALIFICADO' : 'T4 - TRANSFERIDO'}
-            value={currentTenant?.slug === 'asf' 
-              ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
-              : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
-            }
-            icon="💰"
-            variant="blue"
-            delay={0.3}
-          />
+          {/* T4 - Amarelo/Âmbar */}
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20 rounded-2xl p-4 sm:p-5 border border-amber-200 dark:border-amber-800 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1 uppercase tracking-wide">
+              {currentTenant?.slug === 'asf' ? 'T5 - DESQUALIFICADO' : 'T4 - TRANSFERIDO'}
+            </p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700 dark:text-amber-400">
+              {currentTenant?.slug === 'asf' 
+                ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
+                : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
+              }
+            </p>
+          </div>
 
-          {/* T5 - Passível de Suspensão - APENAS PARA SIEG FINANCEIRO */}
+          {/* T5 - Roxo - APENAS PARA SIEG FINANCEIRO */}
           {isSiegFinanceiro && (
-            <EnhancedKpiCard
-              label="T5 - PASSÍVEL DE SUSPENSÃO"
-              value={(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
-              icon="⚠️"
-              variant="red"
-              delay={0.4}
-              tooltip={{
-                title: "Passível de Suspensão",
-                description: "Clientes que estão em risco de suspensão por inadimplência ou outros motivos. Requer atenção imediata da equipe.",
-                items: [
-                  { label: "Status", value: "Crítico" },
-                  { label: "Ação recomendada", value: "Contato urgente" },
-                  { label: "Prazo médio", value: "48 horas" },
-                ]
-              }}
-            />
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 rounded-2xl p-4 sm:p-5 border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-all">
+              <p className="text-[10px] sm:text-xs font-semibold text-purple-700 dark:text-purple-400 mb-1 uppercase tracking-wide">
+                T5 - PASSÍVEL DE SUSPENSÃO
+              </p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400">
+                {(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
+              </p>
+            </div>
           )}
         </div>
 
