@@ -57,17 +57,21 @@ function mapCsatToString(nota: number | null): string {
 function gerarResumoAtendimento(record: SiegFinanceiroRecord): string {
   const partes: string[] = [];
   
+  const valorRecuperadoTotal = Number(record.valor_recuperado_ia || 0) + Number(record.valor_recuperado_humano || 0);
+  
   // Situação do atendimento
   if (record.valor_recuperado_ia > 0) {
     partes.push(`✅ Pagamento confirmado via IA: R$ ${Number(record.valor_recuperado_ia).toFixed(2)}`);
+  } else if (record.valor_recuperado_humano > 0) {
+    partes.push(`✅ Pagamento confirmado via Humano: R$ ${Number(record.valor_recuperado_humano).toFixed(2)}`);
   } else if (record.situacao === 'concluido') {
     partes.push('✅ Atendimento concluído');
   } else if (record.situacao === 'pendente') {
     partes.push('⏳ Aguardando pagamento');
   }
   
-  // Valor em aberto
-  if (record.valor_em_aberto > 0 && record.valor_recuperado_ia === 0) {
+  // Valor em aberto (só mostra se não pagou nada)
+  if (record.valor_em_aberto > 0 && valorRecuperadoTotal === 0) {
     partes.push(`Valor pendente: R$ ${Number(record.valor_em_aberto).toFixed(2)}`);
   }
   

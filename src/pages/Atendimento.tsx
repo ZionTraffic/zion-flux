@@ -14,6 +14,7 @@ import { useConversationsData } from "@/hooks/useConversationsData";
 import { useSiegFinanceiroData } from "@/hooks/useSiegFinanceiroData";
 import { JornadaLeadSection } from "@/components/dashboard/JornadaLeadSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTagCountsHistorico } from "@/hooks/useTagCountsHistorico";
 
 const Atendimento = () => {
   const { currentTenant } = useTenant();
@@ -56,6 +57,9 @@ const Atendimento = () => {
   const conversationHistory = isSiegFinanceiro ? siegConversations : genericConversations;
   const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
   const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
+
+  // Hook para contagens históricas de tags (T1-T5)
+  const { counts: tagCountsHistorico } = useTagCountsHistorico();
   const refetchConversations = isSiegFinanceiro ? refetchSieg : refetchGeneric;
 
   // Estado de refresh
@@ -205,7 +209,7 @@ const Atendimento = () => {
             >
               <p className={`text-xs font-semibold ${tag.textColor} mb-1`}>{tag.label}</p>
               <p className={`text-2xl font-bold ${tag.textColor}`}>
-                {tagCounts[tag.label]?.toLocaleString('pt-BR') || 0}
+                {tagCountsHistorico[tag.label as keyof typeof tagCountsHistorico]?.toLocaleString('pt-BR') || 0}
               </p>
             </div>
           ))}
