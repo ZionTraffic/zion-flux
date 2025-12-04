@@ -110,7 +110,7 @@ export function HeroSection({
             {isSiegFinanceiro ? (
               <>
                 <p className="text-sm text-blue-100 mb-1">Valor em Aberto</p>
-                <p className="text-2xl font-bold text-white">R$ {valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                <p className="text-2xl font-bold text-white">R$ {valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </>
             ) : (
               <>
@@ -125,7 +125,7 @@ export function HeroSection({
             {isSiegFinanceiro ? (
               <>
                 <p className="text-sm text-blue-100 mb-1">Valor Recuperado</p>
-                <p className="text-2xl font-bold text-emerald-300">R$ {valorRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                <p className="text-2xl font-bold text-emerald-300">R$ {valorRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </>
             ) : (
               <>
