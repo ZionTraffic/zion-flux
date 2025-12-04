@@ -93,11 +93,11 @@ export const VisaoGeralTab = ({
             <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.phone || 'Não informado'}</p>
           </div>
 
-          {/* Iniciou em */}
+          {/* Iniciou em - Data de criação do registro */}
           {conversation.startedAt && (
             <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-500 dark:text-muted-foreground">Início</span>
+                <span className="text-sm text-gray-500 dark:text-muted-foreground">Início (Criação)</span>
                 <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
                   <Calendar className="h-4 w-4 text-white" />
                 </div>
@@ -108,11 +108,11 @@ export const VisaoGeralTab = ({
             </div>
           )}
 
-          {/* Encerrou em */}
+          {/* Término - Data da pesquisa de satisfação */}
           {conversation.endedAt && (
             <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-500 dark:text-muted-foreground">Término</span>
+                <span className="text-sm text-gray-500 dark:text-muted-foreground">Término (Pesquisa)</span>
                 <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
                   <Clock className="h-4 w-4 text-white" />
                 </div>

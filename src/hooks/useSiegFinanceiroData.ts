@@ -24,6 +24,7 @@ interface SiegFinanceiroRecord {
   historico_conversa: string | null;
   criado_em: string;
   atualizado_em: string;
+  data_pesquisa_enviada: string | null;
 }
 
 function mapTagToStatus(tag: string | null): "qualified" | "follow-up" | "discarded" {
@@ -215,10 +216,17 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
       const mappedConversations: ConversationData[] = (data as SiegFinanceiroRecord[]).map((record, index) => {
         const messages = parseHistoricoConversa(record.historico_conversa);
         const criadoEm = new Date(record.criado_em);
-        const atualizadoEm = new Date(record.atualizado_em);
         
-        // Calcular duração: diferença entre criado e atualizado
-        let durationSeconds = Math.floor((atualizadoEm.getTime() - criadoEm.getTime()) / 1000);
+        // Término: usar data_pesquisa_enviada (quando recebeu tag de pesquisa de satisfação)
+        // Se não tiver, usar atualizado_em como fallback
+        const dataPesquisa = record.data_pesquisa_enviada 
+          ? new Date(record.data_pesquisa_enviada) 
+          : null;
+        const atualizadoEm = new Date(record.atualizado_em);
+        const endDate = dataPesquisa || atualizadoEm;
+        
+        // Calcular duração: diferença entre criado e término
+        let durationSeconds = Math.floor((endDate.getTime() - criadoEm.getTime()) / 1000);
         
         // Se duração for 0 ou negativa, estimar baseado no número de mensagens (média de 30s por mensagem)
         if (durationSeconds <= 0 && messages.length > 0) {
@@ -238,7 +246,7 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
             ? `Situação: ${record.situacao}. Valor em aberto: R$ ${Number(record.valor_em_aberto).toFixed(2)}`
             : `Valor em aberto: R$ ${Number(record.valor_em_aberto).toFixed(2)}`,
           startedAt: criadoEm,
-          endedAt: atualizadoEm,
+          endedAt: dataPesquisa || undefined, // Só mostra se tiver data de pesquisa
           duration: Math.max(durationSeconds, 0),
           positives: record.valor_recuperado_ia > 0 ? ['Valor recuperado pela IA'] : [],
           negatives: record.valor_em_aberto > 0 ? ['Valor pendente'] : [],
