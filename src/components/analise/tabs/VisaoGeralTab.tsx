@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { 
   Phone, 
   Calendar,
@@ -9,11 +10,14 @@ import {
   Tag,
   FileText,
   Star,
-  MessageCircle
+  MessageCircle,
+  Copy,
+  Check
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDuration } from "@/utils/conversationMetrics";
+import { useToast } from "@/hooks/use-toast";
 
 interface VisaoGeralTabProps {
   conversation: any;
@@ -30,6 +34,29 @@ export const VisaoGeralTab = ({
   conversation,
   messageCount,
 }: VisaoGeralTabProps) => {
+  const { toast } = useToast();
+  const [copiado, setCopiado] = useState<string | null>(null);
+
+  // Função para copiar texto
+  const copiarTexto = async (texto: string, tipo: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(tipo);
+      toast({
+        title: "✓ Copiado!",
+        description: `${tipo} copiado para a área de transferência`,
+        duration: 2000,
+      });
+      setTimeout(() => setCopiado(null), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o texto",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Formatar valor financeiro
   const formatCurrency = (value: number | string | undefined) => {
     if (!value) return 'R$ 0,00';
@@ -82,15 +109,30 @@ export const VisaoGeralTab = ({
             <p className="text-lg font-bold text-gray-900 dark:text-foreground truncate">{conversation.product || conversation.nome || 'Não informado'}</p>
           </div>
 
-          {/* Telefone */}
-          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm">
+          {/* Telefone - Clicável para copiar */}
+          <div 
+            className="bg-white dark:bg-card rounded-2xl p-5 border border-gray-100 dark:border-border shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-card/80 transition-colors group"
+            onClick={() => conversation.phone && copiarTexto(conversation.phone, 'Telefone')}
+            title="Clique para copiar"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-gray-500 dark:text-muted-foreground">Telefone</span>
-              <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-white" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                copiado === 'Telefone' ? 'bg-green-500' : 'bg-cyan-500'
+              }`}>
+                {copiado === 'Telefone' ? (
+                  <Check className="h-4 w-4 text-white" />
+                ) : (
+                  <Phone className="h-4 w-4 text-white" />
+                )}
               </div>
             </div>
-            <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.phone || 'Não informado'}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-bold text-gray-900 dark:text-foreground">{conversation.phone || 'Não informado'}</p>
+              {conversation.phone && (
+                <Copy className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
+            </div>
           </div>
 
           {/* Iniciou em - Data de criação do registro */}
