@@ -150,8 +150,14 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
         .select('*')
         .order('atualizado_em', { ascending: false });
 
-      // Aplicar filtro de data se fornecido
-      const startISO = startDate ? startDate.toISOString() : null;
+      // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
+      const DATA_MINIMA = '2025-12-04T00:00:00';
+      
+      // Aplicar filtro de data se fornecido (mas nunca antes de 04/12/2025)
+      let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
+      if (startISO < DATA_MINIMA) {
+        startISO = DATA_MINIMA;
+      }
       let endISO = null;
       if (endDate) {
         const endDatePlusOne = new Date(endDate);

@@ -96,11 +96,14 @@ serve(async (req) => {
     if (body.data_pagamento) dados.data_pagamento = body.data_pagamento
     if (body.data_vencimento) dados.data_vencimento = body.data_vencimento
     if (body.observacoes) dados.observacoes = body.observacoes
-    // Campos de pesquisa de satisfacao
-    if (body.data_pesquisa_enviada) dados.data_pesquisa_enviada = body.data_pesquisa_enviada
-    if (body.enviar_pesquisa) dados.data_pesquisa_enviada = agora // Auto-preenche data/hora no fuso de Brasília
+    // Campos de pesquisa de satisfacao - sempre usar fuso de Brasília
+    if (body.data_pesquisa_enviada || body.enviar_pesquisa) {
+      dados.data_pesquisa_enviada = agora // Sempre usa data/hora no fuso de Brasília
+    }
     if (body.resposta_satisfacao) dados.resposta_satisfacao = body.resposta_satisfacao
+    // Aceitar tanto "atendente" quanto "agente" como nome do atendente
     if (body.atendente) dados.atendente = body.atendente
+    if (body.agente) dados.atendente = body.agente
     // Campos CSAT
     if (body.nota_csat !== undefined) dados.nota_csat = parseInt(body.nota_csat) || 0
     if (body.opiniao_csat) dados.opiniao_csat = body.opiniao_csat

@@ -177,15 +177,21 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
         };
 
         // Filtros de data
+        // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
+        const DATA_MINIMA = '2025-12-04T00:00:00';
+        
         let filterStartDate: string;
         let filterEndDate: string | undefined;
 
         if (startDate) {
           filterStartDate = startDate.toISOString().split('T')[0] + 'T00:00:00';
         } else {
-          const now = new Date();
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          filterStartDate = startOfMonth.toISOString();
+          filterStartDate = DATA_MINIMA;
+        }
+        
+        // Garantir que nunca seja antes de 04/12/2025
+        if (filterStartDate < DATA_MINIMA) {
+          filterStartDate = DATA_MINIMA;
         }
 
         if (endDate) {
@@ -285,6 +291,9 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
             } else {
               analista = 'IA Maria';
             }
+          } else if (analista.toUpperCase() === 'IA') {
+            // Se o atendente é "IA", mostrar como "IA Maria"
+            analista = 'IA Maria';
           }
 
           // Verificar se tem opinião primeiro
@@ -301,29 +310,16 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
             });
           }
           
-          // Tentar obter nota do campo nota_csat ou extrair do histórico
+          // Obter nota do campo nota_csat (APENAS notas válidas 1-5)
           let nota: number | null = null;
           
-          // Se nota_csat >= 1 e <= 5, usar ela
+          // APENAS usar nota_csat se for válida (1-5)
           if (registro.nota_csat >= 1 && registro.nota_csat <= 5) {
             nota = registro.nota_csat;
-          } else if (temOpiniao) {
-            // Se tem opinião mas nota é 0 ou inválida, assumir nota 3 (neutro)
-            nota = 3;
-            console.log('✅ Registro com opinião mas nota 0 - assumindo nota 3:', {
-              telefone: registro.telefone,
-              opiniao: registro.opiniao_csat
-            });
-          } else {
-            // Tentar extrair do histórico de conversa (apenas para contagem de notas)
-            const extracted = extractCsatFromHistorico(registro.historico_conversa);
-            if (extracted.nota) {
-              nota = extracted.nota;
-            }
           }
 
-          // Se ainda não tem nota E não tem opinião, pular este registro
-          if (!nota && !temOpiniao) return acc;
+          // Se não tem nota válida, pular este registro
+          if (!nota) return acc;
 
           // Coletar feedback do campo opiniao_csat (prioridade)
           let feedbackTexto = registro.opiniao_csat?.trim();

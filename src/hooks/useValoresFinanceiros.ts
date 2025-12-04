@@ -51,10 +51,16 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em')
           .eq('empresa_id', tenant.id);
 
-        // Aplicar filtro de data se fornecido
-        if (startDate) {
-          query = query.gte('criado_em', startDate.toISOString());
+        // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
+        const DATA_MINIMA = '2025-12-04T00:00:00';
+        
+        // Aplicar filtro de data (mas nunca antes de 04/12/2025)
+        let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
+        if (startISO < DATA_MINIMA) {
+          startISO = DATA_MINIMA;
         }
+        query = query.gte('criado_em', startISO);
+        
         if (endDate) {
           const endDatePlusOne = new Date(endDate);
           endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
