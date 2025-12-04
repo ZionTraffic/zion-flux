@@ -9,6 +9,8 @@ export interface WorkspaceMember {
   role: string;
   user_email: string;
   user_name: string;
+  bloqueado?: boolean;
+  bloqueado_em?: string;
 }
 
 export function useWorkspaceMembers() {
@@ -28,10 +30,10 @@ export function useWorkspaceMembers() {
     try {
       setLoading(true);
       
-      // Buscar membros do tenant
+      // Buscar membros do tenant (incluindo bloqueados para exibir na lista)
       const { data: tenantUsers, error: tenantError } = await (supabase as any)
         .from('tenant_users')
-        .select('user_id, role, custom_permissions')
+        .select('user_id, role, custom_permissions, bloqueado, bloqueado_em')
         .eq('tenant_id', tenant.id)
         .eq('active', true);
 
@@ -64,7 +66,9 @@ export function useWorkspaceMembers() {
           user_id: member.user_id,
           role: member.role,
           user_email: profile?.email ?? `user-${member.user_id.slice(0, 8)}@workspace`,
-          user_name: profile?.nome_completo ?? profile?.email ?? 'Usuário'
+          user_name: profile?.nome_completo ?? profile?.email ?? 'Usuário',
+          bloqueado: member.bloqueado || false,
+          bloqueado_em: member.bloqueado_em
         };
       });
 
@@ -218,6 +222,51 @@ export function useWorkspaceMembers() {
     }
   };
 
+  const toggleBlockMember = async (userId: string, block: boolean) => {
+    if (!tenant?.id) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const updateData: any = {
+        bloqueado: block,
+      };
+      
+      if (block) {
+        updateData.bloqueado_em = new Date().toISOString();
+        updateData.bloqueado_por = user?.id;
+      } else {
+        updateData.bloqueado_em = null;
+        updateData.bloqueado_por = null;
+      }
+
+      const { error } = await (supabase as any)
+        .from('tenant_users')
+        .update(updateData)
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: block ? 'Usuário bloqueado' : 'Usuário desbloqueado',
+        description: block 
+          ? 'O usuário não poderá mais acessar o sistema.' 
+          : 'O usuário pode acessar o sistema novamente.',
+      });
+
+      await fetchMembers();
+    } catch (error) {
+      logger.error('Error toggling member block', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível alterar o status do usuário.';
+      toast({
+        title: 'Erro ao alterar status',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return {
     members,
     loading,
@@ -225,5 +274,6 @@ export function useWorkspaceMembers() {
     updateMemberRole,
     addMember,
     removeMember,
+    toggleBlockMember,
   };
 }

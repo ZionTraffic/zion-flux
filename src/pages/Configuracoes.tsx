@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus, History } from "lucide-react";
+import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus, History, Ban, CheckCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ import { AuditLogViewer } from "@/components/audit/AuditLogViewer";
 const Configuracoes = () => {
   const { isOwner } = useUserRole();
   const { availableDatabases, refetchConfigs, supabase } = useDatabase();
-  const { members, loading: membersLoading, updateMemberRole, removeMember, addMember, refetch: refetchMembers } = useWorkspaceMembers();
+  const { members, loading: membersLoading, updateMemberRole, removeMember, addMember, refetch: refetchMembers, toggleBlockMember } = useWorkspaceMembers();
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isEditPermissionsModalOpen, setIsEditPermissionsModalOpen] = useState(false);
@@ -226,7 +226,12 @@ const Configuracoes = () => {
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium">{member.user_name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{member.user_name}</p>
+                            {member.bloqueado && (
+                              <Badge variant="destructive" className="text-xs">Bloqueado</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{member.user_email}</p>
                         </div>
                       </div>
@@ -258,6 +263,17 @@ const Configuracoes = () => {
                             title="Editar Permissões"
                           >
                             <Shield className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canManage && member.role !== 'owner' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleBlockMember(member.user_id, !member.bloqueado)}
+                            className={member.bloqueado ? "text-green-600 hover:text-green-700" : "text-orange-500 hover:text-orange-600"}
+                            title={member.bloqueado ? "Desbloquear Usuário" : "Bloquear Usuário"}
+                          >
+                            {member.bloqueado ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                           </Button>
                         )}
                         {canManage && member.role !== 'owner' && (
