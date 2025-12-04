@@ -39,6 +39,7 @@ const Atendimento = () => {
     conversations: genericConversations,
     stats: genericStats,
     isLoading: genericLoading,
+    refetch: refetchGeneric,
   } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
 
   // Hook específico para SIEG Financeiro (busca da tabela financeiro_sieg)
@@ -46,12 +47,39 @@ const Atendimento = () => {
     conversations: siegConversations,
     stats: siegStats,
     isLoading: siegLoading,
+    refetch: refetchSieg,
   } = useSiegFinanceiroData(dateRange?.from, dateRange?.to);
 
   // Usar dados do SIEG se for workspace financeiro, senão usar genérico
   const conversationHistory = isSiegFinanceiro ? siegConversations : genericConversations;
   const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
   const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
+  const refetchConversations = isSiegFinanceiro ? refetchSieg : refetchGeneric;
+
+  // Estado de refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  // Função de refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchConversations();
+      setLastUpdate(new Date());
+      toast({
+        title: "Dados atualizados",
+        description: "Os dados foram recarregados com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar os dados.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Contar conversas por tag
   const tagCounts = useMemo(() => {
@@ -118,7 +146,11 @@ const Atendimento = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
+      lastUpdate={lastUpdate}
+    >
       <div className="space-y-6">
         {/* Header Section */}
         <div className="space-y-2">
