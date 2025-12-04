@@ -274,42 +274,42 @@ const DashboardIndex = () => {
           ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4" 
           : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"
         }>
-          {/* T1 - Vermelho */}
-          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 rounded-2xl p-4 sm:p-5 border border-red-200 dark:border-red-800 shadow-sm hover:shadow-md transition-all">
-            <p className="text-[10px] sm:text-xs font-semibold text-red-700 dark:text-red-400 mb-1 uppercase tracking-wide">
+          {/* T1 - Vermelho claro */}
+          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-4 sm:p-5 border border-red-200 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-red-700 mb-1 uppercase tracking-wide">
               {currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
             </p>
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700 dark:text-red-400">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700">
               {(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
             </p>
           </div>
 
-          {/* T2 - Azul */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-2xl p-4 sm:p-5 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-all">
-            <p className="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1 uppercase tracking-wide">
+          {/* T2 - Azul claro */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 sm:p-5 border border-blue-200 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-blue-700 mb-1 uppercase tracking-wide">
               {currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO'}
             </p>
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700">
               {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
             </p>
           </div>
 
-          {/* T3 - Verde */}
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 rounded-2xl p-4 sm:p-5 border border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-all">
-            <p className="text-[10px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wide">
+          {/* T3 - Verde claro */}
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-4 sm:p-5 border border-emerald-200 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-700 mb-1 uppercase tracking-wide">
               {currentTenant?.slug === 'asf' ? 'T3 - QUALIFICADO' : 'T3 - PAGO IA'}
             </p>
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-700">
               {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
             </p>
           </div>
 
-          {/* T4 - Amarelo/Âmbar */}
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20 rounded-2xl p-4 sm:p-5 border border-amber-200 dark:border-amber-800 shadow-sm hover:shadow-md transition-all">
-            <p className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1 uppercase tracking-wide">
+          {/* T4 - Amarelo claro */}
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-4 sm:p-5 border border-amber-200 shadow-sm hover:shadow-md transition-all">
+            <p className="text-[10px] sm:text-xs font-semibold text-amber-700 mb-1 uppercase tracking-wide">
               {currentTenant?.slug === 'asf' ? 'T5 - DESQUALIFICADO' : 'T4 - TRANSFERIDO'}
             </p>
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700 dark:text-amber-400">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700">
               {currentTenant?.slug === 'asf' 
                 ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
                 : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
@@ -317,13 +317,13 @@ const DashboardIndex = () => {
             </p>
           </div>
 
-          {/* T5 - Roxo - APENAS PARA SIEG FINANCEIRO */}
+          {/* T5 - Roxo claro - APENAS PARA SIEG FINANCEIRO */}
           {isSiegFinanceiro && (
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 rounded-2xl p-4 sm:p-5 border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-all">
-              <p className="text-[10px] sm:text-xs font-semibold text-purple-700 dark:text-purple-400 mb-1 uppercase tracking-wide">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 sm:p-5 border border-purple-200 shadow-sm hover:shadow-md transition-all">
+              <p className="text-[10px] sm:text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">
                 T5 - PASSÍVEL DE SUSPENSÃO
               </p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-700">
                 {(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
               </p>
             </div>
