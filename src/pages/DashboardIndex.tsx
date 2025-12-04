@@ -22,6 +22,7 @@ import { ValoresPendentesCard } from "@/components/dashboard/ValoresPendentesCar
 import { useValoresFinanceiros } from "@/hooks/useValoresFinanceiros";
 import { DisparosDiariosChart } from "@/components/dashboard/DisparosDiariosChart";
 import logoZionIcon from "@/assets/logo-zion-icon.png";
+import { useTagCountsHistorico } from "@/hooks/useTagCountsHistorico";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -42,6 +43,9 @@ const DashboardIndex = () => {
 
   // Hook para valores financeiros (com filtro de data)
   const valoresFinanceiros = useValoresFinanceiros(dateRange?.from, dateRange?.to);
+  
+  // Hook para contagens históricas de tags (T1-T5) - SIEG Financeiro
+  const { counts: tagCountsHistorico } = useTagCountsHistorico();
   
   // Debug: Log workspace info
   useEffect(() => {
@@ -281,7 +285,10 @@ const DashboardIndex = () => {
               {currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
             </p>
             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700">
-              {(leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
+              {isSiegFinanceiro 
+                ? tagCountsHistorico['T1 - SEM RESPOSTA'].toLocaleString('pt-BR')
+                : (leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')
+              }
             </p>
           </div>
 
@@ -291,7 +298,10 @@ const DashboardIndex = () => {
               {currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO'}
             </p>
             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700">
-              {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
+              {isSiegFinanceiro 
+                ? tagCountsHistorico['T2 - RESPONDIDO'].toLocaleString('pt-BR')
+                : (leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')
+              }
             </p>
           </div>
 
@@ -301,7 +311,10 @@ const DashboardIndex = () => {
               {currentTenant?.slug === 'asf' ? 'T3 - QUALIFICADO' : 'T3 - PAGO IA'}
             </p>
             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-700">
-              {(leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
+              {isSiegFinanceiro 
+                ? tagCountsHistorico['T3 - PAGO IA'].toLocaleString('pt-BR')
+                : (leadsData.charts?.funnelData?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')
+              }
             </p>
           </div>
 
@@ -311,9 +324,11 @@ const DashboardIndex = () => {
               {currentTenant?.slug === 'asf' ? 'T5 - DESQUALIFICADO' : 'T4 - TRANSFERIDO'}
             </p>
             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700">
-              {currentTenant?.slug === 'asf' 
-                ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
-                : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
+              {isSiegFinanceiro 
+                ? tagCountsHistorico['T4 - TRANSFERIDO'].toLocaleString('pt-BR')
+                : currentTenant?.slug === 'asf' 
+                  ? (leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')
+                  : (leadsData.charts?.funnelData?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')
               }
             </p>
           </div>
@@ -325,7 +340,7 @@ const DashboardIndex = () => {
                 T5 - PASSÍVEL DE SUSPENSÃO
               </p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-700">
-                {(leadsData.charts?.funnelData?.find(f => f.id === 'descartados')?.value || 0).toLocaleString('pt-BR')}
+                {tagCountsHistorico['T5 - PASSÍVEL DE SUSPENSÃO'].toLocaleString('pt-BR')}
               </p>
             </div>
           )}
