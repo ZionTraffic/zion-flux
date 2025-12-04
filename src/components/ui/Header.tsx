@@ -219,7 +219,7 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
           </div>
 
           {/* Center Section: Workspace Selector + Export + Time */}
-          <div className="flex flex-1 justify-center items-center gap-3 max-w-2xl">
+          <div className="hidden sm:flex flex-1 justify-center items-center gap-2 md:gap-3 max-w-2xl">
             <TenantSelectorCompact />
             
             {/* Export Dropdown - apenas para SIEG Financeiro */}
@@ -233,13 +233,13 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
               />
             )}
 
-            {/* Last Update Time */}
+            {/* Last Update Time - Hidden on small screens */}
             {lastUpdate && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
-                <span className={`text-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl glass border border-border/50">
+                <span className={`text-xs ${isRefreshing ? 'animate-pulse' : ''}`}>
                   {isRefreshing ? '🔄' : '✅'}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {lastUpdate.toLocaleTimeString('pt-BR')}
                 </span>
               </div>

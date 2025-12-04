@@ -67,11 +67,11 @@ export function EnhancedKpiCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl p-6",
+        "group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6",
         "bg-card border border-border/50",
         "shadow-lg hover:shadow-xl",
         "transition-all duration-300",
-        "hover:scale-105",
+        "hover:scale-[1.02] sm:hover:scale-105",
         "cursor-pointer"
       )}
       style={{
@@ -91,15 +91,15 @@ export function EnhancedKpiCard({
 
       <div className="relative z-10">
         {/* Label */}
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">{label}</p>
+        <p className="text-[10px] sm:text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1 sm:mb-2 line-clamp-2">{label}</p>
 
         {/* Description */}
         {description && (
-          <p className="text-xs text-muted-foreground/70 mb-3 leading-relaxed">{description}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground/70 mb-2 sm:mb-3 leading-relaxed hidden sm:block">{description}</p>
         )}
 
         {/* Value */}
-        <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
+        <p className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">{value}</p>
 
         {/* Sparkline removido - era dado fictício/aleatório */}
 

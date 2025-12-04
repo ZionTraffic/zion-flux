@@ -128,8 +128,8 @@ const Configuracoes = () => {
       >
         <main className="space-y-8">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold">Configurações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Configurações</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gerencie usuários, integrações e configurações do sistema
           </p>
         </div>
@@ -139,9 +139,9 @@ const Configuracoes = () => {
           onValueChange={(val) => {
             setActiveTab(val);
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-5 lg:w-[900px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[900px] h-auto p-1">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
@@ -164,19 +164,19 @@ const Configuracoes = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-4">
-            <Card className="p-6 glass border border-border/60 flex flex-col gap-2">
-              <h3 className="text-lg font-semibold">Empresa selecionada</h3>
-              <div className="text-sm text-muted-foreground">
+          <TabsContent value="users" className="space-y-3 sm:space-y-4">
+            <Card className="p-4 sm:p-6 glass border border-border/60 flex flex-col gap-2">
+              <h3 className="text-base sm:text-lg font-semibold">Empresa selecionada</h3>
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 <p><strong>Nome:</strong> {currentTenant.name}</p>
                 <p><strong>Slug:</strong> {currentTenant.slug}</p>
               </div>
             </Card>
-            <Card className="p-6 glass border border-border/50">
-              <div className="flex items-center justify-between mb-4">
+            <Card className="p-4 sm:p-6 glass border border-border/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                <h3 className="text-lg font-semibold">Usuários e Permissões</h3>
-                      <p className="text-sm text-foreground mt-2">
+                <h3 className="text-base sm:text-lg font-semibold">Usuários e Permissões</h3>
+                      <p className="text-xs sm:text-sm text-foreground mt-1 sm:mt-2">
                     Empresa atual: <strong className="text-blue-600 dark:text-blue-400">{currentTenant.name}</strong>
                   </p>
                 </div>
@@ -185,9 +185,10 @@ const Configuracoes = () => {
                     variant="default" 
                     size="sm"
                     onClick={() => setIsAddMemberModalOpen(true)}
+                    className="w-full sm:w-auto"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Adicionar Usuário
+                    <span className="sm:inline">Adicionar Usuário</span>
                   </Button>
                 )}
               </div>
@@ -218,30 +219,30 @@ const Configuracoes = () => {
                   </div>
                 ) : (
                   members.map((member) => (
-                    <div key={member.user_id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="font-semibold text-sm">
+                    <div key={member.user_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-background/50 gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="font-semibold text-xs sm:text-sm">
                             {member.user_name?.substring(0, 2).toUpperCase() || 'U'}
                           </span>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{member.user_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm sm:text-base truncate">{member.user_name}</p>
                             {member.bloqueado && (
-                              <Badge variant="destructive" className="text-xs">Bloqueado</Badge>
+                              <Badge variant="destructive" className="text-[10px] sm:text-xs">Bloqueado</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{member.user_email}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">{member.user_email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 justify-end flex-wrap">
                         {canManage ? (
                           <Select
                             value={member.role}
                             onValueChange={(newRole) => updateMemberRole(member.user_id, newRole)}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-[100px] sm:w-[140px] h-8 sm:h-10 text-xs sm:text-sm">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -259,7 +260,7 @@ const Configuracoes = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditPermissions(member)}
-                            className="text-primary hover:text-primary"
+                            className="text-primary hover:text-primary h-8 w-8 p-0"
                             title="Editar Permissões"
                           >
                             <Shield className="h-4 w-4" />
@@ -270,7 +271,7 @@ const Configuracoes = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleBlockMember(member.user_id, !member.bloqueado)}
-                            className={member.bloqueado ? "text-green-600 hover:text-green-700" : "text-orange-500 hover:text-orange-600"}
+                            className={`h-8 w-8 p-0 ${member.bloqueado ? "text-green-600 hover:text-green-700" : "text-orange-500 hover:text-orange-600"}`}
                             title={member.bloqueado ? "Desbloquear Usuário" : "Bloquear Usuário"}
                           >
                             {member.bloqueado ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
@@ -281,7 +282,7 @@ const Configuracoes = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeMember(member.user_id)}
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
                             title="Remover Usuário"
                           >
                             <Trash2 className="h-4 w-4" />

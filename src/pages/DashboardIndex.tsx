@@ -237,7 +237,7 @@ const DashboardIndex = () => {
       />
 
 
-      <main className="container mx-auto px-6 py-8 space-y-8">
+      <main className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Hero Section */}
         {!isLoading && (() => {
           const shouldHideStats = currentTenant?.slug === 'sieg-pre-vendas' || currentTenant?.slug === 'sieg-pré-vendas';
@@ -271,8 +271,8 @@ const DashboardIndex = () => {
 
         {/* Enhanced KPIs with Trends - Labels condicionais por workspace */}
         <div className={isSiegFinanceiro 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6" 
-          : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6" 
+          : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
         }>
           <EnhancedKpiCard
             label={currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA'}
