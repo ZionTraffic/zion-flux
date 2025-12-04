@@ -134,7 +134,7 @@ export function AtendimentosKpiCards({
           {/* Progress bar */}
           <div className="mt-4">
             <div className="flex justify-between text-xs mb-2">
-              <span className="text-muted-foreground">Apenas IA (sem transferência)</span>
+              <span className="text-muted-foreground">Respondidos pela IA (T2)</span>
               <span className="font-bold text-purple-600">{percentualIA.toFixed(1)}%</span>
             </div>
             <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
@@ -184,21 +184,25 @@ export function AtendimentosKpiCards({
             <p className="text-4xl font-bold tracking-tight text-foreground">
               {atendimentosTransferidos.toLocaleString('pt-BR')}
             </p>
-            <p className="text-sm text-muted-foreground">atendimentos</p>
+            <p className="text-sm text-muted-foreground">
+              ({atendimentosHoje > 0 ? ((atendimentosTransferidos / atendimentosHoje) * 100).toFixed(1) : 0}%)
+            </p>
           </div>
 
-          {/* Mini sparkline */}
-          <div className="mt-4 h-8 flex items-end gap-1">
-            {[...Array(12)].map((_, i) => {
-              const height = Math.random() * 100;
-              return (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t transition-all duration-300 bg-emerald-500/30"
-                  style={{ height: `${height}%` }}
-                />
-              );
-            })}
+          {/* Progress bar */}
+          <div className="mt-4">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Transferidos para humano</span>
+              <span className="font-bold text-emerald-600">
+                {atendimentosHoje > 0 ? ((atendimentosTransferidos / atendimentosHoje) * 100).toFixed(1) : 0}%
+              </span>
+            </div>
+            <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                style={{ width: `${atendimentosHoje > 0 ? Math.min((atendimentosTransferidos / atendimentosHoje) * 100, 100) : 0}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

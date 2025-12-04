@@ -12,6 +12,7 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ReportData } from "@/hooks/useReportData";
 import { format } from "date-fns";
+import logoZionIcon from "@/assets/logo-zion-icon.png";
 
 interface ReportContentProps {
   data: ReportData;
@@ -211,13 +212,18 @@ export function ReportContent({ data }: ReportContentProps) {
       )}
 
       {/* Footer */}
-      <div className="glass rounded-2xl p-6 border border-border/50 text-center">
-        <p className="text-sm text-muted-foreground">
-          Zion App &copy; 2025 - Inteligência que impulsiona resultados
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Relatório gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')}
-        </p>
+      <div className="glass rounded-2xl p-6 border border-border/50">
+        <div className="flex items-center justify-center gap-3">
+          <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              © Copyright 2025 Zion Traffic v1.0
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Relatório gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import { AddDatabaseModal } from "@/components/database/AddDatabaseModal";
 import { EditPermissionsModal } from "@/components/permissions/EditPermissionsModal";
 import { WorkspaceMember } from "@/hooks/useWorkspaceMembers";
 import { AuditLogViewer } from "@/components/audit/AuditLogViewer";
+import logoZionIcon from "@/assets/logo-zion-icon.png";
 
 const Configuracoes = () => {
   const { isOwner } = useUserRole();
@@ -526,10 +527,13 @@ const Configuracoes = () => {
       </main>
 
       <footer className="container mx-auto px-6 py-6 mt-12">
-        <div className="glass rounded-2xl p-6 text-center border border-border/50">
-          <p className="text-sm text-muted-foreground">
-            Zion App &copy; 2025 - Sistema de Configuração
-          </p>
+        <div className="glass rounded-2xl p-6 border border-border/50">
+          <div className="flex items-center justify-center gap-3">
+            <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
+            <p className="text-sm text-muted-foreground">
+              © Copyright 2025 Zion Traffic v1.0
+            </p>
+          </div>
         </div>
       </footer>
       </PermissionGuard>

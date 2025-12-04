@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Header } from "@/components/ui/Header";
+import logoZionIcon from "@/assets/logo-zion-icon.png";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -36,10 +37,13 @@ export const DashboardLayout = ({
 
       {/* Footer */}
       <footer className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 mt-8 sm:mt-12">
-        <div className="glass rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center border border-border/50">
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Zion Analytics &copy; 2025 - Premium Dashboard
-          </p>
+        <div className="glass rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border/50">
+          <div className="flex items-center justify-center gap-3">
+            <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              © Copyright 2025 Zion Traffic v1.0
+            </p>
+          </div>
         </div>
       </footer>
     </div>

@@ -139,9 +139,16 @@ export function useAtendimentosMetrics(_workspaceId: string | null, startDate?: 
         return normalized.includes('t4') || normalized.includes('transfer');
       };
 
+      // Verifica se é tag T2 (respondido pela IA)
+      const isT2Tag = (tag: string | null) => {
+        if (!tag) return false;
+        const normalized = tag.toLowerCase();
+        return normalized.includes('t2') || normalized.includes('respondido') || normalized.includes('qualificando');
+      };
+
       const atendimentosTransferidos = conversations.filter((conv: any) => isTransferTag(conv.tag)).length;
-      // Atendimentos IA = todos que NÃO foram transferidos (T1, T2, T3)
-      const atendimentosIA = conversations.filter((conv: any) => !isTransferTag(conv.tag)).length;
+      // Atendimentos IA = apenas quem tem ou passou pela tag T2 (respondido pela IA)
+      const atendimentosIA = conversations.filter((conv: any) => isT2Tag(conv.tag)).length;
       const percentualIA = totalAtendimentos > 0 ? (atendimentosIA / totalAtendimentos) * 100 : 0;
 
       // Para SIEG Financeiro, mapear campos corretamente

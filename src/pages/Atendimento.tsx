@@ -59,6 +59,9 @@ const Atendimento = () => {
   // Estado de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  
+  // Estado de filtro por tag
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Função de refresh
   const handleRefresh = async () => {
@@ -117,6 +120,32 @@ const Atendimento = () => {
     { label: 'T5 - PASSÍVEL DE SUSPENSÃO', color: 'from-purple-50 to-purple-100 border-purple-200', textColor: 'text-purple-700' },
   ];
 
+  // Filtrar conversas pela tag selecionada
+  const filteredConversations = useMemo(() => {
+    if (!selectedTag) return conversationHistory;
+    
+    return conversationHistory?.filter((conv: any) => {
+      const tag = conv.tag?.toUpperCase() || '';
+      if (selectedTag === 'T1 - SEM RESPOSTA') {
+        return tag.includes('T1') || tag.includes('SEM RESPOSTA');
+      } else if (selectedTag === 'T2 - RESPONDIDO') {
+        return tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO');
+      } else if (selectedTag === 'T3 - PAGO IA') {
+        return tag.includes('T3') || tag.includes('PAGO');
+      } else if (selectedTag === 'T4 - TRANSFERIDO') {
+        return tag.includes('T4') || tag.includes('TRANSFERIDO');
+      } else if (selectedTag === 'T5 - PASSÍVEL DE SUSPENSÃO') {
+        return tag.includes('T5') || tag.includes('SUSPENS');
+      }
+      return true;
+    });
+  }, [conversationHistory, selectedTag]);
+
+  // Função para toggle do filtro
+  const handleTagClick = (tagLabel: string) => {
+    setSelectedTag(prev => prev === tagLabel ? null : tagLabel);
+  };
+
   const handleClearFilter = () => {
     const to = new Date();
     const from = new Date();
@@ -160,12 +189,15 @@ const Atendimento = () => {
           </p>
         </div>
 
-        {/* Menu de Tags */}
+        {/* Menu de Tags - Clicável para filtrar */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {tagConfig.map((tag) => (
             <div
               key={tag.label}
-              className={`bg-gradient-to-br ${tag.color} rounded-2xl p-4 border shadow-sm cursor-pointer hover:shadow-md transition-all`}
+              onClick={() => handleTagClick(tag.label)}
+              className={`bg-gradient-to-br ${tag.color} rounded-2xl p-4 border shadow-sm cursor-pointer hover:shadow-md transition-all ${
+                selectedTag === tag.label ? 'ring-2 ring-offset-2 ring-blue-500 scale-105' : ''
+              }`}
             >
               <p className={`text-xs font-semibold ${tag.textColor} mb-1`}>{tag.label}</p>
               <p className={`text-2xl font-bold ${tag.textColor}`}>
@@ -174,6 +206,21 @@ const Atendimento = () => {
             </div>
           ))}
         </div>
+
+        {/* Indicador de filtro ativo */}
+        {selectedTag && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm text-blue-700">
+              Filtrando por: <strong>{selectedTag}</strong> ({filteredConversations?.length || 0} conversas)
+            </span>
+            <button 
+              onClick={() => setSelectedTag(null)}
+              className="text-blue-500 hover:text-blue-700 text-sm underline ml-auto"
+            >
+              Limpar filtro
+            </button>
+          </div>
+        )}
 
         {/* Date Range Filter */}
         <div className="flex items-center justify-between gap-4">
@@ -207,7 +254,7 @@ const Atendimento = () => {
 
         {/* Histórico de Conversas */}
         <ConversationHistorySection
-          conversations={conversationHistory}
+          conversations={filteredConversations}
           stats={conversationStats}
           isLoading={conversationsLoading}
           workspaceSlug={currentTenant?.slug}
