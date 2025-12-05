@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { validarSenha } from '@/utils/seguranca';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 
 type InviteCustomData = {
   tenant_id?: string;
@@ -126,8 +128,10 @@ export default function AcceptInvite() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error('A senha deve ter no mínimo 6 caracteres');
+    // Validar força da senha
+    const validacaoSenha = validarSenha(password);
+    if (!validacaoSenha.valida) {
+      toast.error(validacaoSenha.erros[0] || 'Senha não atende aos requisitos de segurança');
       return;
     }
 
@@ -320,11 +324,12 @@ export default function AcceptInvite() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres com maiúscula, número e especial"
               required
-              minLength={6}
+              minLength={8}
               disabled={isProcessing}
             />
+            <PasswordStrengthIndicator password={password} />
           </div>
 
           <div className="space-y-2">
@@ -336,7 +341,7 @@ export default function AcceptInvite() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Digite a senha novamente"
               required
-              minLength={6}
+              minLength={8}
               disabled={isProcessing}
             />
           </div>
