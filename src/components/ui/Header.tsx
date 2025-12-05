@@ -55,7 +55,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
     checkUser();
   }, []);
   
-  const isMasterUser = userEmail === 'george@ziontraffic.com.br';
+  const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+  const isMasterUser = masterEmails.includes(userEmail || '');
 
   const handleLogout = async () => {
     try {

@@ -33,7 +33,12 @@ export function useUserRole(): UseUserRoleReturn {
         const { data } = await centralSupabase.auth.getUser();
         const email = data.user?.email ?? null;
         if (!isMounted) return;
-        setIsMasterUser(email === 'george@ziontraffic.com.br');
+        const masterEmails = [
+          'george@ziontraffic.com.br',
+          'leonardobasiliozion@gmail.com',
+          'eliasded51@gmail.com'
+        ];
+        setIsMasterUser(masterEmails.includes(email || ''));
       } finally {
         if (isMounted) {
           setCheckingMaster(false);

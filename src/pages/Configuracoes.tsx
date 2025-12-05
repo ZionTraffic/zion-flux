@@ -53,8 +53,9 @@ const Configuracoes = () => {
       try {
         // Usar defaultSupabase para obter o usuário autenticado
         const { data: { user } } = await defaultSupabase.auth.getUser();
-        console.log('🔍 [Configuracoes] User obtido:', { email: user?.email, isMaster: user?.email === 'george@ziontraffic.com.br' });
-        if (user?.email === 'george@ziontraffic.com.br') {
+        const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+        console.log('🔍 [Configuracoes] User obtido:', { email: user?.email, isMaster: masterEmails.includes(user?.email || '') });
+        if (masterEmails.includes(user?.email || '')) {
           setIsMasterUser(true);
           console.log('🔓 MASTER USER detectado em Configurações');
         } else {

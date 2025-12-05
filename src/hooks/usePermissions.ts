@@ -26,7 +26,8 @@ export function usePermissions() {
   const fetchPermissions = async () => {
     // Verificar se é master user
     const { data: { user } } = await supabase.auth.getUser();
-    const isMasterUser = user?.email === 'george@ziontraffic.com.br';
+    const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+    const isMasterUser = masterEmails.includes(user?.email || '');
     
     // Master user tem TODAS as permissões sempre
     if (isMasterUser) {

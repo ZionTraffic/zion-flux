@@ -22,9 +22,10 @@ export function RoleProtectedRoute({ children, allowedRoles }: RoleProtectedRout
   useEffect(() => {
     const checkMasterUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email === 'george@ziontraffic.com.br') {
+      const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+      if (masterEmails.includes(user?.email || '')) {
         setIsMasterUser(true);
-        console.log('🔓 MASTER USER - Bypass de proteção de rota');
+        console.log('🔓 MASTER USER - Bypass de proteção de rota:', user?.email);
       }
       setCheckingMaster(false);
     };

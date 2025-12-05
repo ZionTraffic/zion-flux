@@ -31,8 +31,9 @@ export function AutoRedirect() {
     // Não fazer nada enquanto está carregando o email do usuário
     if (userEmail === null) return;
 
-    // MASTER ACCESS: George nunca é redirecionado
-    if (userEmail === 'george@ziontraffic.com.br') {
+    // MASTER ACCESS: Usuários master nunca são redirecionados
+    const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+    if (masterEmails.includes(userEmail)) {
       return;
     }
 

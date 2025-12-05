@@ -27,7 +27,8 @@ export function PermissionGuard({
   useEffect(() => {
     const checkMasterUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const isMaster = user?.email === 'george@ziontraffic.com.br';
+      const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+      const isMaster = masterEmails.includes(user?.email || '');
       setIsMasterUser(isMaster);
       setCheckingMaster(false);
       if (isMaster) {

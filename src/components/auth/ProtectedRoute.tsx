@@ -38,9 +38,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       
-      // ACESSO IRRESTRITO PARA GEORGE - MASTER DO SISTEMA
-      if (session?.user?.email === 'george@ziontraffic.com.br') {
-        console.log('[AUTH] MASTER ACCESS GRANTED: george@ziontraffic.com.br - ACESSO TOTAL');
+      // ACESSO IRRESTRITO PARA USUÁRIOS MASTER DO SISTEMA
+      const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+      if (masterEmails.includes(session?.user?.email || '')) {
+        console.log('[AUTH] MASTER ACCESS GRANTED:', session?.user?.email, '- ACESSO TOTAL');
         setLoading(false);
         return;
       }
@@ -145,9 +146,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // ACESSO IRRESTRITO PARA GEORGE - BYPASS TOTAL
-  if (session.user.email === 'george@ziontraffic.com.br') {
-    console.log('✅ GEORGE MASTER ACCESS - Bypassing all restrictions');
+  // ACESSO IRRESTRITO PARA USUÁRIOS MASTER - BYPASS TOTAL
+  const masterEmailsList = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+  if (masterEmailsList.includes(session.user.email || '')) {
+    console.log('✅ MASTER ACCESS - Bypassing all restrictions:', session.user.email);
     return <>{children}</>;
   }
 
