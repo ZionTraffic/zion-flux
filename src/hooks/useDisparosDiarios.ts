@@ -52,19 +52,19 @@ export const useDisparosDiarios = (
 
       console.log('📊 [Disparos] Buscando de', format(startDate, 'dd/MM'), 'até', format(endDate, 'dd/MM'));
 
-      // Buscar disparos do banco
+      // Buscar disparos agrupados por dia usando RPC (sem limite de 1000)
       const { data, error: queryError } = await (supabase as any)
-        .from('disparos')
-        .select('enviado_em')
-        .eq('empresa_id', tenantId)
-        .gte('enviado_em', startDate.toISOString())
-        .lte('enviado_em', endDate.toISOString())
-        .order('enviado_em', { ascending: true });
+        .rpc('contar_disparos_por_dia', {
+          p_empresa_id: tenantId,
+          p_data_inicio: startDate.toISOString(),
+          p_data_fim: endDate.toISOString()
+        });
 
       if (queryError) {
         console.error('❌ [Disparos] Erro:', queryError);
-        // Se tabela não existe ou está vazia, retornar vazio sem erro
-        if (queryError.code === '42P01' || queryError.message?.includes('does not exist')) {
+        // Se função não existe, retornar vazio sem erro
+        if (queryError.code === '42883' || queryError.message?.includes('does not exist')) {
+          console.warn('⚠️ [Disparos] Função RPC não encontrada, retornando vazio');
           setDisparos([]);
           setTotal(0);
           setMedia(0);
@@ -74,21 +74,11 @@ export const useDisparosDiarios = (
         return;
       }
 
-      // Agrupar por dia
-      const porDia: Record<string, number> = {};
-      
-      (data || []).forEach((d: any) => {
-        if (d.enviado_em) {
-          const dia = format(new Date(d.enviado_em), 'yyyy-MM-dd');
-          porDia[dia] = (porDia[dia] || 0) + 1;
-        }
-      });
-
-      // Converter para array
-      const disparosArray: DisparoDiario[] = Object.entries(porDia).map(([data, quantidade]) => ({
-        data,
-        quantidade,
-        dataFormatada: format(new Date(data), 'dd/MM', { locale: ptBR }),
+      // Converter resultado da RPC para array formatado
+      const disparosArray: DisparoDiario[] = (data || []).map((d: { dia: string; quantidade: number }) => ({
+        data: d.dia,
+        quantidade: Number(d.quantidade),
+        dataFormatada: format(new Date(d.dia + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
       }));
 
       // Ordenar por data
