@@ -194,6 +194,12 @@ export default function AcceptInvite() {
       // Aguardar sessão
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Atualizar nome no user_metadata (caso seja usuário existente que fez login)
+      console.log('[AcceptInvite] Atualizando nome no user_metadata:', { userId, fullName: fullName.trim() });
+      await supabase.auth.updateUser({
+        data: { full_name: fullName.trim() }
+      });
+
       // Parsear custom_data para obter tenant_id
       let workspaceId = inviteData!.workspace_id;
       if (!workspaceId && inviteData!.custom_data) {

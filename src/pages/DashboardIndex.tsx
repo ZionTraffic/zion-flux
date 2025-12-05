@@ -96,20 +96,14 @@ const DashboardIndex = () => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setUserEmail(user.email);
-        // Buscar nome completo do usuário na tabela profiles
-        supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
-          .then(({ data }) => {
-            if (data?.full_name) {
-              setUserName(data.full_name);
-            } else {
-              // Fallback: usar user_metadata ou primeira parte do email
-              setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário');
-            }
-          });
+        // Usar nome do user_metadata ou primeira parte do email
+        const fullName = user.user_metadata?.full_name;
+        // Verificar se o full_name não é o próprio email (bug de cadastro antigo)
+        if (fullName && !fullName.includes('@')) {
+          setUserName(fullName);
+        } else {
+          setUserName(user.email?.split('@')[0] || 'Usuário');
+        }
       }
     });
   }, []);
