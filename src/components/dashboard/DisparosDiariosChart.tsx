@@ -155,14 +155,15 @@ export const DisparosDiariosChart = ({
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  color: '#F3F4F6',
+                  color: '#1f2937',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 }}
-                labelStyle={{ color: '#F3F4F6' }}
+                labelStyle={{ color: '#1f2937', fontWeight: 600 }}
                 formatter={(value: number) => [
-                  `${value} disparos`,
+                  <span style={{ color: '#3B82F6', fontWeight: 600 }}>{value.toLocaleString('pt-BR')} disparos</span>,
                   'Quantidade',
                 ]}
               />
