@@ -120,42 +120,75 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
         return;
       }
 
-      const { data: rawMemberships, error: membershipError } = await (centralSupabase.from as any)('tenant_users')
-        .select(`
-          id,
-          tenant_id,
-          user_id,
-          role,
-          active,
-          custom_permissions,
-          tenant:tenants_new (
+      // MASTER ACCESS: Usuários master têm acesso a TODOS os tenants
+      const masterEmails = ['george@ziontraffic.com.br', 'leonardobasiliozion@gmail.com', 'eliasded51@gmail.com'];
+      const isMasterUser = masterEmails.includes(authUser.email || '');
+
+      let tenantsList: Tenant[] = [];
+      let normalizedMemberships: TenantMembership[] = [];
+
+      if (isMasterUser) {
+        // Master user: carregar TODOS os tenants
+        console.log('🔓 MASTER USER - Carregando todos os tenants');
+        const { data: allTenants, error: tenantsError } = await (centralSupabase.from as any)('tenants_new')
+          .select('*')
+          .eq('active', true);
+
+        if (tenantsError) throw tenantsError;
+
+        tenantsList = (allTenants || [])
+          .map((item: any) => normalizeTenant(item))
+          .filter((item): item is Tenant => Boolean(item));
+
+        // Criar memberships virtuais como owner para master users
+        normalizedMemberships = tenantsList.map((tenant) => ({
+          id: `master-${tenant.id}`,
+          tenant_id: tenant.id,
+          user_id: authUser.id,
+          role: 'owner' as const,
+          active: true,
+          custom_permissions: {},
+          tenant: tenant,
+        }));
+      } else {
+        // Usuário normal: carregar apenas tenants com membership
+        const { data: rawMemberships, error: membershipError } = await (centralSupabase.from as any)('tenant_users')
+          .select(`
             id,
-            name,
-            slug,
-            database_key,
-            domain,
-            settings,
-            branding,
+            tenant_id,
+            user_id,
+            role,
             active,
-            max_users,
-            max_leads,
-            plan_type,
-            billing_email,
-            created_at
-          )
-        `)
-        .eq('user_id', authUser.id)
-        .eq('active', true);
+            custom_permissions,
+            tenant:tenants_new (
+              id,
+              name,
+              slug,
+              database_key,
+              domain,
+              settings,
+              branding,
+              active,
+              max_users,
+              max_leads,
+              plan_type,
+              billing_email,
+              created_at
+            )
+          `)
+          .eq('user_id', authUser.id)
+          .eq('active', true);
 
-      if (membershipError) throw membershipError;
+        if (membershipError) throw membershipError;
 
-      const normalizedMemberships = (rawMemberships || [])
-        .map((item: any) => normalizeMembership(item))
-        .filter((item): item is TenantMembership => Boolean(item));
+        normalizedMemberships = (rawMemberships || [])
+          .map((item: any) => normalizeMembership(item))
+          .filter((item): item is TenantMembership => Boolean(item));
 
-      const tenantsList = normalizedMemberships
-        .map((membership) => membership.tenant)
-        .filter((tenant): tenant is Tenant => Boolean(tenant));
+        tenantsList = normalizedMemberships
+          .map((membership) => membership.tenant)
+          .filter((tenant): tenant is Tenant => Boolean(tenant));
+      }
 
       setMemberships(normalizedMemberships);
       setAvailableTenants(tenantsList);
