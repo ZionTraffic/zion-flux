@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DetailedAnalysisModal } from "@/components/analise/DetailedAnalysisModal";
-import { MessageSquare, Search, TrendingUp, Clock, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { MessageSquare, Search, TrendingUp, Clock, ChevronLeft, ChevronRight, User, X } from "lucide-react";
 import { EditableTagBadge } from "@/components/analise/components/EditableTagBadge";
 import type { ConversationData, ConversationsStats } from "@/hooks/useConversationsData";
 
@@ -135,8 +135,17 @@ export function ConversationHistorySection({
             placeholder="Buscar por nome ou produto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+              title="Limpar busca"
+            >
+              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
         </div>
         
         {/* Filtro de Agente */}
