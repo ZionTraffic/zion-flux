@@ -30,6 +30,7 @@ import { EditPermissionsModal } from "@/components/permissions/EditPermissionsMo
 import { WorkspaceMember } from "@/hooks/useWorkspaceMembers";
 import { AuditLogViewer } from "@/components/audit/AuditLogViewer";
 import logoZionIcon from "@/assets/logo-zion-icon.png";
+import { APP_VERSION } from "@/lib/version";
 
 const Configuracoes = () => {
   const { isOwner } = useUserRole();
@@ -532,7 +533,7 @@ const Configuracoes = () => {
           <div className="flex items-center justify-center gap-3">
             <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
             <p className="text-sm text-muted-foreground">
-              © Copyright 2025 Zion Traffic v1.0
+              © Copyright 2025 Zion Traffic v{APP_VERSION}
             </p>
           </div>
         </div>

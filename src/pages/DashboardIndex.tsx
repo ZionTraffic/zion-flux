@@ -23,6 +23,7 @@ import { useValoresFinanceiros } from "@/hooks/useValoresFinanceiros";
 import { DisparosDiariosChart } from "@/components/dashboard/DisparosDiariosChart";
 import logoZionIcon from "@/assets/logo-zion-icon.png";
 import { useTagCountsHistorico } from "@/hooks/useTagCountsHistorico";
+import { APP_VERSION } from "@/lib/version";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -614,7 +615,7 @@ const DashboardIndex = () => {
           <div className="flex items-center justify-center gap-3">
             <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
             <p className="text-sm text-muted-foreground">
-              © Copyright 2025 Zion Traffic v1.0
+              © Copyright 2025 Zion Traffic v{APP_VERSION}
             </p>
           </div>
         </div>

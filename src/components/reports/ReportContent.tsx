@@ -13,6 +13,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { ReportData } from "@/hooks/useReportData";
 import { format } from "date-fns";
 import logoZionIcon from "@/assets/logo-zion-icon.png";
+import { APP_VERSION } from "@/lib/version";
 
 interface ReportContentProps {
   data: ReportData;
@@ -217,7 +218,7 @@ export function ReportContent({ data }: ReportContentProps) {
           <img src={logoZionIcon} alt="Zion Traffic" className="h-8 w-auto" />
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              © Copyright 2025 Zion Traffic v1.0
+              © Copyright 2025 Zion Traffic v{APP_VERSION}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Relatório gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')}

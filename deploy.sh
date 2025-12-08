@@ -35,6 +35,11 @@ NEW_VERSION="$MAJOR.$NEW_MINOR"
 # Salvar nova versão
 echo "$NEW_VERSION" > "$VERSION_FILE"
 
+# Atualizar versão no código fonte
+VERSION_TS="$PROJECT_DIR/src/lib/version.ts"
+echo "// Versão do aplicativo - atualizada automaticamente pelo deploy" > "$VERSION_TS"
+echo "export const APP_VERSION = '$NEW_VERSION';" >> "$VERSION_TS"
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}🚀 Deploy Zion App para Hostinger${NC}"
 echo -e "${BLUE}📦 Versão: v$NEW_VERSION${NC}"
