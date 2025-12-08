@@ -54,16 +54,39 @@ function mapCsatToString(nota: number | null): string {
   return 'Insatisfeito';
 }
 
+// Função para parsear valor que pode estar em formato brasileiro (1.601) ou decimal (1601.00)
+function parseValorBR(valor: any): number {
+  if (!valor) return 0;
+  const str = String(valor);
+  // Se tem ponto mas não tem vírgula, e o ponto não está nas últimas 3 posições como decimal
+  // Ex: "1.601" = 1601, "1601.00" = 1601, "1.601,00" = 1601
+  if (str.includes('.') && !str.includes(',')) {
+    const partes = str.split('.');
+    // Se a parte depois do ponto tem 3 dígitos, é separador de milhar
+    if (partes.length === 2 && partes[1].length === 3) {
+      return parseFloat(str.replace('.', ''));
+    }
+  }
+  // Formato brasileiro com vírgula decimal
+  if (str.includes(',')) {
+    return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+  }
+  return parseFloat(str) || 0;
+}
+
 function gerarResumoAtendimento(record: SiegFinanceiroRecord): string {
   const partes: string[] = [];
   
-  const valorRecuperadoTotal = Number(record.valor_recuperado_ia || 0) + Number(record.valor_recuperado_humano || 0);
+  const valorRecuperadoIA = parseValorBR(record.valor_recuperado_ia);
+  const valorRecuperadoHumano = parseValorBR(record.valor_recuperado_humano);
+  const valorEmAberto = parseValorBR(record.valor_em_aberto);
+  const valorRecuperadoTotal = valorRecuperadoIA + valorRecuperadoHumano;
   
   // Situação do atendimento
-  if (record.valor_recuperado_ia > 0) {
-    partes.push(`✅ Pagamento confirmado via IA: R$ ${Number(record.valor_recuperado_ia).toFixed(2)}`);
-  } else if (record.valor_recuperado_humano > 0) {
-    partes.push(`✅ Pagamento confirmado via Humano: R$ ${Number(record.valor_recuperado_humano).toFixed(2)}`);
+  if (valorRecuperadoIA > 0) {
+    partes.push(`✅ Pagamento confirmado via IA: R$ ${valorRecuperadoIA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  } else if (valorRecuperadoHumano > 0) {
+    partes.push(`✅ Pagamento confirmado via Humano: R$ ${valorRecuperadoHumano.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   } else if (record.situacao === 'concluido') {
     partes.push('✅ Atendimento concluído');
   } else if (record.situacao === 'pendente') {
@@ -71,8 +94,8 @@ function gerarResumoAtendimento(record: SiegFinanceiroRecord): string {
   }
   
   // Valor em aberto (só mostra se não pagou nada)
-  if (record.valor_em_aberto > 0 && valorRecuperadoTotal === 0) {
-    partes.push(`Valor pendente: R$ ${Number(record.valor_em_aberto).toFixed(2)}`);
+  if (valorEmAberto > 0 && valorRecuperadoTotal === 0) {
+    partes.push(`Valor pendente: R$ ${valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   }
   
   // Tag/Estágio

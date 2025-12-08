@@ -119,12 +119,30 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           return;
         }
 
+        // Função para parsear valor que pode estar em formato brasileiro (1.601) ou decimal (1601.00)
+        const parseValorBR = (valor: any): number => {
+          if (!valor) return 0;
+          const str = String(valor);
+          // Se tem ponto mas não tem vírgula, e a parte depois do ponto tem 3 dígitos = separador de milhar
+          if (str.includes('.') && !str.includes(',')) {
+            const partes = str.split('.');
+            if (partes.length === 2 && partes[1].length === 3) {
+              return parseFloat(str.replace('.', ''));
+            }
+          }
+          // Formato brasileiro com vírgula decimal
+          if (str.includes(',')) {
+            return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+          }
+          return parseFloat(str) || 0;
+        };
+
         // Somar todos os valores
         const totais = (valores || []).reduce((acc: any, item: any) => ({
-          valorPendente: acc.valorPendente + (parseFloat(item.valor_em_aberto) || 0),
-          valorRecuperadoIA: acc.valorRecuperadoIA + (parseFloat(item.valor_recuperado_ia) || 0),
-          valorRecuperadoHumano: acc.valorRecuperadoHumano + (parseFloat(item.valor_recuperado_humano) || 0),
-          valorEmNegociacao: acc.valorEmNegociacao + (parseFloat(item.em_negociacao) || 0),
+          valorPendente: acc.valorPendente + parseValorBR(item.valor_em_aberto),
+          valorRecuperadoIA: acc.valorRecuperadoIA + parseValorBR(item.valor_recuperado_ia),
+          valorRecuperadoHumano: acc.valorRecuperadoHumano + parseValorBR(item.valor_recuperado_humano),
+          valorEmNegociacao: acc.valorEmNegociacao + parseValorBR(item.em_negociacao),
         }), { valorPendente: 0, valorRecuperadoIA: 0, valorRecuperadoHumano: 0, valorEmNegociacao: 0 });
         
         console.log('💰 [useValoresFinanceiros] Totais calculados:', totais);
