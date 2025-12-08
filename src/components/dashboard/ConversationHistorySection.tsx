@@ -3,8 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DetailedAnalysisModal } from "@/components/analise/DetailedAnalysisModal";
-import { MessageSquare, Search, TrendingUp, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, Search, TrendingUp, Clock, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { EditableTagBadge } from "@/components/analise/components/EditableTagBadge";
 import type { ConversationData, ConversationsStats } from "@/hooks/useConversationsData";
 
@@ -24,6 +25,7 @@ export function ConversationHistorySection({
 }: ConversationHistorySectionProps) {
   const [conversations, setConversations] = useState(conversationsData);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState<string>("all");
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,15 +36,29 @@ export function ConversationHistorySection({
     setCurrentPage(1); // Reset para página 1 quando dados mudam
   }, [conversationsData]);
 
-  // Reset página quando busca muda
+  // Reset página quando busca ou filtro de agente muda
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedAgent]);
 
-  const filteredConversations = conversations.filter((conv) =>
-    conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.phone.includes(searchTerm)
-  );
+  // Extrair lista única de agentes
+  const uniqueAgents = useMemo(() => {
+    const agents = new Set<string>();
+    conversationsData.forEach((conv) => {
+      if (conv.analista) {
+        agents.add(conv.analista);
+      }
+    });
+    return Array.from(agents).sort();
+  }, [conversationsData]);
+
+  // Filtrar conversas por busca E por agente
+  const filteredConversations = conversations.filter((conv) => {
+    const matchesSearch = conv.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.phone.includes(searchTerm);
+    const matchesAgent = selectedAgent === "all" || conv.analista === selectedAgent;
+    return matchesSearch && matchesAgent;
+  });
 
   // Paginação
   const totalPages = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE);
@@ -111,14 +127,35 @@ export function ConversationHistorySection({
         </Card>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome ou produto..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Filtros: Busca e Agente */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou produto..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        {/* Filtro de Agente */}
+        {uniqueAgents.length > 0 && (
+          <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Todos os agentes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os agentes</SelectItem>
+              {uniqueAgents.map((agent) => (
+                <SelectItem key={agent} value={agent}>
+                  {agent}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {!isLoading && (

@@ -131,11 +131,14 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
 
         const valorRecuperadoTotal = totais.valorRecuperadoIA + totais.valorRecuperadoHumano;
 
+        // Valor em aberto real = valor original - valores já recuperados
+        const valorPendenteReal = totais.valorPendente - valorRecuperadoTotal;
+
         // Meta mensal pode vir de configuração do workspace ou ser fixa
         const metaMensal = 50000.00; // TODO: Buscar de configuração
 
         setData({
-          valorPendente: totais.valorPendente,
+          valorPendente: Math.max(0, valorPendenteReal), // Nunca negativo
           valorRecuperado: valorRecuperadoTotal,
           valorRecuperadoIA: totais.valorRecuperadoIA,
           valorRecuperadoHumano: totais.valorRecuperadoHumano,
