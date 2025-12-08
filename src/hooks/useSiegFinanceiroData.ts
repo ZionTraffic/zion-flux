@@ -309,7 +309,7 @@ export function useSiegFinanceiroData(startDate?: Date, endDate?: Date) {
           tag: record.tag || undefined,
           sentiment: "neutral" as const,
           summary: gerarResumoAtendimento(record),
-          startedAt: criadoEm,
+          startedAt: atualizadoEm, // Usar data da última interação, não data de criação do lead
           endedAt: dataPesquisa || undefined, // Só mostra se tiver data de pesquisa
           duration: Math.max(durationSeconds, 0),
           positives: record.valor_recuperado_ia > 0 ? ['Valor recuperado pela IA'] : [],
