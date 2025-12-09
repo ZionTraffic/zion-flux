@@ -43,8 +43,11 @@ const DashboardIndex = () => {
     return { from, to };
   });
 
-  // Hook para valores financeiros (com filtro de data)
+  // Hook para valores financeiros (com filtro de data) - usado nos cards
   const valoresFinanceiros = useValoresFinanceiros(dateRange?.from, dateRange?.to);
+  
+  // Hook para valores financeiros GERAIS (sem filtro) - usado no header
+  const valoresFinanceirosGerais = useValoresFinanceiros();
   
   // Hook para contagens históricas de tags (T1-T5) - SIEG Financeiro
   const { counts: tagCountsHistorico } = useTagCountsHistorico();
@@ -269,8 +272,8 @@ const DashboardIndex = () => {
               trend="up"
               hideStats={shouldHideStats}
               isSiegFinanceiro={isSiegFinanceiro}
-              valorEmAberto={valoresFinanceiros.data.valorPendente}
-              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
+              valorEmAberto={valoresFinanceirosGerais.data.valorPendente}
+              valorRecuperado={valoresFinanceirosGerais.data.valorRecuperado}
             />
           );
         })()}
