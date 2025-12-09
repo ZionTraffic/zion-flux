@@ -11,6 +11,7 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { AutoRedirect } from "@/components/auth/AutoRedirect";
 import { SessionTimeoutProvider } from "@/components/auth/SessionTimeoutProvider";
 import { NoAccess } from "@/components/workspace/NoAccess";
+import { LastAccessTracker } from "@/components/auth/LastAccessTracker";
 import { trpc, trpcClient } from "@/lib/trpc";
 import DashboardIndex from "./pages/DashboardIndex";
 import Leads from "./pages/Leads";
@@ -49,6 +50,7 @@ const App = () => (
                   <ProtectedRoute>
                     <SessionTimeoutProvider>
                       <TenantProvider>
+                        <LastAccessTracker />
                         <AutoRedirect />
                         <Routes>
                         <Route path="/" element={<DashboardIndex />} />

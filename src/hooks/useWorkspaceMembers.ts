@@ -11,6 +11,8 @@ export interface WorkspaceMember {
   user_name: string;
   bloqueado?: boolean;
   bloqueado_em?: string;
+  ultimo_acesso?: string;
+  is_online?: boolean;
 }
 
 export function useWorkspaceMembers() {
@@ -33,7 +35,7 @@ export function useWorkspaceMembers() {
       // Buscar membros do tenant (incluindo bloqueados para exibir na lista)
       const { data: tenantUsers, error: tenantError } = await (supabase as any)
         .from('tenant_users')
-        .select('user_id, role, custom_permissions, bloqueado, bloqueado_em')
+        .select('user_id, role, custom_permissions, bloqueado, bloqueado_em, ultimo_acesso')
         .eq('tenant_id', tenant.id)
         .eq('active', true);
 
@@ -59,6 +61,15 @@ export function useWorkspaceMembers() {
         console.log('Erro ao buscar perfis:', e);
       }
 
+      // Função para verificar se usuário está online (ativo nos últimos 5 minutos)
+      const isUserOnline = (ultimoAcesso: string | null): boolean => {
+        if (!ultimoAcesso) return false;
+        const lastAccess = new Date(ultimoAcesso);
+        const now = new Date();
+        const diffMinutes = (now.getTime() - lastAccess.getTime()) / (1000 * 60);
+        return diffMinutes <= 5; // Online se acessou nos últimos 5 minutos
+      };
+
       // Mapear membros com dados disponíveis
       const mappedMembers = tenantUsers.map((member: any) => {
         const profile = userProfiles.find((p: any) => p.id === member.user_id);
@@ -68,7 +79,9 @@ export function useWorkspaceMembers() {
           user_email: profile?.email ?? `user-${member.user_id.slice(0, 8)}@workspace`,
           user_name: profile?.nome_completo ?? profile?.email ?? 'Usuário',
           bloqueado: member.bloqueado || false,
-          bloqueado_em: member.bloqueado_em
+          bloqueado_em: member.bloqueado_em,
+          ultimo_acesso: member.ultimo_acesso,
+          is_online: isUserOnline(member.ultimo_acesso)
         };
       });
 

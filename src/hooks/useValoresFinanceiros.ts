@@ -46,10 +46,12 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
 
       try {
         // Construir query com filtro de data
+        // IMPORTANTE: Buscar apenas registros PENDENTES (excluir concluídos para não duplicar valores)
         let query = (centralSupabase as any)
           .from('financeiro_sieg')
-          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em')
-          .eq('empresa_id', tenant.id);
+          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em, situacao')
+          .eq('empresa_id', tenant.id)
+          .or('situacao.eq.pendente,situacao.is.null'); // Apenas pendentes ou sem situação definida
 
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
         const DATA_MINIMA = '2025-12-04T00:00:00';

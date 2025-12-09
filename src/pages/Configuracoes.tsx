@@ -221,22 +221,58 @@ const Configuracoes = () => {
                     Nenhum membro encontrado
                   </div>
                 ) : (
-                  members.map((member) => (
+                  members.map((member) => {
+                    // Função para formatar último acesso
+                    const formatUltimoAcesso = (ultimoAcesso?: string) => {
+                      if (!ultimoAcesso) return 'Nunca acessou';
+                      const date = new Date(ultimoAcesso);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      
+                      if (diffMinutes < 1) return 'Agora mesmo';
+                      if (diffMinutes < 60) return `Há ${diffMinutes} min`;
+                      if (diffHours < 24) return `Há ${diffHours}h`;
+                      if (diffDays === 1) return 'Ontem';
+                      if (diffDays < 7) return `Há ${diffDays} dias`;
+                      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    };
+
+                    return (
                     <div key={member.user_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-background/50 gap-3">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="font-semibold text-xs sm:text-sm">
-                            {member.user_name?.substring(0, 2).toUpperCase() || 'U'}
-                          </span>
+                        {/* Avatar com indicador de online */}
+                        <div className="relative">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="font-semibold text-xs sm:text-sm">
+                              {member.user_name?.substring(0, 2).toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                          {/* Bolinha de status online/offline */}
+                          <div 
+                            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
+                              member.is_online ? 'bg-green-500' : 'bg-gray-400'
+                            }`}
+                            title={member.is_online ? 'Online' : 'Offline'}
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium text-sm sm:text-base truncate">{member.user_name}</p>
+                            {member.is_online && (
+                              <Badge variant="outline" className="text-[10px] sm:text-xs bg-green-500/10 text-green-600 border-green-500/30">Online</Badge>
+                            )}
                             {member.bloqueado && (
                               <Badge variant="destructive" className="text-[10px] sm:text-xs">Bloqueado</Badge>
                             )}
                           </div>
                           <p className="text-xs sm:text-sm text-muted-foreground truncate">{member.user_email}</p>
+                          {/* Último acesso */}
+                          <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-0.5">
+                            {member.is_online ? '🟢 Ativo agora' : `⏱️ Visto: ${formatUltimoAcesso(member.ultimo_acesso)}`}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 justify-end flex-wrap">
@@ -293,7 +329,7 @@ const Configuracoes = () => {
                         )}
                       </div>
                     </div>
-                  ))
+                  )})
                 )}
               </div>
             </Card>
