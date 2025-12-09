@@ -46,12 +46,12 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
 
       try {
         // Construir query com filtro de data
-        // IMPORTANTE: Buscar apenas registros PENDENTES (excluir concluídos para não duplicar valores)
+        // IMPORTANTE: Buscar TODOS os registros (pendentes e concluídos) para calcular valores recuperados corretamente
         let query = (centralSupabase as any)
           .from('financeiro_sieg')
           .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em, situacao')
-          .eq('empresa_id', tenant.id)
-          .or('situacao.eq.pendente,situacao.is.null'); // Apenas pendentes ou sem situação definida
+          .eq('empresa_id', tenant.id);
+          // Não filtrar por situação - precisamos de todos para calcular valores recuperados
 
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
         const DATA_MINIMA = '2025-12-04T00:00:00';
@@ -139,20 +139,40 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           return parseFloat(str) || 0;
         };
 
-        // Somar todos os valores
+        // Separar registros por situação para cálculo correto
+        const registrosPendentes = (valores || []).filter((item: any) => 
+          item.situacao === 'pendente' || item.situacao === null
+        );
+        const registrosConcluidos = (valores || []).filter((item: any) => 
+          item.situacao === 'concluido'
+        );
+
+        console.log('💰 [useValoresFinanceiros] Registros:', {
+          pendentes: registrosPendentes.length,
+          concluidos: registrosConcluidos.length
+        });
+
+        // Valor pendente = soma de valor_em_aberto apenas de registros PENDENTES
+        const valorPendenteTotal = registrosPendentes.reduce((acc: number, item: any) => 
+          acc + parseValorBR(item.valor_em_aberto), 0
+        );
+
+        // Valores recuperados = soma de TODOS os registros (pendentes parciais + concluídos)
         const totais = (valores || []).reduce((acc: any, item: any) => ({
-          valorPendente: acc.valorPendente + parseValorBR(item.valor_em_aberto),
           valorRecuperadoIA: acc.valorRecuperadoIA + parseValorBR(item.valor_recuperado_ia),
           valorRecuperadoHumano: acc.valorRecuperadoHumano + parseValorBR(item.valor_recuperado_humano),
           valorEmNegociacao: acc.valorEmNegociacao + parseValorBR(item.em_negociacao),
-        }), { valorPendente: 0, valorRecuperadoIA: 0, valorRecuperadoHumano: 0, valorEmNegociacao: 0 });
+        }), { valorRecuperadoIA: 0, valorRecuperadoHumano: 0, valorEmNegociacao: 0 });
         
-        console.log('💰 [useValoresFinanceiros] Totais calculados:', totais);
+        console.log('💰 [useValoresFinanceiros] Totais calculados:', { valorPendenteTotal, ...totais });
 
         const valorRecuperadoTotal = totais.valorRecuperadoIA + totais.valorRecuperadoHumano;
 
-        // Valor em aberto real = valor original - valores já recuperados
-        const valorPendenteReal = totais.valorPendente - valorRecuperadoTotal;
+        // Valor pendente real = valor em aberto dos pendentes - valores parcialmente recuperados deles
+        const valorRecuperadoPendentes = registrosPendentes.reduce((acc: number, item: any) => 
+          acc + parseValorBR(item.valor_recuperado_ia) + parseValorBR(item.valor_recuperado_humano), 0
+        );
+        const valorPendenteReal = valorPendenteTotal - valorRecuperadoPendentes;
 
         // Meta mensal pode vir de configuração do workspace ou ser fixa
         const metaMensal = 50000.00; // TODO: Buscar de configuração

@@ -1,2 +1,2 @@
 // Versão do aplicativo - atualizada automaticamente pelo deploy
-export const APP_VERSION = '1.8';
+export const APP_VERSION = '1.9';

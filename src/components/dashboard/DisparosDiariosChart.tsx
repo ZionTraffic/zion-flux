@@ -179,17 +179,6 @@ export const DisparosDiariosChart = ({
           </ResponsiveContainer>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-muted-foreground">Acima da média</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-400" />
-            <span className="text-muted-foreground">Abaixo da média</span>
-          </div>
-        </div>
       </div>
     </Card>
   );
