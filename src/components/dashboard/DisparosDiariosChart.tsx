@@ -1,6 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, TrendingUp, Calendar } from "lucide-react";
+import { BarChart3, TrendingUp, Calendar, Send, AlertTriangle, Ban } from "lucide-react";
+import {
+  TooltipProvider,
+  Tooltip as UITooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { useDisparosDiarios } from "@/hooks/useDisparosDiarios";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
@@ -38,7 +44,7 @@ export const DisparosDiariosChart = ({
     return { from, to };
   });
 
-  const { disparos, total, media, isLoading } = useDisparosDiarios(
+  const { disparos, total, totaisPorStatus, media, isLoading } = useDisparosDiarios(
     tenantId,
     dateRange?.from,
     dateRange?.to
@@ -93,20 +99,46 @@ export const DisparosDiariosChart = ({
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <div className="p-4 rounded-xl glass border border-border/50 shadow-premium hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="w-4 h-4 text-blue-500" />
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Total
-              </p>
-            </div>
-            <p className="text-2xl font-bold text-foreground">
-              {total.toLocaleString('pt-BR')}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              disparos no período
-            </p>
-          </div>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <div className="p-4 rounded-xl glass border border-border/50 shadow-premium hover:shadow-xl transition-all duration-300 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Total
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">
+                    {total.toLocaleString('pt-BR')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    disparos no período
+                  </p>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="p-3 max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-semibold text-sm border-b pb-1">Detalhamento</p>
+                  <div className="flex items-center gap-2">
+                    <Send className="w-3 h-3 text-emerald-500" />
+                    <span className="text-sm">Enviados:</span>
+                    <span className="font-bold text-emerald-600">{totaisPorStatus.enviados.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Ban className="w-3 h-3 text-red-500" />
+                    <span className="text-sm">Número Inválido:</span>
+                    <span className="font-bold text-red-600">{totaisPorStatus.numeroInvalido.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-3 h-3 text-amber-500" />
+                    <span className="text-sm">Suspensão:</span>
+                    <span className="font-bold text-amber-600">{totaisPorStatus.suspensao.toLocaleString('pt-BR')}</span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
 
           <div className="p-4 rounded-xl glass border border-border/50 shadow-premium hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-2 mb-1">
