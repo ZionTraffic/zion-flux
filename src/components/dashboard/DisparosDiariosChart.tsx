@@ -192,12 +192,46 @@ export const DisparosDiariosChart = ({
                   borderRadius: '8px',
                   color: '#1f2937',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  padding: '12px',
                 }}
-                labelStyle={{ color: '#1f2937', fontWeight: 600 }}
-                formatter={(value: number) => [
-                  <span style={{ color: '#3B82F6', fontWeight: 600 }}>{value.toLocaleString('pt-BR')} disparos</span>,
-                  'Quantidade',
-                ]}
+                labelStyle={{ color: '#1f2937', fontWeight: 600, marginBottom: '8px' }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const data = payload[0].payload as typeof disparos[0];
+                  return (
+                    <div style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    }}>
+                      <p style={{ fontWeight: 600, marginBottom: '8px', color: '#1f2937' }}>{label}</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }}></span>
+                          <span style={{ color: '#6B7280', fontSize: '13px' }}>Total:</span>
+                          <span style={{ fontWeight: 600, color: '#3B82F6' }}>{data.quantidade.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }}></span>
+                          <span style={{ color: '#6B7280', fontSize: '13px' }}>Enviados:</span>
+                          <span style={{ fontWeight: 600, color: '#10B981' }}>{data.enviados.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }}></span>
+                          <span style={{ color: '#6B7280', fontSize: '13px' }}>Número Inválido:</span>
+                          <span style={{ fontWeight: 600, color: '#EF4444' }}>{data.numeroInvalido.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }}></span>
+                          <span style={{ color: '#6B7280', fontSize: '13px' }}>Suspensão:</span>
+                          <span style={{ fontWeight: 600, color: '#F59E0B' }}>{data.suspensao.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
               />
               <Bar dataKey="quantidade" radius={[8, 8, 0, 0]}>
                 {disparos.map((entry, index) => (
