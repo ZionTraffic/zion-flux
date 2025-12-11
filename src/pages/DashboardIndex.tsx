@@ -35,11 +35,11 @@ const DashboardIndex = () => {
   const diagnostics = useSupabaseDiagnostics();
   const { toast } = useToast();
 
-  // Date range state - default to last 90 days
+  // Date range state - padrão últimos 30 dias
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 90);
+    from.setDate(from.getDate() - 30);
     return { from, to };
   });
 
@@ -138,11 +138,11 @@ const DashboardIndex = () => {
   const handleClearFilter = () => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 90);
+    from.setDate(from.getDate() - 30);
     setDateRange({ from, to });
     toast({
-      title: "Filtro limpo",
-      description: "Exibindo dados dos últimos 90 dias",
+      title: "Filtro resetado",
+      description: "Exibindo últimos 30 dias",
     });
   };
 

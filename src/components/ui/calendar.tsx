@@ -183,9 +183,19 @@ function Calendar({
   };
 
   const isDateDisabled = (date: Date) => {
-    if (disabled?.(date)) return true;
-    if (minDate && date < minDate) return true;
-    if (maxDate && date > maxDate) return true;
+    // Normalizar a data para comparação (ignorar horas)
+    const dateNormalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    if (disabled?.(dateNormalized)) return true;
+    
+    if (minDate) {
+      const minNormalized = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+      if (dateNormalized < minNormalized) return true;
+    }
+    if (maxDate) {
+      const maxNormalized = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+      if (dateNormalized > maxNormalized) return true;
+    }
     return false;
   };
   

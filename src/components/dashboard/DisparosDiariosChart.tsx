@@ -91,8 +91,8 @@ export const DisparosDiariosChart = ({
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
               onClearFilter={handleClearFilter}
-              minDays={30}
-              maxDays={30}
+              minDays={1}
+              maxDays={90}
             />
           </div>
         </div>

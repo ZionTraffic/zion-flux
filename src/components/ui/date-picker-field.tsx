@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 
-import { Calendar } from "@/components/ui/calendar";
+import { GlassCalendar } from "@/components/ui/glass-calendar";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -35,11 +35,11 @@ export function DatePickerField({
 }: DatePickerFieldProps) {
   const [open, setOpen] = React.useState(false);
 
-  const handleSelect = (selectedDate: Date | undefined) => {
-    onDateChange(selectedDate);
-    if (selectedDate) {
-      setOpen(false);
-    }
+  const handleSelect = (selectedDate: Date) => {
+    // Criar cópia da data para evitar mutações
+    const newDate = new Date(selectedDate);
+    onDateChange(newDate);
+    setOpen(false);
   };
 
   return (
@@ -61,18 +61,13 @@ export function DatePickerField({
             {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : <span>{compact ? label : "Selecionar data"}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 glass-medium shadow-glow-blue backdrop-blur-xl" align="start">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleSelect}
-            disabled={(date) => {
-              if (minDate && date < minDate) return true;
-              if (maxDate && date > maxDate) return true;
-              return false;
-            }}
-            showMonthYearPickers={true}
-            className="rounded-lg border-0"
+        <PopoverContent className="w-auto p-0 border-0 bg-transparent shadow-none" align="start">
+          <GlassCalendar
+            selectedDate={date}
+            onDateSelect={handleSelect}
+            minDate={minDate}
+            maxDate={maxDate}
+            showSelectedDateInfo={false}
           />
         </PopoverContent>
       </Popover>

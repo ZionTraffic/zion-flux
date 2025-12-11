@@ -30,11 +30,11 @@ const Qualificacao = () => {
   const [isExporting, setIsExporting] = useState(false);
   const workspaceSlug = currentTenant?.slug || '';
   
-  // Date range state - default to last 90 days
+  // Date range state - padrão últimos 30 dias
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 90);
+    from.setDate(from.getDate() - 30);
     return { from, to };
   });
 
@@ -78,11 +78,11 @@ const Qualificacao = () => {
   const handleClearFilter = () => {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 90);
+    from.setDate(from.getDate() - 30);
     setDateRange({ from, to });
     toast({
-      title: "Filtro limpo",
-      description: "Exibindo dados dos últimos 90 dias",
+      title: "Filtro resetado",
+      description: "Exibindo últimos 30 dias",
     });
   };
 

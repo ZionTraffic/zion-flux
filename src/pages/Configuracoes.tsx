@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus, History, Ban, CheckCircle } from "lucide-react";
+import { Users, Plug, Settings, Trash2, UserPlus, Database, Shield, Plus, History, Ban, CheckCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,14 @@ const Configuracoes = () => {
   const initialTab = searchParams.get("tab") || "users";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const { currentTenant, refreshTenants } = useTenant();
+  const { toast } = useToast();
+  
+  // Estados para configurações do sistema
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [updateInterval, setUpdateInterval] = useState("30");
+  const [cacheEnabled, setCacheEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Verificar se é master user
   const [isMasterUser, setIsMasterUser] = useState(false);
@@ -477,7 +486,11 @@ const Configuracoes = () => {
                     <Label htmlFor="dark-mode">Tema Escuro</Label>
                     <p className="text-sm text-muted-foreground">Alternar entre tema claro e escuro</p>
                   </div>
-                  <Switch id="dark-mode" defaultChecked />
+                  <Switch 
+                    id="dark-mode" 
+                    checked={darkMode}
+                    onCheckedChange={setDarkMode}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -485,7 +498,8 @@ const Configuracoes = () => {
                   <Input 
                     id="update-interval" 
                     type="number" 
-                    defaultValue="30" 
+                    value={updateInterval}
+                    onChange={(e) => setUpdateInterval(e.target.value)}
                     placeholder="Minutos"
                   />
                   <p className="text-sm text-muted-foreground">
@@ -498,7 +512,11 @@ const Configuracoes = () => {
                     <Label htmlFor="cache">Cache de Dados</Label>
                     <p className="text-sm text-muted-foreground">Melhorar performance com cache local</p>
                   </div>
-                  <Switch id="cache" defaultChecked />
+                  <Switch 
+                    id="cache" 
+                    checked={cacheEnabled}
+                    onCheckedChange={setCacheEnabled}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -506,10 +524,57 @@ const Configuracoes = () => {
                     <Label htmlFor="notifications">Notificações</Label>
                     <p className="text-sm text-muted-foreground">Receber alertas de novos leads</p>
                   </div>
-                  <Switch id="notifications" defaultChecked />
+                  <Switch 
+                    id="notifications" 
+                    checked={notificationsEnabled}
+                    onCheckedChange={setNotificationsEnabled}
+                  />
                 </div>
 
-                <Button className="w-full">Salvar Configurações</Button>
+                <Button 
+                  className="w-full"
+                  disabled={isSavingSettings}
+                  onClick={async () => {
+                    setIsSavingSettings(true);
+                    try {
+                      // Salvar configurações no localStorage
+                      const settings = {
+                        darkMode,
+                        updateInterval: parseInt(updateInterval) || 30,
+                        cacheEnabled,
+                        notificationsEnabled,
+                        savedAt: new Date().toISOString(),
+                      };
+                      localStorage.setItem('zion_settings', JSON.stringify(settings));
+                      
+                      // Simular delay para feedback visual
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                      
+                      toast({
+                        title: "Configurações salvas",
+                        description: "Suas preferências foram atualizadas com sucesso.",
+                      });
+                    } catch (error) {
+                      console.error('Erro ao salvar configurações:', error);
+                      toast({
+                        title: "Erro ao salvar",
+                        description: "Não foi possível salvar as configurações. Tente novamente.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsSavingSettings(false);
+                    }
+                  }}
+                >
+                  {isSavingSettings ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Configurações"
+                  )}
+                </Button>
               </div>
             </Card>
           </TabsContent>

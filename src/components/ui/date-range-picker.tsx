@@ -30,24 +30,37 @@ export function DateRangePicker({
   const handleFromDateChange = (date: Date | undefined) => {
     if (!date) {
       onDateRangeChange({ from: undefined, to: dateRange?.to });
+      setError("");
       return;
     }
 
-    const newRange: DateRange = { from: date, to: dateRange?.to };
+    // Criar cópia da data para não mutar o original
+    const fromDate = new Date(date);
+    fromDate.setHours(0, 0, 0, 0);
+    
+    // Sempre atualizar a data, mesmo que a validação falhe depois
+    // Isso garante que o usuário veja a data selecionada
+    const newRange: DateRange = { from: fromDate, to: dateRange?.to };
     
     // Validar se a data de término é depois da data de início
-    if (newRange.to && newRange.to < date) {
+    if (newRange.to && newRange.to < fromDate) {
       setError("Data de término não pode ser anterior à data de início");
+      // Ainda assim atualiza para mostrar a seleção
+      onDateRangeChange(newRange);
       return;
     }
 
     // Validar range de dias (inclusivo: conta dia inicial e final)
     if (newRange.to) {
       const msPerDay = 1000 * 60 * 60 * 24;
-      const diffTime = Math.abs(newRange.to.setHours(0,0,0,0) - date.setHours(0,0,0,0));
+      const toNormalized = new Date(newRange.to);
+      toNormalized.setHours(0, 0, 0, 0);
+      const diffTime = Math.abs(toNormalized.getTime() - fromDate.getTime());
       const inclusiveDays = Math.floor(diffTime / msPerDay) + 1;
       if (inclusiveDays < minDays || inclusiveDays > maxDays) {
         setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
+        // Ainda assim atualiza para mostrar a seleção
+        onDateRangeChange(newRange);
         return;
       }
     }
@@ -59,24 +72,37 @@ export function DateRangePicker({
   const handleToDateChange = (date: Date | undefined) => {
     if (!date) {
       onDateRangeChange({ from: dateRange?.from, to: undefined });
+      setError("");
       return;
     }
 
-    const newRange: DateRange = { from: dateRange?.from, to: date };
+    // Criar cópia da data para não mutar o original
+    const toDate = new Date(date);
+    toDate.setHours(23, 59, 59, 999);
+    
+    const newRange: DateRange = { from: dateRange?.from, to: toDate };
     
     // Validar se a data de término é depois da data de início
-    if (newRange.from && date < newRange.from) {
+    if (newRange.from && toDate < newRange.from) {
       setError("Data de término não pode ser anterior à data de início");
+      // Ainda assim atualiza para mostrar a seleção
+      onDateRangeChange(newRange);
       return;
     }
 
     // Validar range de dias (inclusivo: conta dia inicial e final)
     if (newRange.from) {
       const msPerDay = 1000 * 60 * 60 * 24;
-      const diffTime = Math.abs(date.setHours(0,0,0,0) - newRange.from.setHours(0,0,0,0));
+      const fromNormalized = new Date(newRange.from);
+      fromNormalized.setHours(0, 0, 0, 0);
+      const toNormalized = new Date(toDate);
+      toNormalized.setHours(0, 0, 0, 0);
+      const diffTime = Math.abs(toNormalized.getTime() - fromNormalized.getTime());
       const inclusiveDays = Math.floor(diffTime / msPerDay) + 1;
       if (inclusiveDays < minDays || inclusiveDays > maxDays) {
         setError(`O período deve ter entre ${minDays} e ${maxDays} dias`);
+        // Ainda assim atualiza para mostrar a seleção
+        onDateRangeChange(newRange);
         return;
       }
     }
@@ -144,45 +170,36 @@ export function DateRangePicker({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {/* Date Pickers */}
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Calendários */}
       <DatePickerField
         date={dateRange?.from}
         onDateChange={handleFromDateChange}
-        label="Data de Início"
+        label="De"
         maxDate={dateRange?.to || new Date()}
         compact
       />
       
+      <span className="text-muted-foreground text-sm">até</span>
+      
       <DatePickerField
         date={dateRange?.to}
         onDateChange={handleToDateChange}
-        label="Data de Término"
+        label="Até"
         minDate={dateRange?.from}
         maxDate={new Date()}
         compact
       />
-      
-      {onClearFilter && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onClearFilter}
-          className="glass-medium hover:border-destructive/50 hover:text-destructive transition-all h-9"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
 
-      {/* Separator */}
-      <div className="h-6 w-px bg-border/50" />
+      {/* Separador */}
+      <div className="h-6 w-px bg-border mx-1" />
 
-      {/* Quick Filter Buttons */}
+      {/* Filtros Rápidos */}
       <Button
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('today')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
         Hoje
       </Button>
@@ -190,7 +207,7 @@ export function DateRangePicker({
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('yesterday')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
         Ontem
       </Button>
@@ -198,45 +215,50 @@ export function DateRangePicker({
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('last7')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
-        Últimos 7 Dias
+        7 dias
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('last30')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
-        Últimos 30 Dias
+        30 dias
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('thisMonth')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
-        Este Mês
+        Este mês
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => handleQuickFilter('lastMonth')}
-        className="glass-medium hover:bg-primary/10 hover:border-primary/50 transition-all text-xs h-9"
+        className="h-8 px-3 text-xs"
       >
-        Mês Passado
+        Mês passado
       </Button>
-
-      {/* Period indicator */}
-      {dateRange?.from && dateRange?.to && isCustomRange() && (
-        <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-          Personalizado
-        </span>
+      
+      {onClearFilter && dateRange?.from && dateRange?.to && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearFilter}
+          className="text-muted-foreground hover:text-destructive transition-all h-8 px-2"
+          title="Limpar filtro"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       )}
 
       {/* Error message */}
       {error && (
-        <p className="text-sm text-destructive animate-fade-in">{error}</p>
+        <p className="text-xs text-destructive animate-fade-in ml-2">{error}</p>
       )}
     </div>
   );

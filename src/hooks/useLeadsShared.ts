@@ -427,7 +427,7 @@ async function fetchSiegFinanceiroLeads(
 
     const { data, error } = await supabaseClient
       .from('financeiro_sieg')
-      .select('id, empresa_id, nome, nome_empresa, cnpj, telefone, valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, tag, data_vencimento, data_pagamento, observacoes, criado_em, atualizado_em, atendente, nota_csat')
+      .select('id, empresa_id, nome, nome_empresa, cnpj, telefone, valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, tag, data_vencimento, data_pagamento, observacoes, criado_em, atualizado_em, atendente, nota_csat, historico_conversa')
       .eq('empresa_id', tenantId)
       .gte('criado_em', startISO)
       .lt('criado_em', endISO)
@@ -456,31 +456,73 @@ async function fetchSiegFinanceiroLeads(
     data.forEach((row: any, index: number) => {
       // Mapear tag para stage
       const tag = row.tag || '';
+      const historicoConversa = row.historico_conversa || '';
       let stage: LeadStage = 'novo_lead';
+      
+      // Verificar se tem mensagens do cliente (You:) no histórico
+      const temHistorico = historicoConversa && historicoConversa.includes('You:');
+      const atendente = row.atendente || '';
+      const semAgente = !atendente || atendente.trim() === '';
+      
+      // Verificar se tem comprovante de pagamento no histórico
+      const historicoLower = historicoConversa.toLowerCase();
+      const temComprovante = historicoLower.includes('comprovante') || 
+                             historicoLower.includes('pix') || 
+                             historicoLower.includes('pagamento') ||
+                             historicoLower.includes('paguei') ||
+                             historicoLower.includes('transferi') ||
+                             historicoLower.includes('boleto') ||
+                             historicoLower.includes('.jpg') ||
+                             historicoLower.includes('.jpeg') ||
+                             historicoLower.includes('.png') ||
+                             historicoLower.includes('.pdf') ||
+                             historicoLower.includes('image/') ||
+                             historicoLower.includes('wa.me') ||
+                             historicoLower.includes('whatsapp');
+      
+      // Verificar se tem mensagem de "passível de suspensão" no histórico
+      const temMensagemSuspensao = historicoLower.includes('passivel de suspensao') ||
+                                   historicoLower.includes('passível de suspensão') ||
+                                   historicoLower.includes('suspensao') ||
+                                   historicoLower.includes('suspensão');
       
       // Debug primeiros registros
       if (index < 5) {
-        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}", tipo=${typeof tag}`);
+        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}", temHistorico=${temHistorico}, semAgente=${semAgente}, temComprovante=${temComprovante}`);
       }
       
       // Mapeamento de tags do SIEG Financeiro (case insensitive)
       const tagUpper = String(tag).toUpperCase();
-      if (tagUpper.includes('T4') || tagUpper.includes('TRANSFERIDO')) {
-        stage = 'followup';
+      
+      // REGRA 1: Se tag é T5 -> T5 (não muda nunca)
+      if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
+        stage = 'descartados';
+      // REGRA 2: Se tem agente atribuído -> T4 (Transferido)
+      } else if (!semAgente) {
+        stage = 'followup'; // T4 - TRANSFERIDO
+      } else if (temMensagemSuspensao) {
+        // Sem agente + mensagem de suspensão no histórico -> T5
+        stage = 'descartados';
       } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) {
+        stage = 'qualificados';
+      } else if (temComprovante) {
+        // Sem agente + tem comprovante de pagamento -> T3
         stage = 'qualificados';
       } else if (tagUpper.includes('T2') || tagUpper.includes('QUALIFICANDO')) {
         stage = 'qualificacao';
-      } else if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
-        stage = 'descartados';
       } else {
-        // T1 ou qualquer outra tag vai para novo_lead
-        stage = 'novo_lead';
+        // T1 ou qualquer outra tag (sem agente)
+        // Se tem histórico de conversa, significa que o cliente respondeu -> T2
+        if (temHistorico) {
+          stage = 'qualificacao'; // T2 - RESPONDIDO
+        } else {
+          stage = 'novo_lead'; // T1 - SEM RESPOSTA
+        }
       }
       
       // Debug primeiros registros com stage
       if (index < 5) {
-        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}" -> stage="${stage}"`);
+        console.log(`[fetchSiegFinanceiroLeads] Row ${index}: tag="${tag}", temHistorico=${temHistorico} -> stage="${stage}"`);
       }
 
       // DESABILITADO: O mapeamento customizado estava sobrescrevendo o mapeamento correto
