@@ -49,8 +49,8 @@ const DashboardIndex = () => {
   // Hook para valores financeiros GERAIS (sem filtro) - usado no header
   const valoresFinanceirosGerais = useValoresFinanceiros();
   
-  // Hook para contagens históricas de tags (T1-T5) - SIEG Financeiro
-  const { counts: tagCountsHistorico } = useTagCountsHistorico();
+  // Hook para contagens históricas de tags (T1-T5) - SIEG Financeiro (com filtro de data)
+  const { counts: tagCountsHistorico } = useTagCountsHistorico(dateRange?.from, dateRange?.to);
   
   // Debug: Log workspace info
   useEffect(() => {

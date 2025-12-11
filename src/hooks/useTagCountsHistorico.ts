@@ -12,7 +12,7 @@ export interface TagCountsHistorico {
 
 const DATA_MINIMA = '2025-12-04T00:00:00';
 
-export function useTagCountsHistorico() {
+export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
   const { tenant, isLoading: tenantLoading } = useCurrentTenant();
   const [counts, setCounts] = useState<TagCountsHistorico>({
     'T1 - SEM RESPOSTA': 0,
@@ -36,12 +36,31 @@ export function useTagCountsHistorico() {
       setIsLoading(true);
 
       try {
+        // Calcular datas de filtro
+        let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
+        if (startISO < DATA_MINIMA) {
+          startISO = DATA_MINIMA;
+        }
+        
+        let endISO: string | null = null;
+        if (endDate) {
+          const endDatePlusOne = new Date(endDate);
+          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+          endISO = endDatePlusOne.toISOString();
+        }
+
         // Buscar todos os registros da tabela financeiro_sieg com tag, historico_conversa e atendente
-        const { data: financeiroData, error: financeiroError } = await (centralSupabase as any)
+        let query = (centralSupabase as any)
           .from('financeiro_sieg')
           .select('id, tag, historico_conversa, valor_recuperado_ia, valor_recuperado_humano, atendente')
           .eq('empresa_id', tenant.id)
-          .gte('criado_em', DATA_MINIMA);
+          .gte('criado_em', startISO);
+        
+        if (endISO) {
+          query = query.lt('criado_em', endISO);
+        }
+        
+        const { data: financeiroData, error: financeiroError } = await query;
 
         if (financeiroError) {
           console.error('Erro ao buscar financeiro_sieg:', financeiroError);
@@ -139,7 +158,7 @@ export function useTagCountsHistorico() {
     }
 
     fetchCounts();
-  }, [tenant?.id, tenant?.slug, tenantLoading]);
+  }, [tenant?.id, tenant?.slug, tenantLoading, startDate, endDate]);
 
   return { counts, isLoading };
 }
