@@ -110,14 +110,15 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           // REGRA 1: Se tag é T5 -> T5 (não muda nunca)
           if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
             leadsPerEstagio['T5'].add(item.id);
-          // REGRA 2: Se tem agente atribuído -> T4 (Transferido)
+          // REGRA 2: Se tag é T3 ou PAGO ou tem valor recuperado -> T3 (não muda)
+          } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO') || item.valor_recuperado_ia > 0 || item.valor_recuperado_humano > 0) {
+            leadsPerEstagio['T3'].add(item.id);
+          // REGRA 3: Se tem agente atribuído -> T4 (Transferido)
           } else if (!semAgente) {
             leadsPerEstagio['T4'].add(item.id);
           } else if (temMensagemSuspensao) {
             // Sem agente + mensagem de suspensão no histórico -> T5
             leadsPerEstagio['T5'].add(item.id);
-          } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO') || item.valor_recuperado_ia > 0 || item.valor_recuperado_humano > 0) {
-            leadsPerEstagio['T3'].add(item.id);
           } else if (temComprovante) {
             // Sem agente + tem comprovante de pagamento -> T3
             leadsPerEstagio['T3'].add(item.id);
