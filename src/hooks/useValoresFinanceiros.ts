@@ -47,32 +47,35 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
       try {
         // Construir query com filtro de data
         // IMPORTANTE: Buscar TODOS os registros (pendentes e concluídos) para calcular valores recuperados corretamente
+        // Incluir CNPJ para agrupar empresas e evitar duplicação de valores
         let query = (centralSupabase as any)
           .from('financeiro_sieg')
-          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em, situacao')
+          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em, situacao, cnpj, telefone, data_vencimento')
           .eq('empresa_id', tenant.id);
           // Não filtrar por situação - precisamos de todos para calcular valores recuperados
 
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
         const DATA_MINIMA = '2025-12-04T00:00:00';
         
-        // Aplicar filtro de data (mas nunca antes de 04/12/2025)
+        // Aplicar filtro de data usando a ÚLTIMA ATUALIZAÇÃO (atualizado_em)
+        // Assim, pagamentos que foram registrados hoje entram no período mesmo que tenham sido criados dias antes
         let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
         if (startISO < DATA_MINIMA) {
           startISO = DATA_MINIMA;
         }
-        query = query.gte('criado_em', startISO);
+        query = query.gte('atualizado_em', startISO);
         
         if (endDate) {
           const endDatePlusOne = new Date(endDate);
           endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
-          query = query.lt('criado_em', endDatePlusOne.toISOString());
+          query = query.lt('atualizado_em', endDatePlusOne.toISOString());
         }
 
         console.log('💰 [useValoresFinanceiros] Filtros:', { 
           tenantId: tenant.id,
           startISO,
-          endDate: endDate?.toISOString() 
+          endDate: endDate?.toISOString(),
+          filtro: 'atualizado_em'
         });
 
         // Buscar TODOS os registros com paginação
@@ -152,10 +155,29 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           concluidos: registrosConcluidos.length
         });
 
-        // Valor pendente = soma de valor_em_aberto apenas de registros PENDENTES
-        const valorPendenteTotal = registrosPendentes.reduce((acc: number, item: any) => 
-          acc + parseValorBR(item.valor_em_aberto), 0
-        );
+        // CORREÇÃO: Agrupar valor_em_aberto por FATURA (CNPJ + data_vencimento) quando possível.
+        // Isso evita duplicação por múltiplos telefones e permite somar múltiplas mensalidades da mesma empresa.
+        const valoresPorFatura = new Map<string, number>();
+        registrosPendentes.forEach((item: any) => {
+          const cnpjBase = item.cnpj || item.telefone || 'sem_cnpj';
+          const dataVencimento = item.data_vencimento ? String(item.data_vencimento) : '';
+          const chave = dataVencimento ? `${cnpjBase}::${dataVencimento}` : cnpjBase;
+
+          const valorAtual = valoresPorFatura.get(chave) || 0;
+          const valorItem = parseValorBR(item.valor_em_aberto);
+
+          // Para a mesma fatura (mesmo vencimento), pegar o MAIOR valor (caso tenha variação entre telefones)
+          if (valorItem > valorAtual) {
+            valoresPorFatura.set(chave, valorItem);
+          }
+        });
+
+        let valorPendenteTotal = 0;
+        valoresPorFatura.forEach((valor) => {
+          valorPendenteTotal += valor;
+        });
+
+        console.log('💰 [useValoresFinanceiros] Faturas únicas:', valoresPorFatura.size, 'Valor pendente agrupado:', valorPendenteTotal);
 
         // Valores recuperados = soma de TODOS os registros (pendentes parciais + concluídos)
         const totais = (valores || []).reduce((acc: any, item: any) => ({
@@ -168,10 +190,23 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
 
         const valorRecuperadoTotal = totais.valorRecuperadoIA + totais.valorRecuperadoHumano;
 
-        // Valor pendente real = valor em aberto dos pendentes - valores parcialmente recuperados deles
-        const valorRecuperadoPendentes = registrosPendentes.reduce((acc: number, item: any) => 
-          acc + parseValorBR(item.valor_recuperado_ia) + parseValorBR(item.valor_recuperado_humano), 0
-        );
+        // Valor pendente real = valor em aberto agrupado por fatura - valores recuperados dessas faturas
+        const recuperadosPorFatura = new Map<string, number>();
+        registrosPendentes.forEach((item: any) => {
+          const cnpjBase = item.cnpj || item.telefone || 'sem_cnpj';
+          const dataVencimento = item.data_vencimento ? String(item.data_vencimento) : '';
+          const chave = dataVencimento ? `${cnpjBase}::${dataVencimento}` : cnpjBase;
+
+          const valorAtual = recuperadosPorFatura.get(chave) || 0;
+          const valorRecuperado = parseValorBR(item.valor_recuperado_ia) + parseValorBR(item.valor_recuperado_humano);
+          recuperadosPorFatura.set(chave, valorAtual + valorRecuperado);
+        });
+
+        let valorRecuperadoPendentes = 0;
+        recuperadosPorFatura.forEach((valor) => {
+          valorRecuperadoPendentes += valor;
+        });
+        
         const valorPendenteReal = valorPendenteTotal - valorRecuperadoPendentes;
 
         // Meta mensal pode vir de configuração do workspace ou ser fixa

@@ -369,8 +369,8 @@ const DashboardIndex = () => {
             valorEmNegociacao={valoresFinanceiros.data.valorEmNegociacao}
             metaMensal={valoresFinanceiros.data.metaMensal}
             isLoading={valoresFinanceiros.isLoading}
-            valorRecuperadoHumano={valoresFinanceiros.data.valorRecuperado * 0.65}
-            valorRecuperadoIA={valoresFinanceiros.data.valorRecuperado * 0.35}
+            valorRecuperadoHumano={valoresFinanceiros.data.valorRecuperadoHumano}
+            valorRecuperadoIA={valoresFinanceiros.data.valorRecuperadoIA}
           />
         )}
 

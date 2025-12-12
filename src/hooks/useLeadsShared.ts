@@ -419,6 +419,7 @@ async function fetchSiegFinanceiroLeads(
   
   const columns = createEmptyStageMap();
   const leads: LeadFromConversation[] = [];
+  const leadByEmpresaKey = new Map<string, LeadFromConversation>();
 
   // Buscar dados da tabela financeiro_sieg com paginação e filtro de data
   for (let page = 0; page < 200; page++) {
@@ -554,8 +555,35 @@ async function fetchSiegFinanceiroLeads(
         tags: tag ? [tag] : undefined,
       };
 
-      columns[stage].push(lead);
-      leads.push(lead);
+      // CORREÇÃO (SIEG): "Total de Clientes" deve representar empresas únicas.
+      // Usar CNPJ como chave; se CNPJ estiver vazio/nulo, usar telefone como fallback.
+      const empresaKey = (row.cnpj && String(row.cnpj).trim().length > 0)
+        ? `cnpj:${String(row.cnpj).trim()}`
+        : `tel:${String(row.telefone || '').trim()}`;
+
+      const existente = leadByEmpresaKey.get(empresaKey);
+
+      // Heurística simples para escolher o melhor registro representativo para a empresa:
+      // - Preferir quem tem status mais avançado (qualificados > followup > qualificacao > novo_lead > descartados)
+      // - Em empate, preferir maior valor_em_aberto
+      const stageRank: Record<LeadStage, number> = {
+        qualificados: 5,
+        followup: 4,
+        qualificacao: 3,
+        novo_lead: 2,
+        descartados: 1,
+      };
+
+      const shouldReplace = !existente
+        || stageRank[lead.stage] > stageRank[existente.stage]
+        || (
+          stageRank[lead.stage] === stageRank[existente.stage]
+          && parseFinanceValue(lead.valor_em_aberto) > parseFinanceValue(existente.valor_em_aberto)
+        );
+
+      if (shouldReplace) {
+        leadByEmpresaKey.set(empresaKey, lead);
+      }
     });
 
     if (data.length < PAGE_SIZE) break;
@@ -565,8 +593,15 @@ async function fetchSiegFinanceiroLeads(
     }
   }
 
-  console.log('[fetchSiegFinanceiroLeads] ✅ Total de leads:', leads.length);
-  console.log('[fetchSiegFinanceiroLeads] 📊 Por stage:', Object.entries(columns).map(([s, l]) => `${s}: ${l.length}`).join(', '));
+  // Reconstituir colunas e lista final a partir do agrupamento por empresaKey
+  const uniqueLeads = Array.from(leadByEmpresaKey.values());
+  const uniqueColumns = createEmptyStageMap();
+  uniqueLeads.forEach((lead) => {
+    uniqueColumns[lead.stage].push(lead);
+  });
 
-  return { columns, leads };
+  console.log('[fetchSiegFinanceiroLeads] ✅ Total de leads (empresas únicas):', uniqueLeads.length);
+  console.log('[fetchSiegFinanceiroLeads] 📊 Por stage (empresas únicas):', Object.entries(uniqueColumns).map(([s, l]) => `${s}: ${l.length}`).join(', '));
+
+  return { columns: uniqueColumns, leads: uniqueLeads };
 }
