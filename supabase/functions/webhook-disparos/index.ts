@@ -52,13 +52,18 @@ serve(async (req) => {
     const empresa = body.empresa || 'SIEG Financeiro'
     const empresaId = SIEG_EMPRESA_ID
 
+    // Status vem do NicohChat - não usar valor padrão
+    const statusRecebido = typeof body.status === 'string' && body.status.trim().length > 0
+      ? body.status.trim()
+      : null
+
     // Preparar dados do disparo (todos opcionais exceto empresa_id)
     const agora = new Date().toISOString()
     const dadosDisparo: any = {
       empresa: empresa,
       empresa_id: empresaId,
       enviado_em: agora,
-      status: 'enviado',
+      status: statusRecebido,
     }
 
     // Adicionar campos opcionais se existirem

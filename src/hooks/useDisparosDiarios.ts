@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { format, subDays } from 'date-fns';
+import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/contexts/TenantContext';
@@ -62,14 +62,17 @@ export const useDisparosDiarios = (
       const endDate = dateTo || new Date();
       const startDate = dateFrom || subDays(endDate, 30);
 
+      const startRange = startOfDay(startDate);
+      const endRange = endOfDay(endDate);
+
       console.log('📊 [Disparos] Buscando de', format(startDate, 'dd/MM'), 'até', format(endDate, 'dd/MM'));
 
       // Buscar disparos agrupados por dia E por status usando nova RPC
       const { data, error: queryError } = await (supabase as any)
         .rpc('contar_disparos_por_status', {
           p_empresa_id: tenantId,
-          p_data_inicio: startDate.toISOString(),
-          p_data_fim: endDate.toISOString()
+          p_data_inicio: startRange.toISOString(),
+          p_data_fim: endRange.toISOString()
         });
 
       if (queryError) {
@@ -82,8 +85,8 @@ export const useDisparosDiarios = (
           const { data: dataAntiga, error: erroAntigo } = await (supabase as any)
             .rpc('contar_disparos_por_dia', {
               p_empresa_id: tenantId,
-              p_data_inicio: startDate.toISOString(),
-              p_data_fim: endDate.toISOString()
+              p_data_inicio: startRange.toISOString(),
+              p_data_fim: endRange.toISOString()
             });
           
           if (erroAntigo) {
