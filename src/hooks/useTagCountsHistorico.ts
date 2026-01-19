@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase as centralSupabase } from '@/integrations/supabase/client';
 import { useCurrentTenant } from '@/contexts/TenantContext';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export interface TagCountsHistorico {
   'T1 - SEM RESPOSTA': number;
@@ -10,7 +11,7 @@ export interface TagCountsHistorico {
   'T5 - PASSÍVEL DE SUSPENSÃO': number;
 }
 
-const DATA_MINIMA = '2025-12-04T00:00:00';
+const DATA_MINIMA = new Date('2025-12-04T00:00:00');
 
 export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
   const { tenant, isLoading: tenantLoading } = useCurrentTenant();
@@ -36,37 +37,78 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
       setIsLoading(true);
 
       try {
-        // Calcular datas de filtro
-        let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
-        if (startISO < DATA_MINIMA) {
-          startISO = DATA_MINIMA;
+        // Normalizar datas para início e fim do dia (mesma lógica do useDisparosDiarios)
+        let startRange = startDate ? startOfDay(startDate) : DATA_MINIMA;
+        if (startRange < DATA_MINIMA) {
+          startRange = DATA_MINIMA;
         }
+        const startISO = startRange.toISOString();
         
+        // Se tem endDate, usar endOfDay + 1ms para incluir todo o dia
         let endISO: string | null = null;
         if (endDate) {
-          const endDatePlusOne = new Date(endDate);
-          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
-          endISO = endDatePlusOne.toISOString();
+          const endRange = endOfDay(endDate);
+          endISO = new Date(endRange.getTime() + 1).toISOString();
         }
 
-        // Buscar todos os registros da tabela financeiro_sieg com tag, historico_conversa e atendente
-        let query = (centralSupabase as any)
-          .from('financeiro_sieg')
-          .select('id, tag, historico_conversa, valor_recuperado_ia, valor_recuperado_humano, atendente')
+        // PASSO 1: Buscar telefones DISTINTOS que receberam DISPARO no período
+        let disparosQuery = (centralSupabase as any)
+          .from('disparos')
+          .select('telefone')
           .eq('empresa_id', tenant.id)
           .gte('criado_em', startISO);
         
         if (endISO) {
-          query = query.lt('criado_em', endISO);
+          disparosQuery = disparosQuery.lt('criado_em', endISO);
         }
         
-        const { data: financeiroData, error: financeiroError } = await query;
+        const { data: disparosData, error: disparosError } = await disparosQuery;
 
-        if (financeiroError) {
-          console.error('Erro ao buscar financeiro_sieg:', financeiroError);
+        if (disparosError) {
+          console.error('Erro ao buscar disparos:', disparosError);
+          setIsLoading(false);
+          return;
         }
 
-        // Contar leads por estágio baseado na tag E histórico de conversa
+        // Extrair telefones únicos
+        const telefonesUnicos = [...new Set((disparosData || []).map((d: any) => d.telefone).filter(Boolean))];
+        
+        console.log(`📤 [useTagCountsHistorico] Filtro: startISO=${startISO}, endISO=${endISO}, telefones=${telefonesUnicos.length}, startDate=${startDate?.toISOString()}, endDate=${endDate?.toISOString()}`);
+
+        if (telefonesUnicos.length === 0) {
+          setCounts({
+            'T1 - SEM RESPOSTA': 0,
+            'T2 - RESPONDIDO': 0,
+            'T3 - PAGO IA': 0,
+            'T4 - TRANSFERIDO': 0,
+            'T5 - PASSÍVEL DE SUSPENSÃO': 0,
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // PASSO 2: Buscar a TAG ATUAL de cada telefone na tabela financeiro_sieg
+        // Dividir em batches para não estourar limite
+        const batchSize = 200;
+        const allFinanceiroData: any[] = [];
+        
+        for (let i = 0; i < telefonesUnicos.length; i += batchSize) {
+          const batch = telefonesUnicos.slice(i, i + batchSize);
+          
+          const { data: financeiroData, error: financeiroError } = await (centralSupabase as any)
+            .from('financeiro_sieg')
+            .select('id, telefone, tag, atendente, valor_recuperado_ia')
+            .eq('empresa_id', tenant.id)
+            .in('telefone', batch);
+
+          if (financeiroError) {
+            console.error('Erro ao buscar financeiro_sieg:', financeiroError);
+          } else {
+            allFinanceiroData.push(...(financeiroData || []));
+          }
+        }
+
+        // PASSO 3: Contar por tag ATUAL (simplificado - usar a tag diretamente)
         const leadsPerEstagio: Record<string, Set<string>> = {
           'T1': new Set(),
           'T2': new Set(),
@@ -75,63 +117,27 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           'T5': new Set(),
         };
 
-        (financeiroData || []).forEach((item: any) => {
+        allFinanceiroData.forEach((item: any) => {
           const tag = item.tag || '';
           const tagUpper = String(tag).toUpperCase();
-          const historicoConversa = item.historico_conversa || '';
-          // Verificar se tem mensagens do cliente (You:) no histórico
-          const temHistorico = historicoConversa && historicoConversa.includes('You:');
-          const atendente = item.atendente || '';
-          const semAgente = !atendente || atendente.trim() === '';
+          const valorRecuperadoIA = parseFloat(item.valor_recuperado_ia) || 0;
           
-          // Verificar se tem comprovante de pagamento no histórico
-          const historicoLower = historicoConversa.toLowerCase();
-          const temComprovante = historicoLower.includes('comprovante') || 
-                                 historicoLower.includes('pix') || 
-                                 historicoLower.includes('pagamento') ||
-                                 historicoLower.includes('paguei') ||
-                                 historicoLower.includes('transferi') ||
-                                 historicoLower.includes('boleto') ||
-                                 historicoLower.includes('.jpg') ||
-                                 historicoLower.includes('.jpeg') ||
-                                 historicoLower.includes('.png') ||
-                                 historicoLower.includes('.pdf') ||
-                                 historicoLower.includes('image/') ||
-                                 historicoLower.includes('wa.me') ||
-                                 historicoLower.includes('whatsapp');
-          
-          // Verificar se tem mensagem de "passível de suspensão" no histórico
-          const temMensagemSuspensao = historicoLower.includes('passivel de suspensao') ||
-                                       historicoLower.includes('passível de suspensão') ||
-                                       historicoLower.includes('suspensao') ||
-                                       historicoLower.includes('suspensão');
-          
-          // Classificar baseado na tag e agente
-          // REGRA 1: Se tag é T5 -> T5 (não muda nunca)
+          // Classificar baseado na tag ATUAL do lead E valor recuperado
+          // REGRA: Se valor_recuperado_ia > 0, é T3 (PAGO IA)
           if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
-            leadsPerEstagio['T5'].add(item.id);
-          // REGRA 2: Se tag é T3 ou PAGO ou tem valor recuperado -> T3 (não muda)
-          } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO') || item.valor_recuperado_ia > 0 || item.valor_recuperado_humano > 0) {
-            leadsPerEstagio['T3'].add(item.id);
-          // REGRA 3: Se tem agente atribuído -> T4 (Transferido)
-          } else if (!semAgente) {
-            leadsPerEstagio['T4'].add(item.id);
-          } else if (temMensagemSuspensao) {
-            // Sem agente + mensagem de suspensão no histórico -> T5
-            leadsPerEstagio['T5'].add(item.id);
-          } else if (temComprovante) {
-            // Sem agente + tem comprovante de pagamento -> T3
-            leadsPerEstagio['T3'].add(item.id);
-          } else if (tagUpper.includes('T2') || tagUpper.includes('QUALIFICANDO')) {
-            leadsPerEstagio['T2'].add(item.id);
+            leadsPerEstagio['T5'].add(item.telefone);
+          } else if (valorRecuperadoIA > 0) {
+            // Prioridade: Se pagou via IA, é T3 independente da tag textual
+            leadsPerEstagio['T3'].add(item.telefone);
+          } else if (tagUpper.includes('T4') || tagUpper.includes('TRANSFERIDO')) {
+            leadsPerEstagio['T4'].add(item.telefone);
+          } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) {
+            leadsPerEstagio['T3'].add(item.telefone);
+          } else if (tagUpper.includes('T2') || tagUpper.includes('RESPONDIDO') || tagUpper.includes('QUALIFICANDO')) {
+            leadsPerEstagio['T2'].add(item.telefone);
           } else {
-            // T1 ou qualquer outra tag (sem agente)
-            // Se tem histórico de conversa, significa que o cliente respondeu -> T2
-            if (temHistorico) {
-              leadsPerEstagio['T2'].add(item.id);
-            } else {
-              leadsPerEstagio['T1'].add(item.id);
-            }
+            // T1 ou qualquer outra tag (Novo Lead, etc)
+            leadsPerEstagio['T1'].add(item.telefone);
           }
         });
 
@@ -143,7 +149,8 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           'T5 - PASSÍVEL DE SUSPENSÃO': leadsPerEstagio['T5'].size,
         });
 
-        console.log('📊 [useTagCountsHistorico] Contagens (com lógica de histórico):', {
+        console.log('📊 [useTagCountsHistorico] Contagens por TAG ATUAL dos leads disparados:', {
+          totalDisparados: telefonesUnicos.length,
           T1: leadsPerEstagio['T1'].size,
           T2: leadsPerEstagio['T2'].size,
           T3: leadsPerEstagio['T3'].size,

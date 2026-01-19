@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCurrentTenant } from '@/contexts/TenantContext';
 import { supabase as centralSupabase } from '@/integrations/supabase/client';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export interface ValoresFinanceiros {
   valorPendente: number;
@@ -45,82 +46,97 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
       setError(null);
 
       try {
-        // Construir query com filtro de data
-        // IMPORTANTE: Buscar TODOS os registros (pendentes e concluídos) para calcular valores recuperados corretamente
-        // Incluir CNPJ para agrupar empresas e evitar duplicação de valores
-        let query = (centralSupabase as any)
-          .from('financeiro_sieg')
-          .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, criado_em, situacao, cnpj, telefone, data_vencimento')
-          .eq('empresa_id', tenant.id);
-          // Não filtrar por situação - precisamos de todos para calcular valores recuperados
-
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
-        const DATA_MINIMA = '2025-12-04T00:00:00';
+        const DATA_MINIMA = new Date('2025-12-04T00:00:00');
         
-        // Aplicar filtro de data usando a ÚLTIMA ATUALIZAÇÃO (atualizado_em)
-        // Assim, pagamentos que foram registrados hoje entram no período mesmo que tenham sido criados dias antes
-        let startISO = startDate ? startDate.toISOString() : DATA_MINIMA;
-        if (startISO < DATA_MINIMA) {
-          startISO = DATA_MINIMA;
+        // Normalizar datas para início e fim do dia (mesma lógica do useDisparosDiarios)
+        let startRange = startDate ? startOfDay(startDate) : DATA_MINIMA;
+        if (startRange < DATA_MINIMA) {
+          startRange = DATA_MINIMA;
         }
-        query = query.gte('atualizado_em', startISO);
+        const startISO = startRange.toISOString();
         
+        // Se tem endDate, usar endOfDay + 1 dia para incluir todo o dia
+        let endISO: string | null = null;
         if (endDate) {
-          const endDatePlusOne = new Date(endDate);
-          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
-          query = query.lt('atualizado_em', endDatePlusOne.toISOString());
+          const endRange = endOfDay(endDate);
+          endISO = new Date(endRange.getTime() + 1).toISOString();
         }
 
-        console.log('💰 [useValoresFinanceiros] Filtros:', { 
-          tenantId: tenant.id,
-          startISO,
-          endDate: endDate?.toISOString(),
-          filtro: 'atualizado_em'
-        });
-
-        // Buscar TODOS os registros com paginação
-        const PAGE_SIZE = 1000;
-        let allValores: any[] = [];
-        let fetchError: any = null;
+        // PASSO 1: Buscar telefones DISTINTOS com status 'enviado' no período
+        // Exclui números inválidos e suspensões
+        let disparosQuery = (centralSupabase as any)
+          .from('disparos')
+          .select('telefone')
+          .eq('empresa_id', tenant.id)
+          .eq('status', 'enviado')
+          .gte('criado_em', startISO);
         
-        for (let page = 0; page < 10; page++) {
-          const from = page * PAGE_SIZE;
-          const to = from + PAGE_SIZE - 1;
-          
-          const { data: pageData, error: pageError } = await query.range(from, to);
-          
-          if (pageError) {
-            fetchError = pageError;
-            break;
-          }
-          
-          if (!pageData || pageData.length === 0) {
-            break;
-          }
-          
-          allValores = [...allValores, ...pageData];
-          
-          if (pageData.length < PAGE_SIZE) {
-            break;
-          }
+        if (endISO) {
+          disparosQuery = disparosQuery.lt('criado_em', endISO);
         }
         
-        const valores = allValores;
-        console.log('💰 [useValoresFinanceiros] Total registros:', valores.length);
+        const { data: disparosData, error: disparosError } = await disparosQuery;
 
-        if (fetchError) {
-          // Se a tabela não existir, usar dados de demonstração
-          console.warn('⚠️ Tabela financeiro_sieg não encontrada, usando dados de demonstração');
-          const mockData: ValoresFinanceiros = {
-            valorPendente: 45750.00,
-            valorRecuperado: 32480.50,
-            valorRecuperadoIA: 18500.00,
-            valorRecuperadoHumano: 13980.50,
-            valorEmNegociacao: 18920.00,
+        if (disparosError) {
+          console.error('💰 [useValoresFinanceiros] Erro ao buscar disparos:', disparosError);
+          setIsLoading(false);
+          return;
+        }
+
+        // Extrair telefones únicos com status 'enviado'
+        const telefonesEnviados = [...new Set((disparosData || []).map((d: any) => d.telefone).filter(Boolean))];
+        
+        console.log(`💰 [useValoresFinanceiros] Telefones com status 'enviado': ${telefonesEnviados.length}`);
+
+        // Se não teve disparo enviado no período, valores são zero
+        if (telefonesEnviados.length === 0) {
+          setData({
+            valorPendente: 0,
+            valorRecuperado: 0,
+            valorRecuperadoIA: 0,
+            valorRecuperadoHumano: 0,
+            valorEmNegociacao: 0,
             metaMensal: 50000.00,
-          };
-          setData(mockData);
-          console.log('💰 Valores Financeiros carregados (dados de demonstração)');
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // PASSO 2: Buscar valores financeiros dos telefones enviados
+        const PAGE_SIZE = 200;
+        let allValores: any[] = [];
+        
+        for (let i = 0; i < telefonesEnviados.length; i += PAGE_SIZE) {
+          const batch = telefonesEnviados.slice(i, i + PAGE_SIZE);
+          
+          const { data: financeiroData, error: financeiroError } = await (centralSupabase as any)
+            .from('financeiro_sieg')
+            .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, cnpj, telefone, data_vencimento')
+            .eq('empresa_id', tenant.id)
+            .in('telefone', batch);
+          
+          if (financeiroError) {
+            console.error('💰 [useValoresFinanceiros] Erro ao buscar financeiro_sieg:', financeiroError);
+          } else {
+            allValores.push(...(financeiroData || []));
+          }
+        }
+
+        const valores = allValores;
+        console.log(`💰 [useValoresFinanceiros] Registros financeiros encontrados: ${valores.length}`);
+
+        // Se não encontrou registros financeiros, valores são zero
+        if (valores.length === 0) {
+          setData({
+            valorPendente: 0,
+            valorRecuperado: 0,
+            valorRecuperadoIA: 0,
+            valorRecuperadoHumano: 0,
+            valorEmNegociacao: 0,
+            metaMensal: 50000.00,
+          });
+          setIsLoading(false);
           return;
         }
 
@@ -179,16 +195,48 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
 
         console.log('💰 [useValoresFinanceiros] Faturas únicas:', valoresPorFatura.size, 'Valor pendente agrupado:', valorPendenteTotal);
 
-        // Valores recuperados = soma de TODOS os registros (pendentes parciais + concluídos)
-        const totais = (valores || []).reduce((acc: any, item: any) => ({
-          valorRecuperadoIA: acc.valorRecuperadoIA + parseValorBR(item.valor_recuperado_ia),
-          valorRecuperadoHumano: acc.valorRecuperadoHumano + parseValorBR(item.valor_recuperado_humano),
-          valorEmNegociacao: acc.valorEmNegociacao + parseValorBR(item.em_negociacao),
-        }), { valorRecuperadoIA: 0, valorRecuperadoHumano: 0, valorEmNegociacao: 0 });
+        // VALORES RECUPERADOS: Buscar da tabela historico_valores_financeiros
+        // Isso mostra quanto foi recuperado NO PERÍODO (diferença), não o acumulado
+        let historicoQuery = (centralSupabase as any)
+          .from('historico_valores_financeiros')
+          .select('tipo_valor, diferenca')
+          .eq('empresa_id', tenant.id)
+          .in('tipo_valor', ['recuperado_ia', 'recuperado_humano'])
+          .gte('data_registro', startISO);
         
+        if (endISO) {
+          historicoQuery = historicoQuery.lt('data_registro', endISO);
+        }
+        
+        const { data: historicoData, error: historicoError } = await historicoQuery;
+        
+        let valorRecuperadoIA = 0;
+        let valorRecuperadoHumano = 0;
+        
+        console.log(`💰 [useValoresFinanceiros] Buscando histórico: startISO=${startISO}, endISO=${endISO}, error=${historicoError?.message || 'none'}, registros=${historicoData?.length || 0}`);
+        
+        if (!historicoError && historicoData && historicoData.length > 0) {
+          historicoData.forEach((item: any) => {
+            const diferenca = parseFloat(item.diferenca) || 0;
+            if (item.tipo_valor === 'recuperado_ia') {
+              valorRecuperadoIA += diferenca;
+            } else if (item.tipo_valor === 'recuperado_humano') {
+              valorRecuperadoHumano += diferenca;
+            }
+          });
+          console.log(`💰 [useValoresFinanceiros] Histórico encontrado: ${historicoData.length} registros, IA=${valorRecuperadoIA}, Humano=${valorRecuperadoHumano}`);
+        } else {
+          console.warn(`💰 [useValoresFinanceiros] Sem dados no histórico para o período - os triggers só capturam mudanças novas`);
+        }
+        
+        // Valor em negociação (ainda usa acumulado pois não tem histórico)
+        const valorEmNegociacao = (valores || []).reduce((acc: number, item: any) => 
+          acc + parseValorBR(item.em_negociacao), 0);
+        
+        const totais = { valorRecuperadoIA, valorRecuperadoHumano, valorEmNegociacao };
         console.log('💰 [useValoresFinanceiros] Totais calculados:', { valorPendenteTotal, ...totais });
 
-        const valorRecuperadoTotal = totais.valorRecuperadoIA + totais.valorRecuperadoHumano;
+        const valorRecuperadoTotal = valorRecuperadoIA + valorRecuperadoHumano;
 
         // Valor pendente real = valor em aberto agrupado por fatura - valores recuperados dessas faturas
         const recuperadosPorFatura = new Map<string, number>();
