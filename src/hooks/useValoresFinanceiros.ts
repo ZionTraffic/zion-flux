@@ -49,7 +49,7 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
         const DATA_MINIMA = new Date('2025-12-04T00:00:00');
         
-        // Normalizar datas para início e fim do dia (mesma lógica do useDisparosDiarios)
+        // Normalizar datas para início e fim do dia
         let startRange = startDate ? startOfDay(startDate) : DATA_MINIMA;
         if (startRange < DATA_MINIMA) {
           startRange = DATA_MINIMA;
@@ -63,145 +63,16 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
           endISO = new Date(endRange.getTime() + 1).toISOString();
         }
 
-        // PASSO 1: Buscar telefones DISTINTOS com status 'enviado' no período
-        // Exclui números inválidos e suspensões
-        let disparosQuery = (centralSupabase as any)
-          .from('disparos')
-          .select('telefone')
-          .eq('empresa_id', tenant.id)
-          .eq('status', 'enviado')
-          .gte('criado_em', startISO);
-        
-        if (endISO) {
-          disparosQuery = disparosQuery.lt('criado_em', endISO);
-        }
-        
-        const { data: disparosData, error: disparosError } = await disparosQuery;
+        console.log(`💰 [useValoresFinanceiros] Período: ${startISO} até ${endISO || 'sem fim'}`);
 
-        if (disparosError) {
-          console.error('💰 [useValoresFinanceiros] Erro ao buscar disparos:', disparosError);
-          setIsLoading(false);
-          return;
-        }
-
-        // Extrair telefones únicos com status 'enviado'
-        const telefonesEnviados = [...new Set((disparosData || []).map((d: any) => d.telefone).filter(Boolean))];
-        
-        console.log(`💰 [useValoresFinanceiros] Telefones com status 'enviado': ${telefonesEnviados.length}`);
-
-        // Se não teve disparo enviado no período, valores são zero
-        if (telefonesEnviados.length === 0) {
-          setData({
-            valorPendente: 0,
-            valorRecuperado: 0,
-            valorRecuperadoIA: 0,
-            valorRecuperadoHumano: 0,
-            valorEmNegociacao: 0,
-            metaMensal: 50000.00,
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // PASSO 2: Buscar valores financeiros dos telefones enviados
-        const PAGE_SIZE = 200;
-        let allValores: any[] = [];
-        
-        for (let i = 0; i < telefonesEnviados.length; i += PAGE_SIZE) {
-          const batch = telefonesEnviados.slice(i, i + PAGE_SIZE);
-          
-          const { data: financeiroData, error: financeiroError } = await (centralSupabase as any)
-            .from('financeiro_sieg')
-            .select('valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, cnpj, telefone, data_vencimento')
-            .eq('empresa_id', tenant.id)
-            .in('telefone', batch);
-          
-          if (financeiroError) {
-            console.error('💰 [useValoresFinanceiros] Erro ao buscar financeiro_sieg:', financeiroError);
-          } else {
-            allValores.push(...(financeiroData || []));
-          }
-        }
-
-        const valores = allValores;
-        console.log(`💰 [useValoresFinanceiros] Registros financeiros encontrados: ${valores.length}`);
-
-        // Se não encontrou registros financeiros, valores são zero
-        if (valores.length === 0) {
-          setData({
-            valorPendente: 0,
-            valorRecuperado: 0,
-            valorRecuperadoIA: 0,
-            valorRecuperadoHumano: 0,
-            valorEmNegociacao: 0,
-            metaMensal: 50000.00,
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // Função para parsear valor que pode estar em formato brasileiro (1.601) ou decimal (1601.00)
-        const parseValorBR = (valor: any): number => {
-          if (!valor) return 0;
-          const str = String(valor);
-          // Se tem ponto mas não tem vírgula, e a parte depois do ponto tem 3 dígitos = separador de milhar
-          if (str.includes('.') && !str.includes(',')) {
-            const partes = str.split('.');
-            if (partes.length === 2 && partes[1].length === 3) {
-              return parseFloat(str.replace('.', ''));
-            }
-          }
-          // Formato brasileiro com vírgula decimal
-          if (str.includes(',')) {
-            return parseFloat(str.replace(/\./g, '').replace(',', '.'));
-          }
-          return parseFloat(str) || 0;
-        };
-
-        // Separar registros por situação para cálculo correto
-        const registrosPendentes = (valores || []).filter((item: any) => 
-          item.situacao === 'pendente' || item.situacao === null
-        );
-        const registrosConcluidos = (valores || []).filter((item: any) => 
-          item.situacao === 'concluido'
-        );
-
-        console.log('💰 [useValoresFinanceiros] Registros:', {
-          pendentes: registrosPendentes.length,
-          concluidos: registrosConcluidos.length
-        });
-
-        // CORREÇÃO: Agrupar valor_em_aberto por FATURA (CNPJ + data_vencimento) quando possível.
-        // Isso evita duplicação por múltiplos telefones e permite somar múltiplas mensalidades da mesma empresa.
-        const valoresPorFatura = new Map<string, number>();
-        registrosPendentes.forEach((item: any) => {
-          const cnpjBase = item.cnpj || item.telefone || 'sem_cnpj';
-          const dataVencimento = item.data_vencimento ? String(item.data_vencimento) : '';
-          const chave = dataVencimento ? `${cnpjBase}::${dataVencimento}` : cnpjBase;
-
-          const valorAtual = valoresPorFatura.get(chave) || 0;
-          const valorItem = parseValorBR(item.valor_em_aberto);
-
-          // Para a mesma fatura (mesmo vencimento), pegar o MAIOR valor (caso tenha variação entre telefones)
-          if (valorItem > valorAtual) {
-            valoresPorFatura.set(chave, valorItem);
-          }
-        });
-
-        let valorPendenteTotal = 0;
-        valoresPorFatura.forEach((valor) => {
-          valorPendenteTotal += valor;
-        });
-
-        console.log('💰 [useValoresFinanceiros] Faturas únicas:', valoresPorFatura.size, 'Valor pendente agrupado:', valorPendenteTotal);
-
-        // VALORES RECUPERADOS: Buscar da tabela historico_valores_financeiros
-        // Isso mostra quanto foi recuperado NO PERÍODO (diferença), não o acumulado
+        // NOVA LÓGICA: Buscar TODOS os valores do histórico no período
+        // Isso garante que a soma dos dias = total do mês
+        // Tipos: pendente, recuperado_ia, recuperado_humano
         let historicoQuery = (centralSupabase as any)
           .from('historico_valores_financeiros')
-          .select('tipo_valor, diferenca')
+          .select('tipo_valor, diferenca, telefone, data_registro')
           .eq('empresa_id', tenant.id)
-          .in('tipo_valor', ['recuperado_ia', 'recuperado_humano'])
+          .in('tipo_valor', ['pendente', 'recuperado_ia', 'recuperado_humano'])
           .gte('data_registro', startISO);
         
         if (endISO) {
@@ -210,65 +81,62 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
         
         const { data: historicoData, error: historicoError } = await historicoQuery;
         
+        if (historicoError) {
+          console.error('💰 [useValoresFinanceiros] Erro ao buscar histórico:', historicoError);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log(`💰 [useValoresFinanceiros] Registros no histórico: ${historicoData?.length || 0}`);
+
+        // Calcular valores a partir do histórico
+        let valorPendente = 0;
         let valorRecuperadoIA = 0;
         let valorRecuperadoHumano = 0;
         
-        console.log(`💰 [useValoresFinanceiros] Buscando histórico: startISO=${startISO}, endISO=${endISO}, error=${historicoError?.message || 'none'}, registros=${historicoData?.length || 0}`);
-        
-        if (!historicoError && historicoData && historicoData.length > 0) {
+        if (historicoData && historicoData.length > 0) {
           historicoData.forEach((item: any) => {
             const diferenca = parseFloat(item.diferenca) || 0;
-            if (item.tipo_valor === 'recuperado_ia') {
+            
+            if (item.tipo_valor === 'pendente') {
+              // Valor pendente: soma as diferenças (pode ser positivo ou negativo)
+              valorPendente += diferenca;
+            } else if (item.tipo_valor === 'recuperado_ia') {
               valorRecuperadoIA += diferenca;
             } else if (item.tipo_valor === 'recuperado_humano') {
               valorRecuperadoHumano += diferenca;
             }
           });
-          console.log(`💰 [useValoresFinanceiros] Histórico encontrado: ${historicoData.length} registros, IA=${valorRecuperadoIA}, Humano=${valorRecuperadoHumano}`);
+          
+          console.log(`💰 [useValoresFinanceiros] Valores do histórico:`, {
+            pendente: valorPendente,
+            recuperadoIA: valorRecuperadoIA,
+            recuperadoHumano: valorRecuperadoHumano
+          });
         } else {
-          console.warn(`💰 [useValoresFinanceiros] Sem dados no histórico para o período - os triggers só capturam mudanças novas`);
+          console.warn(`💰 [useValoresFinanceiros] Sem dados no histórico para o período`);
         }
-        
-        // Valor em negociação (ainda usa acumulado pois não tem histórico)
-        const valorEmNegociacao = (valores || []).reduce((acc: number, item: any) => 
-          acc + parseValorBR(item.em_negociacao), 0);
-        
-        const totais = { valorRecuperadoIA, valorRecuperadoHumano, valorEmNegociacao };
-        console.log('💰 [useValoresFinanceiros] Totais calculados:', { valorPendenteTotal, ...totais });
 
         const valorRecuperadoTotal = valorRecuperadoIA + valorRecuperadoHumano;
 
-        // Valor pendente real = valor em aberto agrupado por fatura - valores recuperados dessas faturas
-        const recuperadosPorFatura = new Map<string, number>();
-        registrosPendentes.forEach((item: any) => {
-          const cnpjBase = item.cnpj || item.telefone || 'sem_cnpj';
-          const dataVencimento = item.data_vencimento ? String(item.data_vencimento) : '';
-          const chave = dataVencimento ? `${cnpjBase}::${dataVencimento}` : cnpjBase;
-
-          const valorAtual = recuperadosPorFatura.get(chave) || 0;
-          const valorRecuperado = parseValorBR(item.valor_recuperado_ia) + parseValorBR(item.valor_recuperado_humano);
-          recuperadosPorFatura.set(chave, valorAtual + valorRecuperado);
-        });
-
-        let valorRecuperadoPendentes = 0;
-        recuperadosPorFatura.forEach((valor) => {
-          valorRecuperadoPendentes += valor;
-        });
-        
-        const valorPendenteReal = valorPendenteTotal - valorRecuperadoPendentes;
-
         // Meta mensal pode vir de configuração do workspace ou ser fixa
-        const metaMensal = 50000.00; // TODO: Buscar de configuração
+        const metaMensal = 50000.00;
 
         setData({
-          valorPendente: Math.max(0, valorPendenteReal), // Nunca negativo
+          valorPendente: Math.max(0, valorPendente), // Nunca negativo
           valorRecuperado: valorRecuperadoTotal,
-          valorRecuperadoIA: totais.valorRecuperadoIA,
-          valorRecuperadoHumano: totais.valorRecuperadoHumano,
-          valorEmNegociacao: totais.valorEmNegociacao,
+          valorRecuperadoIA: valorRecuperadoIA,
+          valorRecuperadoHumano: valorRecuperadoHumano,
+          valorEmNegociacao: 0, // TODO: Implementar histórico de negociação se necessário
           metaMensal,
         });
-        console.log('💰 Valores Financeiros carregados do banco:', totais);
+        
+        console.log('💰 [useValoresFinanceiros] Valores finais:', {
+          valorPendente,
+          valorRecuperado: valorRecuperadoTotal,
+          valorRecuperadoIA,
+          valorRecuperadoHumano
+        });
 
       } catch (err: any) {
         console.error('Erro ao buscar valores financeiros:', err);
