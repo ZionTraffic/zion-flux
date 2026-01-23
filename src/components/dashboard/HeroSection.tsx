@@ -10,6 +10,7 @@ interface HeroSectionProps {
   // Props específicas para SIEG Financeiro
   valorEmAberto?: number;
   valorRecuperado?: number;
+  totalEmpresas?: number;
   isSiegFinanceiro?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function HeroSection({
   hideStats = false,
   valorEmAberto = 0,
   valorRecuperado = 0,
+  totalEmpresas = 0,
   isSiegFinanceiro = false,
 }: HeroSectionProps) {
   console.log('🔍 HeroSection - hideStats:', hideStats, 'workspaceName:', workspaceName);
@@ -99,10 +101,10 @@ export function HeroSection({
         {/* Quick Stats */}
         {!hideStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1 - Total de Clientes (sempre visível) */}
+          {/* Card 1 - Total de Empresas (SIEG) ou Total de Clientes (outros) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-sm text-blue-100 mb-1">Total de Clientes</p>
-            <p className="text-2xl font-bold text-white">{totalLeads.toLocaleString('pt-BR')}</p>
+            <p className="text-sm text-blue-100 mb-1">{isSiegFinanceiro ? 'Total de Empresas' : 'Total de Clientes'}</p>
+            <p className="text-2xl font-bold text-white">{(isSiegFinanceiro ? totalEmpresas : totalLeads).toLocaleString('pt-BR')}</p>
           </div>
 
           {/* Card 2 - Valor em Aberto (SIEG) ou Investimento Total (outros) */}

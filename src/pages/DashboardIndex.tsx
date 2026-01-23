@@ -272,8 +272,9 @@ const DashboardIndex = () => {
               trend="up"
               hideStats={shouldHideStats}
               isSiegFinanceiro={isSiegFinanceiro}
-              valorEmAberto={valoresFinanceirosGerais.data.valorPendente}
-              valorRecuperado={valoresFinanceirosGerais.data.valorRecuperado}
+              valorEmAberto={valoresFinanceiros.data.valorPendente}
+              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
+              totalEmpresas={valoresFinanceiros.data.totalEmpresas}
             />
           );
         })()}

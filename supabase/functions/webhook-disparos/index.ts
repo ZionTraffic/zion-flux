@@ -169,16 +169,54 @@ serve(async (req) => {
     // RESET DIÁRIO: Se disparo foi 'enviado', resetar tag para T1 na tabela financeiro_sieg
     // Isso permite acompanhar a jornada diária do lead
     if (statusRecebido === 'enviado' && telefone) {
-      const { error: erroResetTag } = await supabase
+      // Buscar dados financeiros do telefone para registrar valor pendente
+      const { data: dadosFinanceiro, error: erroFinanceiro } = await supabase
         .from('financeiro_sieg')
-        .update({ tag: 'T1 - SEM RESPOSTA' })
+        .select('id, valor_em_aberto, cnpj')
         .eq('empresa_id', empresaId)
         .eq('telefone', telefone)
+        .limit(1)
+        .single()
 
-      if (erroResetTag) {
-        console.warn('⚠️ [Disparo] Erro ao resetar tag:', JSON.stringify(erroResetTag))
+      if (!erroFinanceiro && dadosFinanceiro) {
+        const valorEmAberto = parseFloat(dadosFinanceiro.valor_em_aberto) || 0
+
+        // Resetar tag para T1
+        const { error: erroResetTag } = await supabase
+          .from('financeiro_sieg')
+          .update({ tag: 'T1 - SEM RESPOSTA' })
+          .eq('id', dadosFinanceiro.id)
+
+        if (erroResetTag) {
+          console.warn('⚠️ [Disparo] Erro ao resetar tag:', JSON.stringify(erroResetTag))
+        } else {
+          console.log(`🏷️ [Disparo] Tag resetada para T1 - telefone: ${telefone}`)
+        }
+
+        // Registrar valor pendente no histórico (se > 0)
+        if (valorEmAberto > 0) {
+          const { error: erroHistorico } = await supabase
+            .from('historico_valores_financeiros')
+            .insert({
+              empresa_id: empresaId,
+              financeiro_id: dadosFinanceiro.id,
+              telefone: telefone,
+              cnpj: dadosFinanceiro.cnpj || null,
+              tipo_valor: 'pendente',
+              valor_anterior: 0,
+              valor_novo: valorEmAberto,
+              diferenca: valorEmAberto,
+              data_registro: new Date().toISOString()
+            })
+
+          if (erroHistorico) {
+            console.warn('⚠️ [Disparo] Erro ao registrar histórico pendente:', JSON.stringify(erroHistorico))
+          } else {
+            console.log(`💰 [Disparo] Valor pendente registrado no histórico: R$ ${valorEmAberto} - telefone: ${telefone}`)
+          }
+        }
       } else {
-        console.log(`🏷️ [Disparo] Tag resetada para T1 - telefone: ${telefone}`)
+        console.log(`⚠️ [Disparo] Telefone ${telefone} não encontrado em financeiro_sieg`)
       }
     }
 
