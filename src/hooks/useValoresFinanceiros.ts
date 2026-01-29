@@ -48,6 +48,101 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
       setError(null);
 
       try {
+        // Função para parsear valor - valores já vêm no formato numérico do banco (ex: "1.003" = 1.003)
+        const parseValorBR = (valor: any): number => {
+          if (!valor) return 0;
+          const num = parseFloat(String(valor));
+          return isNaN(num) ? 0 : num;
+        };
+
+        // ========== MODO SEM FILTRO (GERAL) ==========
+        // Quando não tem startDate nem endDate, buscar total geral direto da tabela financeiro_sieg
+        if (!startDate && !endDate) {
+          console.log(`💰 [useValoresFinanceiros] Modo GERAL - buscando totais sem filtro de data`);
+          
+          // Buscar todos os registros da tabela financeiro_sieg para este tenant
+          const { data: financeiroData, error: financeiroError } = await (centralSupabase as any)
+            .from('financeiro_sieg')
+            .select('valor_em_aberto, cnpj, telefone')
+            .eq('empresa_id', tenant.id);
+          
+          if (financeiroError) {
+            console.error('💰 [useValoresFinanceiros] Erro ao buscar financeiro_sieg:', financeiroError);
+            setIsLoading(false);
+            return;
+          }
+
+          // Agrupar por CNPJ para evitar duplicatas
+          const valoresPorCnpj = new Map<string, number>();
+          const empresasUnicas = new Set<string>();
+          
+          (financeiroData || []).forEach((item: any) => {
+            const chave = item.cnpj && String(item.cnpj).trim().length > 0 
+              ? String(item.cnpj).trim() 
+              : item.telefone;
+            if (chave) empresasUnicas.add(chave);
+            
+            const valorAtual = valoresPorCnpj.get(chave) || 0;
+            const valorItem = parseValorBR(item.valor_em_aberto);
+            if (valorItem > valorAtual) {
+              valoresPorCnpj.set(chave, valorItem);
+            }
+          });
+
+          let totalEmAberto = 0;
+          valoresPorCnpj.forEach((valor) => {
+            totalEmAberto += valor;
+          });
+
+          // Buscar valor recuperado total (T3 e T4) sem filtro de data
+          const { data: pagosIA } = await (centralSupabase as any)
+            .from('historico_tags_financeiros')
+            .select('valor_recuperado_ia')
+            .eq('empresa_id', tenant.id)
+            .ilike('tag_nova', '%T3%');
+          
+          const { data: pagosHumano } = await (centralSupabase as any)
+            .from('historico_tags_financeiros')
+            .select('valor_recuperado_ia')
+            .eq('empresa_id', tenant.id)
+            .ilike('tag_nova', '%T4%');
+
+          let valorRecuperadoIA = 0;
+          let valorRecuperadoHumano = 0;
+          
+          (pagosIA || []).forEach((item: any) => {
+            valorRecuperadoIA += parseValorBR(item.valor_recuperado_ia);
+          });
+          
+          (pagosHumano || []).forEach((item: any) => {
+            valorRecuperadoHumano += parseValorBR(item.valor_recuperado_ia);
+          });
+
+          const valorRecuperadoTotal = valorRecuperadoIA + valorRecuperadoHumano;
+
+          console.log('💰 [useValoresFinanceiros] Valores GERAIS:', {
+            totalEmAberto,
+            valorRecuperadoTotal,
+            valorRecuperadoIA,
+            valorRecuperadoHumano,
+            totalEmpresas: empresasUnicas.size
+          });
+
+          setData({
+            valorPendente: totalEmAberto,
+            valorRecuperado: valorRecuperadoTotal,
+            valorRecuperadoIA,
+            valorRecuperadoHumano,
+            valorEmNegociacao: 0,
+            metaMensal: 50000.00,
+            totalEmpresas: empresasUnicas.size,
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+
+        // ========== MODO COM FILTRO DE DATA ==========
         // Data mínima: 04/12/2025 (desconsiderar dados anteriores)
         const DATA_MINIMA = new Date('2025-12-04T00:00:00');
         
@@ -66,13 +161,6 @@ export function useValoresFinanceiros(startDate?: Date, endDate?: Date) {
         }
 
         console.log(`💰 [useValoresFinanceiros] Período: ${startISO} até ${endISO || 'sem fim'}`);
-
-        // Função para parsear valor - valores já vêm no formato numérico do banco (ex: "1.003" = 1.003)
-        const parseValorBR = (valor: any): number => {
-          if (!valor) return 0;
-          const num = parseFloat(String(valor));
-          return isNaN(num) ? 0 : num;
-        };
 
         // ========== TOTAL COBRADO (disparos enviados no período) ==========
         let disparosQuery = (centralSupabase as any)

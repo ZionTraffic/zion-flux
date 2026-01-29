@@ -24,6 +24,7 @@ import { DisparosDiariosChart } from "@/components/dashboard/DisparosDiariosChar
 import logoZionIcon from "@/assets/logo-zion-icon.png";
 import { useTagCountsHistorico } from "@/hooks/useTagCountsHistorico";
 import { APP_VERSION } from "@/lib/version";
+import { WhatsNewModal } from "@/components/updates/WhatsNewModal";
 
 const DashboardIndex = () => {
   const { currentTenant } = useTenant();
@@ -247,6 +248,9 @@ const DashboardIndex = () => {
 
   return (
     <div className="min-h-screen" key={componentKey}>
+      {/* Modal de Novidades */}
+      <WhatsNewModal />
+
       <Header
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
@@ -255,7 +259,6 @@ const DashboardIndex = () => {
         isExporting={isExporting}
         dateRange={dateRange}
       />
-
 
       <main className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Hero Section */}
@@ -272,9 +275,9 @@ const DashboardIndex = () => {
               trend="up"
               hideStats={shouldHideStats}
               isSiegFinanceiro={isSiegFinanceiro}
-              valorEmAberto={valoresFinanceiros.data.valorPendente}
-              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
-              totalEmpresas={valoresFinanceiros.data.totalEmpresas}
+              valorEmAberto={valoresFinanceirosGerais.data.valorPendente}
+              valorRecuperado={valoresFinanceirosGerais.data.valorRecuperado}
+              totalEmpresas={valoresFinanceirosGerais.data.totalEmpresas}
             />
           );
         })()}

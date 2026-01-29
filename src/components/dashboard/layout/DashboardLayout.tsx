@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Header } from "@/components/ui/Header";
 import logoZionIcon from "@/assets/logo-zion-icon.png";
 import { APP_VERSION } from "@/lib/version";
+import { WhatsNewModal } from "@/components/updates/WhatsNewModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -22,6 +23,9 @@ export const DashboardLayout = ({
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen w-full">
+      {/* Modal de Novidades */}
+      <WhatsNewModal />
+
       {/* Header */}
       <Header
         onRefresh={onRefresh}
