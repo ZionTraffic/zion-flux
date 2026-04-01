@@ -211,7 +211,7 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
           const to = from + PAGE_SIZE - 1;
           
           let query = (centralSupabase as any)
-            .from('financeiro_sieg')
+            .from('sieg_fin_financeiro')
             .select('id, nome, nome_empresa, telefone, atendente, nota_csat, opiniao_csat, historico_conversa, tag, criado_em')
             .eq('empresa_id', tenant.id)
             .gte('criado_em', filterStartDate)
@@ -313,9 +313,10 @@ export function useCSATData(_workspaceId: string, startDate?: Date, endDate?: Da
           // Obter nota do campo nota_csat (APENAS notas válidas 1-5)
           let nota: number | null = null;
           
-          // APENAS usar nota_csat se for válida (1-5)
-          if (registro.nota_csat >= 1 && registro.nota_csat <= 5) {
-            nota = registro.nota_csat;
+          // APENAS usar nota_csat se for válida (1-5) — converter para número pois o campo é TEXT no banco
+          const notaCsatNum = typeof registro.nota_csat === 'string' ? parseInt(registro.nota_csat, 10) : Number(registro.nota_csat);
+          if (!isNaN(notaCsatNum) && notaCsatNum >= 1 && notaCsatNum <= 5) {
+            nota = notaCsatNum;
           }
 
           // Se não tem nota válida, pular este registro
