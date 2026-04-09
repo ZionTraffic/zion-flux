@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Download, Layers, MessageSquare, LogOut, Home, TrendingUp, Users } from "lucide-react";
+import { RefreshCw, Layers, MessageSquare, LogOut, Home, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingsMenu } from "./SettingsMenu";
 import { MenuBar } from "./glow-menu";
@@ -25,12 +25,10 @@ interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdate: Date | null;
-  onExportPdf?: () => void;
-  isExporting?: boolean;
   dateRange?: { from?: Date; to?: Date };
 }
 
-export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExporting, dateRange }: HeaderProps) => {
+export const Header = ({ onRefresh, isRefreshing, lastUpdate, dateRange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -223,8 +221,8 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
           <div className="hidden sm:flex flex-1 justify-center items-center gap-2 md:gap-3 max-w-2xl">
             <TenantSelectorCompact />
             
-            {/* Export Dropdown - apenas para SIEG Financeiro */}
-            {(currentTenant?.slug === 'sieg-financeiro' || currentTenant?.slug?.includes('financeiro')) && (
+            {/* Export Dropdown */}
+            {currentTenant && (
               <ExportDropdown
                 tenantId={currentTenant?.id || ''}
                 tenantName={currentTenant?.name}
@@ -281,22 +279,6 @@ export const Header = ({ onRefresh, isRefreshing, lastUpdate, onExportPdf, isExp
                 </TooltipContent>
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="glass hover:glass-medium hidden sm:flex"
-                    onClick={onExportPdf}
-                    disabled={isExporting}
-                  >
-                    <Download className={`h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isExporting ? 'Gerando PDF...' : 'Exportar relatório'}</p>
-                </TooltipContent>
-              </Tooltip>
 
               {(isMasterUser || canAccessSettings) && (
                 <div className="hidden sm:block">

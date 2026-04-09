@@ -259,8 +259,6 @@ const DashboardIndex = () => {
         onRefresh={() => window.location.reload()}
         isRefreshing={isLoading}
         lastUpdate={new Date()}
-        onExportPdf={handleExportPdf}
-        isExporting={isExporting}
         dateRange={dateRange}
       />
 
