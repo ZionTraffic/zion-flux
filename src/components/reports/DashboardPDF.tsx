@@ -278,65 +278,79 @@ export const DashboardPDF = ({
         {/* KPIs Principais - DINÂMICO POR WORKSPACE */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {isSieg ? 'Funil de Atendimento (T1-T4)' : 'Metricas Principais'}
+            {isSieg ? 'Funil de Atendimento (T1-T6)' : 'Metricas Principais'}
           </Text>
-          <View style={styles.kpiContainer}>
-            {isSieg ? (
-              <>
-                {/* SIEG: Mostrar T1-T4 */}
-                <View style={styles.kpiCard}>
+          {isSieg ? (
+            <>
+              {/* SIEG: Mostrar T1-T6 em 2 linhas de 3 */}
+              <View style={styles.kpiContainer}>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
                   <Text style={styles.kpiLabel}>T1 - Sem Resposta</Text>
                   <Text style={styles.kpiValue}>
                     {(leadsDataByStage?.find(f => f.id === 'novo_lead')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={styles.kpiCard}>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
                   <Text style={styles.kpiLabel}>T2 - Respondido</Text>
                   <Text style={styles.kpiValue}>
                     {(leadsDataByStage?.find(f => f.id === 'qualificacao')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={styles.kpiCard}>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
                   <Text style={styles.kpiLabel}>T3 - Pago IA</Text>
                   <Text style={styles.kpiValue}>
                     {(leadsDataByStage?.find(f => f.id === 'qualificados')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={styles.kpiCard}>
+              </View>
+              <View style={styles.kpiContainer}>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
                   <Text style={styles.kpiLabel}>T4 - Transferido</Text>
                   <Text style={styles.kpiValue}>
                     {(leadsDataByStage?.find(f => f.id === 'followup')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-              </>
-            ) : (
-              <>
-                {/* OUTROS WORKSPACES: KPIs padrão */}
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Leads Gerados</Text>
-                  <Text style={styles.kpiValue}>{(leads?.totalLeads || 0).toLocaleString('pt-BR')}</Text>
-                </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Mensagens Iniciadas</Text>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
+                  <Text style={styles.kpiLabel}>T5 - Desqualificado</Text>
                   <Text style={styles.kpiValue}>
-                    {(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+                    {(leadsDataByStage?.find(f => f.id === 'desqualificado')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Leads Qualificados</Text>
+                <View style={[styles.kpiCard, { width: '30%' }]}>
+                  <Text style={styles.kpiLabel}>T6 - Cancelamento</Text>
                   <Text style={styles.kpiValue}>
-                    {(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+                    {(leadsDataByStage?.find(f => f.id === 'cancelamento')?.value || 0).toLocaleString('pt-BR')}
                   </Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Total Investido</Text>
-                  <Text style={styles.kpiValue}>
-                    R$ {(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
+              </View>
+            </>
+          ) : (
+            <View style={styles.kpiContainer}>
+              {/* OUTROS WORKSPACES: KPIs padrao */}
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiLabel}>Leads Gerados</Text>
+                <Text style={styles.kpiValue}>{(leads?.totalLeads || 0).toLocaleString('pt-BR')}</Text>
+              </View>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiLabel}>Mensagens Iniciadas</Text>
+                <Text style={styles.kpiValue}>
+                  {(metaAds?.conversas_iniciadas || 0).toLocaleString('pt-BR')}
+                </Text>
+              </View>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiLabel}>Leads Qualificados</Text>
+                <Text style={styles.kpiValue}>
+                  {(leads?.qualifiedLeads || 0).toLocaleString('pt-BR')}
+                </Text>
+              </View>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiLabel}>Total Investido</Text>
+                <Text style={styles.kpiValue}>
+                  R$ {(advancedMetrics?.totalInvested || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Resumo do Período */}

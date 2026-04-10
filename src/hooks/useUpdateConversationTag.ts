@@ -11,6 +11,7 @@ const STAGE_MAP: Record<string, string> = {
   'T3 - QUALIFICADO': 'qualificados',
   'T4 - FOLLOW-UP': 'followup',
   'T5 - DESQUALIFICADO': 'descartados',
+  'T6 - CANCELAMENTO': 'cancelado',
 };
 
 export const useUpdateConversationTag = () => {

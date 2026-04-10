@@ -29,6 +29,7 @@ interface SiegFinanceiroRecord {
 function mapTagToStatus(tag: string | null): "qualified" | "follow-up" | "discarded" {
   if (!tag) return "follow-up";
   const tagUpper = tag.toUpperCase();
+  if (tagUpper.includes('T6') || tagUpper.includes('CANCELAMENTO') || tagUpper.includes('CANCELADO')) return "discarded";
   if (tagUpper.includes('PAGO') || tagUpper.includes('T3')) return "qualified";
   if (tagUpper.includes('TRANSFERIDO') || tagUpper.includes('T4')) return "qualified";
   if (tagUpper.includes('SUSPENSÃO') || tagUpper.includes('T5')) return "discarded";
@@ -38,6 +39,7 @@ function mapTagToStatus(tag: string | null): "qualified" | "follow-up" | "discar
 function mapTagToStage(tag: string | null): LeadStage | null {
   if (!tag) return null;
   const tagUpper = tag.toUpperCase();
+  if (tagUpper.includes('T6') || tagUpper.includes('CANCELAMENTO') || tagUpper.includes('CANCELADO')) return 'cancelado';
   if (tagUpper.includes('T1') || tagUpper.includes('NOVO')) return 'novo_lead';
   if (tagUpper.includes('T2') || tagUpper.includes('QUALIFICANDO')) return 'qualificacao';
   if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) return 'qualificados';

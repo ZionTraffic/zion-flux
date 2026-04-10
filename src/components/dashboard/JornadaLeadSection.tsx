@@ -50,11 +50,17 @@ const ESTAGIO_CONFIG: Record<string, {
     label: 'T4 - Transferido',
     descricao: 'Transferido para atendimento humano'
   },
-  'T5': { 
-    cor: 'text-purple-600', 
-    bg: 'bg-purple-100 border-purple-200', 
+  'T5': {
+    cor: 'text-purple-600',
+    bg: 'bg-purple-100 border-purple-200',
     label: 'T5 - Suspensão',
     descricao: 'Passível de suspensão'
+  },
+  'T6': {
+    cor: 'text-orange-600',
+    bg: 'bg-orange-100 border-orange-200',
+    label: 'T6 - Cancelamento',
+    descricao: 'Cliente cancelou o serviço'
   },
 };
 

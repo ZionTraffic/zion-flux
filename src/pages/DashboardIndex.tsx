@@ -48,9 +48,6 @@ const DashboardIndex = () => {
   // Hook para valores financeiros (com filtro de data) - usado nos cards
   const valoresFinanceiros = useValoresFinanceiros(dateRange?.from, dateRange?.to);
   
-  // Hook para valores financeiros GERAIS (sem filtro) - usado no header
-  const valoresFinanceirosGerais = useValoresFinanceiros();
-  
   // Hook para contagens históricas de tags (T1-T5) - SIEG Financeiro (com filtro de data)
   const { counts: tagCountsHistorico, contatos: contatosFinanceiros } = useTagCountsHistorico(dateRange?.from, dateRange?.to);
 
@@ -277,9 +274,11 @@ const DashboardIndex = () => {
               trend="up"
               hideStats={shouldHideStats}
               isSiegFinanceiro={isSiegFinanceiro}
-              valorEmAberto={valoresFinanceirosGerais.data.valorPendente}
-              valorRecuperado={valoresFinanceirosGerais.data.valorRecuperado}
-              totalEmpresas={valoresFinanceirosGerais.data.totalEmpresas}
+              valorEmAberto={valoresFinanceiros.data.valorPendente}
+              valorRecuperado={valoresFinanceiros.data.valorRecuperado}
+              totalEmpresas={valoresFinanceiros.data.totalEmpresas}
+              isLoading={valoresFinanceiros.isLoading}
+              dateRange={dateRange}
             />
           );
         })()}
@@ -304,6 +303,7 @@ const DashboardIndex = () => {
             { key: 'T3H - PAGO HUMANO', label: 'T3H - PAGO HUMANO', value: tagCountsHistorico['T3H - PAGO HUMANO'], colors: 'from-teal-50 to-teal-100 border-teal-200', text: 'text-teal-700', ring: 'ring-teal-400' },
             { key: 'T4 - TRANSFERIDO', label: 'T4 - TRANSFERIDO', value: tagCountsHistorico['T4 - TRANSFERIDO'], colors: 'from-amber-50 to-amber-100 border-amber-200', text: 'text-amber-700', ring: 'ring-amber-400' },
             { key: 'T5 - PASSÍVEL DE SUSPENSÃO', label: 'T5 - PASSÍVEL DE SUSPENSÃO', value: tagCountsHistorico['T5 - PASSÍVEL DE SUSPENSÃO'], colors: 'from-purple-50 to-purple-100 border-purple-200', text: 'text-purple-700', ring: 'ring-purple-400' },
+            { key: 'T6 - CANCELAMENTO', label: 'T6 - CANCELAMENTO', value: tagCountsHistorico['T6 - CANCELAMENTO'] || 0, colors: 'from-orange-50 to-orange-100 border-orange-300', text: 'text-orange-700', ring: 'ring-orange-400' },
           ] : [
             { key: 'T1', label: currentTenant?.slug === 'asf' ? 'T1 - NOVO LEAD' : 'T1 - SEM RESPOSTA', value: (leadsData.charts?.funnelData?.find(f => f.id === 'novo_lead')?.value || 0), colors: 'from-red-50 to-red-100 border-red-200', text: 'text-red-700', ring: 'ring-red-400' },
             { key: 'T2', label: currentTenant?.slug === 'asf' ? 'T2 - QUALIFICANDO' : 'T2 - RESPONDIDO', value: (leadsData.charts?.funnelData?.find(f => f.id === 'qualificacao')?.value || 0), colors: 'from-blue-50 to-blue-100 border-blue-200', text: 'text-blue-700', ring: 'ring-blue-400' },
@@ -312,7 +312,7 @@ const DashboardIndex = () => {
           ];
 
           return (
-            <div className={`grid grid-cols-2 sm:grid-cols-3 ${isSiegFinanceiro ? 'lg:grid-cols-6' : 'md:grid-cols-4'} gap-3 sm:gap-4`}>
+            <div className={`grid grid-cols-2 sm:grid-cols-3 ${isSiegFinanceiro ? 'lg:grid-cols-7' : 'md:grid-cols-4'} gap-3 sm:gap-4`}>
               {tagCards.map((card) => (
                 <div
                   key={card.key}
@@ -339,6 +339,7 @@ const DashboardIndex = () => {
             const tagUpper = String(item.tag || '').toUpperCase();
             const valorIA = parseValorBR(item.valor_recuperado_ia);
             const valorHumano = parseValorBR(item.valor_recuperado_humano);
+            if (tagUpper.includes('T6') || tagUpper.includes('CANCEL')) return 'T6 - CANCELAMENTO';
             if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) return 'T5 - PASSÍVEL DE SUSPENSÃO';
             if (valorHumano > 0) return 'T3H - PAGO HUMANO';
             if (valorIA > 0) return 'T3 - PAGO IA';

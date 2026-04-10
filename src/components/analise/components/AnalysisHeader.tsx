@@ -56,7 +56,7 @@ export const AnalysisHeader = ({
         <div className="flex gap-2">
           <EditableTagBadge 
             conversationId={conversationId}
-            currentTag={tag || (status === "qualified" ? "T3 - QUALIFICADO" : status === "follow-up" ? "T4 - FOLLOW-UP" : "T5 - DESQUALIFICADO")}
+            currentTag={tag || (status === "qualified" ? "T3 - QUALIFICADO" : status === "follow-up" ? "T4 - FOLLOW-UP" : status === "cancelled" ? "T6 - CANCELAMENTO" : "T5 - DESQUALIFICADO")}
             onTagUpdated={onTagUpdated}
           />
           <Badge variant={isActive ? "default" : "secondary"}>

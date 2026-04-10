@@ -12,6 +12,8 @@ interface HeroSectionProps {
   valorRecuperado?: number;
   totalEmpresas?: number;
   isSiegFinanceiro?: boolean;
+  isLoading?: boolean;
+  dateRange?: { from?: Date; to?: Date };
 }
 
 export function HeroSection({ 
@@ -26,6 +28,8 @@ export function HeroSection({
   valorRecuperado = 0,
   totalEmpresas = 0,
   isSiegFinanceiro = false,
+  isLoading = false,
+  dateRange,
 }: HeroSectionProps) {
   console.log('🔍 HeroSection - hideStats:', hideStats, 'workspaceName:', workspaceName);
   
@@ -35,6 +39,20 @@ export function HeroSection({
     if (hour < 18) return "Boa tarde";
     return "Boa noite";
   };
+
+  const getPeriodoLabel = () => {
+    if (!dateRange?.from) return null;
+    const fmt = (d: Date) => d.toLocaleDateString('pt-BR');
+    if (dateRange.to && dateRange.from.toDateString() === dateRange.to.toDateString()) {
+      return fmt(dateRange.from);
+    }
+    if (dateRange.to) {
+      return `${fmt(dateRange.from)} até ${fmt(dateRange.to)}`;
+    }
+    return fmt(dateRange.from);
+  };
+
+  const periodoLabel = getPeriodoLabel();
 
   const getTrendIcon = () => {
     if (trend === "up") return (
@@ -100,10 +118,16 @@ export function HeroSection({
 
         {/* Quick Stats */}
         {!hideStats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <>
+          {periodoLabel && (
+            <p className="text-xs text-blue-200/70 mb-3">
+              Exibindo dados do período: <span className="font-semibold text-blue-100/90">{periodoLabel}</span>
+            </p>
+          )}
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
           {/* Card 1 - Total de Empresas (SIEG) ou Total de Clientes (outros) */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-sm text-blue-100 mb-1">{isSiegFinanceiro ? 'Total de Empresas' : 'Total de Clientes'}</p>
+            <p className="text-sm text-blue-100 mb-1">{isSiegFinanceiro ? (periodoLabel ? 'Empresas no Período' : 'Total de Empresas') : 'Total de Clientes'}</p>
             <p className="text-2xl font-bold text-white">{(isSiegFinanceiro ? totalEmpresas : totalLeads).toLocaleString('pt-BR')}</p>
           </div>
 
@@ -111,7 +135,7 @@ export function HeroSection({
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             {isSiegFinanceiro ? (
               <>
-                <p className="text-sm text-blue-100 mb-1">Valor em Aberto</p>
+                <p className="text-sm text-blue-100 mb-1">{periodoLabel ? 'Em Aberto no Período' : 'Valor em Aberto'}</p>
                 <p className="text-2xl font-bold text-white">R$ {valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </>
             ) : (
@@ -126,7 +150,7 @@ export function HeroSection({
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             {isSiegFinanceiro ? (
               <>
-                <p className="text-sm text-blue-100 mb-1">Valor Recuperado</p>
+                <p className="text-sm text-blue-100 mb-1">{periodoLabel ? 'Recuperado no Período' : 'Valor Recuperado'}</p>
                 <p className="text-2xl font-bold text-emerald-300">R$ {valorRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </>
             ) : (
@@ -137,6 +161,7 @@ export function HeroSection({
             )}
           </div>
         </div>
+        </>
         )}
       </div>
     </div>

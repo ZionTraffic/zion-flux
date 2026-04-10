@@ -23,6 +23,7 @@ export const DonutChart = ({ data, title = 'Distribuição' }: DonutChartProps) 
     'T3 - Pago IA': '#8b5cf6',       // Roxo
     'T4 - Transferido': '#10b981',   // Verde
     'T5 - Desqualificado': '#ef4444', // Vermelho
+    'T6 - Cancelamento': '#f97316',    // Laranja
   };
 
   const option: EChartsOption = {

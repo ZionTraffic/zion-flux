@@ -11,6 +11,7 @@ export interface TagCountsHistorico {
   'T3H - PAGO HUMANO': number;
   'T4 - TRANSFERIDO': number;
   'T5 - PASSÍVEL DE SUSPENSÃO': number;
+  'T6 - CANCELAMENTO': number;
 }
 
 export interface ContatoFinanceiro {
@@ -39,6 +40,7 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
     'T3H - PAGO HUMANO': 0,
     'T4 - TRANSFERIDO': 0,
     'T5 - PASSÍVEL DE SUSPENSÃO': 0,
+    'T6 - CANCELAMENTO': 0,
   });
   const [contatos, setContatos] = useState<ContatoFinanceiro[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,6 +103,7 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
             'T3H - PAGO HUMANO': 0,
             'T4 - TRANSFERIDO': 0,
             'T5 - PASSÍVEL DE SUSPENSÃO': 0,
+            'T6 - CANCELAMENTO': 0,
           });
           setContatos([]);
           setIsLoading(false);
@@ -131,6 +134,7 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           'T3H': 0,
           'T4': 0,
           'T5': 0,
+          'T6': 0,
         };
 
         (allFinanceiroData || []).forEach((item: any) => {
@@ -139,7 +143,9 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           const valorRecuperadoIA = parseValorBR(item.valor_recuperado_ia);
           const valorRecuperadoHumano = parseValorBR(item.valor_recuperado_humano);
 
-          if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
+          if (tagUpper.includes('T6') || tagUpper.includes('CANCEL')) {
+            leadsPerEstagio['T6']++;
+          } else if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
             leadsPerEstagio['T5']++;
           } else if (valorRecuperadoHumano > 0) {
             leadsPerEstagio['T3H']++;
@@ -163,6 +169,7 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           'T3H - PAGO HUMANO': leadsPerEstagio['T3H'],
           'T4 - TRANSFERIDO': leadsPerEstagio['T4'],
           'T5 - PASSÍVEL DE SUSPENSÃO': leadsPerEstagio['T5'],
+          'T6 - CANCELAMENTO': leadsPerEstagio['T6'],
         });
 
         console.log('📊 [useTagCountsHistorico] Contagens por TAG ATUAL:', {
@@ -173,6 +180,7 @@ export function useTagCountsHistorico(startDate?: Date, endDate?: Date) {
           T3H: leadsPerEstagio['T3H'],
           T4: leadsPerEstagio['T4'],
           T5: leadsPerEstagio['T5'],
+          T6: leadsPerEstagio['T6'],
         });
 
       } catch (err) {

@@ -1,9 +1,9 @@
 import { MIN_DATA_DATE } from '@/lib/constants';
 import { toBrasiliaDateString } from '@/lib/dateUtils';
 
-export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
+export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup' | 'cancelado';
 
-export const STAGES: LeadStage[] = ['novo_lead', 'qualificacao', 'qualificados', 'descartados', 'followup'];
+export const STAGES: LeadStage[] = ['novo_lead', 'qualificacao', 'qualificados', 'descartados', 'followup', 'cancelado'];
 
 const BASE_LABELS: Record<LeadStage, { title: string; description: string }> = {
   novo_lead: {
@@ -25,6 +25,10 @@ const BASE_LABELS: Record<LeadStage, { title: string; description: string }> = {
   followup: {
     title: 'Follow-up',
     description: 'Leads em acompanhamento ativo',
+  },
+  cancelado: {
+    title: 'Cancelado',
+    description: 'Leads que cancelaram o serviço',
   },
 };
 
@@ -48,6 +52,10 @@ const SIEG_LABELS: Partial<Record<LeadStage, { title: string; description: strin
   descartados: {
     title: 'T5 - Passível de Suspensão',
     description: 'Leads desqualificados ou a suspender',
+  },
+  cancelado: {
+    title: 'T6 - Cancelamento',
+    description: 'Leads que cancelaram o serviço',
   },
 };
 
@@ -94,6 +102,9 @@ const NORMALIZED_STAGE_MAP: Record<string, LeadStage> = {
   desqualificado: 'descartados',
   'desqualificado(a)': 'descartados',
   t5: 'descartados',
+  cancelado: 'cancelado',
+  cancelamento: 'cancelado',
+  t6: 'cancelado',
 };
 
 const toIsoDate = (date: Date) => {
@@ -155,6 +166,7 @@ export const normalizeStage = (
 
   if (heuristic) {
     if (slug === 'sieg' || slug === 'sieg-pre-vendas') {
+      if (heuristic.includes('t6') || heuristic.includes('cancelamento') || heuristic.includes('cancelado')) return 'cancelado';
       if (heuristic.includes('t3') || heuristic.includes('pago')) return 'qualificados';
       if (heuristic.includes('t4') || heuristic.includes('transfer')) return 'followup';
       if (heuristic.includes('t5') || heuristic.includes('desqual')) return 'descartados';
@@ -495,8 +507,11 @@ async function fetchSiegFinanceiroLeads(
       // Mapeamento de tags do SIEG Financeiro (case insensitive)
       const tagUpper = String(tag).toUpperCase();
       
+      // REGRA 0: Se tag é T6 -> CANCELADO (prioridade máxima, vence tudo)
+      if (tagUpper.includes('T6') || tagUpper.includes('CANCELAMENTO') || tagUpper.includes('CANCELADO')) {
+        stage = 'cancelado';
       // REGRA 1: Se tag é T5 -> T5 (não muda nunca)
-      if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
+      } else if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
         stage = 'descartados';
       // REGRA 2: Se tag é T3 ou PAGO -> T3 (não muda)
       } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) {
@@ -567,6 +582,7 @@ async function fetchSiegFinanceiroLeads(
       // - Preferir quem tem status mais avançado (qualificados > followup > qualificacao > novo_lead > descartados)
       // - Em empate, preferir maior valor_em_aberto
       const stageRank: Record<LeadStage, number> = {
+        cancelado: 6,
         qualificados: 5,
         followup: 4,
         qualificacao: 3,

@@ -32,6 +32,7 @@ const ESTAGIO_CONFIG: Record<string, { cor: string; bg: string; label: string }>
   'T3': { cor: 'text-emerald-600', bg: 'bg-emerald-100 border-emerald-200', label: 'T3 - Pago IA' },
   'T4': { cor: 'text-amber-600', bg: 'bg-amber-100 border-amber-200', label: 'T4 - Transferido' },
   'T5': { cor: 'text-purple-600', bg: 'bg-purple-100 border-purple-200', label: 'T5 - Suspensão' },
+  'T6': { cor: 'text-orange-600', bg: 'bg-orange-100 border-orange-200', label: 'T6 - Cancelamento' },
 };
 
 function getEstagioConfig(estagio: string | null) {

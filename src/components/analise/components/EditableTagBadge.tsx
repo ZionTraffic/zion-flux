@@ -17,7 +17,8 @@ const TAGS = [
   'T2 - QUALIFICANDO',
   'T3 - QUALIFICADO',
   'T4 - FOLLOW-UP',
-  'T5 - DESQUALIFICADO'
+  'T5 - DESQUALIFICADO',
+  'T6 - CANCELAMENTO'
 ] as const;
 
 const tagColors: Record<string, string> = {
@@ -25,7 +26,8 @@ const tagColors: Record<string, string> = {
   "T2 - QUALIFICANDO": "bg-amber-500/10 text-amber-400 border-amber-500/30",
   "T3 - QUALIFICADO": "bg-green-950/40 text-green-400 border-green-500 shadow-[0_0_12px_rgba(34,197,94,0.4)] shadow-green-500/50",
   "T4 - FOLLOW-UP": "bg-purple-500/10 text-purple-400 border-purple-500/30",
-  "T5 - DESQUALIFICADO": "bg-red-500/10 text-red-400 border-red-500/30"
+  "T5 - DESQUALIFICADO": "bg-red-500/10 text-red-400 border-red-500/30",
+  "T6 - CANCELAMENTO": "bg-orange-500/10 text-orange-400 border-orange-500/30"
 };
 
 export const EditableTagBadge = ({ conversationId, currentTag, onTagUpdated }: EditableTagBadgeProps) => {

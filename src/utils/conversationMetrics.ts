@@ -106,7 +106,9 @@ export const identifyRiskFactors = (conversation: ConversationData): string[] =>
   if (conversation.tag) {
     const tagLower = conversation.tag.toLowerCase();
     
-    if (tagLower.includes('t5') || tagLower.includes('desqualificado')) {
+    if (tagLower.includes('t6') || tagLower.includes('cancelamento')) {
+      risks.push("Lead cancelado - Prioridade máxima de atenção");
+    } else if (tagLower.includes('t5') || tagLower.includes('desqualificado')) {
       // Não adicionar como risco, já está desqualificado
     } else if (tagLower.includes('t1') || tagLower.includes('novo')) {
       risks.push("Lead ainda não iniciou qualificação");
@@ -189,6 +191,16 @@ export const generateActivityTimeline = (conversation: ConversationData) => {
       });
     }
     
+    // Cancelamento (T6) — Prioridade máxima
+    else if (tagLower.includes('t6') || tagLower.includes('cancelamento')) {
+      activities.push({
+        time: conversation.ended_at ? new Date(conversation.ended_at) : new Date(),
+        label: 'Cancelamento - Lead cancelou o processo',
+        type: 'error',
+        icon: 'Ban'
+      });
+    }
+
     // Desqualificado (T5)
     else if (tagLower.includes('t5') || tagLower.includes('desqualificado')) {
       let reason = 'Não atendeu requisitos de qualificação';
