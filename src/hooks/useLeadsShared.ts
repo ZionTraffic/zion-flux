@@ -1,9 +1,9 @@
 import { MIN_DATA_DATE } from '@/lib/constants';
 import { toBrasiliaDateString } from '@/lib/dateUtils';
 
-export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup';
+export type LeadStage = 'novo_lead' | 'qualificacao' | 'qualificados' | 'descartados' | 'followup' | 'cancelado';
 
-export const STAGES: LeadStage[] = ['novo_lead', 'qualificacao', 'qualificados', 'descartados', 'followup'];
+export const STAGES: LeadStage[] = ['novo_lead', 'qualificacao', 'qualificados', 'descartados', 'followup', 'cancelado'];
 
 const BASE_LABELS: Record<LeadStage, { title: string; description: string }> = {
   novo_lead: {
@@ -25,6 +25,10 @@ const BASE_LABELS: Record<LeadStage, { title: string; description: string }> = {
   followup: {
     title: 'Follow-up',
     description: 'Leads em acompanhamento ativo',
+  },
+  cancelado: {
+    title: 'Cancelado',
+    description: 'Leads que cancelaram o serviço',
   },
 };
 
@@ -48,6 +52,10 @@ const SIEG_LABELS: Partial<Record<LeadStage, { title: string; description: strin
   descartados: {
     title: 'T5 - Passível de Suspensão',
     description: 'Leads desqualificados ou a suspender',
+  },
+  cancelado: {
+    title: 'T6 - Cancelamento',
+    description: 'Leads que cancelaram o serviço',
   },
 };
 
@@ -94,6 +102,9 @@ const NORMALIZED_STAGE_MAP: Record<string, LeadStage> = {
   desqualificado: 'descartados',
   'desqualificado(a)': 'descartados',
   t5: 'descartados',
+  cancelado: 'cancelado',
+  cancelamento: 'cancelado',
+  t6: 'cancelado',
 };
 
 const toIsoDate = (date: Date) => {
@@ -155,6 +166,7 @@ export const normalizeStage = (
 
   if (heuristic) {
     if (slug === 'sieg' || slug === 'sieg-pre-vendas') {
+      if (heuristic.includes('t6') || heuristic.includes('cancelamento') || heuristic.includes('cancelado')) return 'cancelado';
       if (heuristic.includes('t3') || heuristic.includes('pago')) return 'qualificados';
       if (heuristic.includes('t4') || heuristic.includes('transfer')) return 'followup';
       if (heuristic.includes('t5') || heuristic.includes('desqual')) return 'descartados';
@@ -281,11 +293,11 @@ export async function fetchTenantLeads({
   
   console.log('[fetchTenantLeads] Iniciando busca de leads...', { tenantId, tenantSlug });
   
-  // Verificar se é SIEG Financeiro - usar tabela financeiro_sieg
+  // Verificar se é SIEG Financeiro - usar tabela sieg_fin_financeiro
   const isSiegFinanceiro = tenantSlug === 'sieg-financeiro' || tenantSlug?.includes('financeiro');
   
   if (isSiegFinanceiro) {
-    console.log('[fetchTenantLeads] 🏦 Workspace SIEG Financeiro detectado - usando tabela financeiro_sieg');
+    console.log('[fetchTenantLeads] 🏦 Workspace SIEG Financeiro detectado - usando tabela sieg_fin_financeiro');
     return fetchSiegFinanceiroLeads(supabaseClient, tenantId, startISO, endISO, getStageFromTag, mappingsLoading, tenantSlug);
   }
 
@@ -293,8 +305,8 @@ export async function fetchTenantLeads({
 
   // Determinar tabelas corretas baseadas no tenant
   const workspaceSlug = tenantSlug || 'asf'; // Default para ASF
-  const leadsTableName = 'leads';
-  const conversasTableName = 'conversas_leads';
+  const leadsTableName = 'sieg_fin_leads';
+  const conversasTableName = 'sieg_fin_conversas_leads';
   
   console.log('[fetchTenantLeads] Usando tabelas:', { leads: leadsTableName, conversas: conversasTableName, workspace: workspaceSlug });
 
@@ -403,7 +415,7 @@ export async function fetchTenantLeads({
   return { columns, leads };
 }
 
-// Função específica para buscar dados do SIEG Financeiro da tabela financeiro_sieg
+// Função específica para buscar dados do SIEG Financeiro da tabela sieg_fin_financeiro
 async function fetchSiegFinanceiroLeads(
   supabaseClient: any,
   tenantId: string,
@@ -414,20 +426,20 @@ async function fetchSiegFinanceiroLeads(
   tenantSlug?: string
 ): Promise<FetchTenantLeadsResult> {
   
-  console.log('[fetchSiegFinanceiroLeads] 🏦 Buscando dados da tabela financeiro_sieg...');
+  console.log('[fetchSiegFinanceiroLeads] 🏦 Buscando dados da tabela sieg_fin_financeiro...');
   console.log('[fetchSiegFinanceiroLeads] 📋 Parâmetros:', { tenantId, tenantSlug, startISO, endISO });
   
   const columns = createEmptyStageMap();
   const leads: LeadFromConversation[] = [];
   const leadByEmpresaKey = new Map<string, LeadFromConversation>();
 
-  // Buscar dados da tabela financeiro_sieg com paginação e filtro de data
+  // Buscar dados da tabela sieg_fin_financeiro com paginação e filtro de data
   for (let page = 0; page < 200; page++) {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
     const { data, error } = await supabaseClient
-      .from('financeiro_sieg')
+      .from('sieg_fin_financeiro')
       .select('id, empresa_id, nome, nome_empresa, cnpj, telefone, valor_em_aberto, valor_recuperado_ia, valor_recuperado_humano, em_negociacao, situacao, tag, data_vencimento, data_pagamento, observacoes, criado_em, atualizado_em, atendente, nota_csat, historico_conversa')
       .eq('empresa_id', tenantId)
       .gte('criado_em', startISO)
@@ -495,8 +507,11 @@ async function fetchSiegFinanceiroLeads(
       // Mapeamento de tags do SIEG Financeiro (case insensitive)
       const tagUpper = String(tag).toUpperCase();
       
+      // REGRA 0: Se tag é T6 -> CANCELADO (prioridade máxima, vence tudo)
+      if (tagUpper.includes('T6') || tagUpper.includes('CANCELAMENTO') || tagUpper.includes('CANCELADO')) {
+        stage = 'cancelado';
       // REGRA 1: Se tag é T5 -> T5 (não muda nunca)
-      if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
+      } else if (tagUpper.includes('T5') || tagUpper.includes('SUSPENS')) {
         stage = 'descartados';
       // REGRA 2: Se tag é T3 ou PAGO -> T3 (não muda)
       } else if (tagUpper.includes('T3') || tagUpper.includes('PAGO')) {
@@ -567,6 +582,7 @@ async function fetchSiegFinanceiroLeads(
       // - Preferir quem tem status mais avançado (qualificados > followup > qualificacao > novo_lead > descartados)
       // - Em empate, preferir maior valor_em_aberto
       const stageRank: Record<LeadStage, number> = {
+        cancelado: 6,
         qualificados: 5,
         followup: 4,
         qualificacao: 3,

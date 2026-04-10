@@ -45,7 +45,7 @@ const Atendimento = () => {
     refetch: refetchGeneric,
   } = useConversationsData(currentTenant?.id || '', dateRange?.from, dateRange?.to);
 
-  // Hook específico para SIEG Financeiro (busca da tabela financeiro_sieg)
+  // Hook específico para SIEG Financeiro (busca da tabela sieg_fin_financeiro)
   const {
     conversations: siegConversations,
     stats: siegStats,
@@ -58,7 +58,7 @@ const Atendimento = () => {
   const conversationStats = isSiegFinanceiro ? siegStats : genericStats;
   const conversationsLoading = isSiegFinanceiro ? siegLoading : genericLoading;
 
-  // Hook para contagens históricas de tags (T1-T5)
+  // Hook para contagens históricas de tags (T1-T6)
   const { counts: tagCountsHistorico } = useTagCountsHistorico();
   const refetchConversations = isSiegFinanceiro ? refetchSieg : refetchGeneric;
 
@@ -98,12 +98,16 @@ const Atendimento = () => {
       'T3 - PAGO IA': 0,
       'T4 - TRANSFERIDO': 0,
       'T5 - PASSÍVEL DE SUSPENSÃO': 0,
+      'T6 - CANCELAMENTO': 0,
     };
     
     conversationHistory?.forEach((conv: any) => {
       const tag = conv.tag?.toUpperCase() || '';
+      // T6 - CANCELAMENTO tem prioridade máxima
+      if (tag.includes('T6') || tag.includes('CANCELAMENTO')) {
+        counts['T6 - CANCELAMENTO']++;
       // Se tem valor recuperado IA > 0, conta como T3 - PAGO IA independente da tag
-      if (conv.qualified === true) {
+      } else if (conv.qualified === true) {
         counts['T3 - PAGO IA']++;
       } else if (tag.includes('T1') || tag.includes('SEM RESPOSTA')) {
         counts['T1 - SEM RESPOSTA']++;
@@ -120,11 +124,12 @@ const Atendimento = () => {
   }, [conversationHistory]);
 
   const tagConfig = [
-    { label: 'T1 - SEM RESPOSTA', color: 'from-red-50 to-red-100 border-red-200', textColor: 'text-red-700' },
-    { label: 'T2 - RESPONDIDO', color: 'from-blue-50 to-blue-100 border-blue-200', textColor: 'text-blue-700' },
-    { label: 'T3 - PAGO IA', color: 'from-emerald-50 to-emerald-100 border-emerald-200', textColor: 'text-emerald-700' },
-    { label: 'T4 - TRANSFERIDO', color: 'from-amber-50 to-amber-100 border-amber-200', textColor: 'text-amber-700' },
-    { label: 'T5 - PASSÍVEL DE SUSPENSÃO', color: 'from-purple-50 to-purple-100 border-purple-200', textColor: 'text-purple-700' },
+    { label: 'T1 - SEM RESPOSTA', color: 'from-red-50 to-red-100 border-red-200', textColor: 'text-red-700', ringColor: 'ring-red-400' },
+    { label: 'T2 - RESPONDIDO', color: 'from-blue-50 to-blue-100 border-blue-200', textColor: 'text-blue-700', ringColor: 'ring-blue-400' },
+    { label: 'T3 - PAGO IA', color: 'from-emerald-50 to-emerald-100 border-emerald-200', textColor: 'text-emerald-700', ringColor: 'ring-emerald-400' },
+    { label: 'T4 - TRANSFERIDO', color: 'from-amber-50 to-amber-100 border-amber-200', textColor: 'text-amber-700', ringColor: 'ring-amber-400' },
+    { label: 'T5 - PASSÍVEL DE SUSPENSÃO', color: 'from-purple-50 to-purple-100 border-purple-200', textColor: 'text-purple-700', ringColor: 'ring-purple-400' },
+    { label: 'T6 - CANCELAMENTO', color: 'from-orange-50 to-orange-100 border-orange-300', textColor: 'text-orange-700', ringColor: 'ring-orange-400' },
   ];
 
   // Filtrar conversas pela tag selecionada (considera qualified para T3 - PAGO IA)
@@ -133,7 +138,9 @@ const Atendimento = () => {
     
     return conversationHistory?.filter((conv: any) => {
       const tag = conv.tag?.toUpperCase() || '';
-      if (selectedTag === 'T1 - SEM RESPOSTA') {
+      if (selectedTag === 'T6 - CANCELAMENTO') {
+        return tag.includes('T6') || tag.includes('CANCELAMENTO');
+      } else if (selectedTag === 'T1 - SEM RESPOSTA') {
         return !conv.qualified && (tag.includes('T1') || tag.includes('SEM RESPOSTA'));
       } else if (selectedTag === 'T2 - RESPONDIDO') {
         return !conv.qualified && (tag.includes('T2') || tag.includes('RESPONDIDO') || tag.includes('QUALIFICANDO'));
@@ -198,13 +205,13 @@ const Atendimento = () => {
         </div>
 
         {/* Menu de Tags - Clicável para filtrar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {tagConfig.map((tag) => (
             <div
               key={tag.label}
               onClick={() => handleTagClick(tag.label)}
               className={`bg-gradient-to-br ${tag.color} rounded-2xl p-4 border shadow-sm cursor-pointer hover:shadow-md transition-all ${
-                selectedTag === tag.label ? 'ring-2 ring-offset-2 ring-blue-500 scale-105' : ''
+                selectedTag === tag.label ? `ring-2 ring-offset-2 ${tag.ringColor} scale-105` : ''
               }`}
             >
               <p className={`text-xs font-semibold ${tag.textColor} mb-1`}>{tag.label}</p>
@@ -240,15 +247,6 @@ const Atendimento = () => {
             maxDays={90}
           />
         </div>
-
-        {/* Métricas de Atendimento */}
-        <AtendimentosKpiCards
-          atendimentosHoje={atendimentosMetrics.atendimentosHoje}
-          atendimentosIA={atendimentosMetrics.atendimentosIA}
-          percentualIA={atendimentosMetrics.percentualIA}
-          atendimentosTransferidos={atendimentosMetrics.atendimentosTransferidos}
-          isLoading={atendimentosMetrics.isLoading}
-        />
 
         {/* CSAT por Analista */}
         <CSATAnalystTable

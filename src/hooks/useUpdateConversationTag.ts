@@ -11,6 +11,7 @@ const STAGE_MAP: Record<string, string> = {
   'T3 - QUALIFICADO': 'qualificados',
   'T4 - FOLLOW-UP': 'followup',
   'T5 - DESQUALIFICADO': 'descartados',
+  'T6 - CANCELAMENTO': 'cancelado',
 };
 
 export const useUpdateConversationTag = () => {
@@ -38,7 +39,7 @@ export const useUpdateConversationTag = () => {
         throw new Error('Tenant não encontrado.');
       }
 
-      const { data: existingRecord, error: checkError } = await (centralSupabase.from as any)('conversas_leads')
+      const { data: existingRecord, error: checkError } = await (centralSupabase.from as any)('sieg_fin_conversas_leads')
         .select('id, lead_id, tag, empresa_id')
         .eq('id', conversationId)
         .eq('empresa_id', tenantId)
@@ -69,7 +70,7 @@ export const useUpdateConversationTag = () => {
         }
       }
 
-      const { error } = await (centralSupabase.from as any)('conversas_leads')
+      const { error } = await (centralSupabase.from as any)('sieg_fin_conversas_leads')
         .update({ tag: newTag })
         .eq('id', conversationId)
         .eq('empresa_id', tenantId);
@@ -80,7 +81,7 @@ export const useUpdateConversationTag = () => {
           errorMessage: error.message,
           errorDetails: error.details,
           errorHint: error.hint,
-          tableName: 'conversas_leads', 
+          tableName: 'sieg_fin_conversas_leads', 
           conversationId, 
           newTag 
         });
